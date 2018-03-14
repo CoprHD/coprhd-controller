@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -63,6 +64,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -1776,6 +1778,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @throws DeviceControllerException
      */
     // @Override
+    @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, String sourceReplicationGroup,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -3140,6 +3143,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      *            - User Friendly Name
      * @throws Exception
      */
+    @Override
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
             throws Exception {
 
@@ -3173,6 +3177,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @return initiatorAlias - User Friendly Name
      * @throws Exception
      */
+    @Override
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator)
             throws Exception {
         String initiatorAlias = null;
@@ -3293,5 +3298,52 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportRemovePaths START ...", storage.getSerialNumber());
         _exportMaskOperationsHelper.removePaths(storage, exportMask, adjustedPaths, removePaths, taskCompleter);
         _log.info("{} doExportRemovePaths END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doCreateStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        try {
+
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info("Creating port group");
+            _helper.createTargetPortGroup(storage, portGroup.getLabel(),
+                    StringSetUtil.stringSetToUriList(portGroup.getStoragePorts()));
+            completer.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Failed creating storage port group:", e);
+            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
+        }
+    }
+
+    @Override
+    public void doDeleteStoragePortGroup(StorageSystem storage, URI portGroupURI, TaskCompleter completer) throws Exception {
+        try {
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info(String.format("Deleting port group %s starts", portGroup.getNativeGuid()));
+            String portGroupName = portGroup.getLabel();
+            CIMObjectPath targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
+                    SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+            CIMInstance instance = _helper.checkExists(storage, targetPortGroupPath, false, false);
+            if (instance != null) {
+                // Check if there is any lun masking view associated.
+                if (_helper.checkPortGroupShared(storage, portGroupName, null)) {
+                    // Could not delete the port group
+                    String msg = String.format("The port group %s could not be deleted, because it still has associated lun masking view.",
+                            portGroup.getNativeGuid());
+                    _log.error(msg);
+                    completer.error(_dbClient, DeviceControllerException.errors.jobFailedOpMsg("DeleteStoragePortGroup", msg));
+                } else {
+                    _helper.deleteMaskingGroup(storage, portGroupName,
+                            SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+                    completer.ready(_dbClient);
+                }
+            } else {
+                _log.info(String.format("The port group %s does not exist in the array", portGroupName));
+            }
+            _log.info(String.format("Deleting port group %s ends", portGroup.getNativeGuid()));
+        } catch (Exception e) {
+            _log.error("Failed deleting storage port group:", e);
+            completer.error(_dbClient, DeviceControllerException.errors.jobFailed(e));
+        }
     }
 }

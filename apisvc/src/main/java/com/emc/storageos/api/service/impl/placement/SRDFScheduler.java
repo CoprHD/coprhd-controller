@@ -311,6 +311,13 @@ public class SRDFScheduler implements Scheduler {
             sb.append(targetVarray.getId()).append(" ");
         }
         _log.info(sb.toString());
+    
+        // The port group provided is belongs to SRDF source storage system.
+        // If port group set in capabilities, ViPR looks storage pools from given PG's storage system only
+        // Need to remove PORT_GROUP entry from capabilities for SRDF target volume, 
+        // so that ViPR picks SRDF target storage pools from right storage system. 
+        // 
+        capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.PORT_GROUP);
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         Map<VirtualArray, List<StoragePool>> varrayPoolMap = getMatchingPools(targetVarrays, vpool,
                 capabilities, attributeMap);

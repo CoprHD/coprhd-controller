@@ -14,7 +14,7 @@ test_expand_host_filesystem() {
 
     os_failure_injections=""
 
-    supported_os="windows linux hpux" 
+    supported_os="windows linux hpux"
 
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
@@ -83,7 +83,7 @@ test_expand_host_filesystem() {
                 # Verify injected failures were hit
                 verify_failures ${failure}
 
-                if [ ${failure} = "linux_expandVolume_after_mount" ]; then
+                if [[ "${failure}" = "linux_expandVolume_after_mount" || "${failure}" = "hpux_expandVolume_after_mount" ]]; then
                    volume_id=`volume list ${PROJECT} | grep "${volume} " | awk '{print $7}'`
                    host_id=`hosts list ${TENANT} | grep "${hostname} " | awk '{print $4}'`
                    volume_tag="vipr:mountPoint-${host_id}=/${volume}"
@@ -97,17 +97,18 @@ test_expand_host_filesystem() {
                 validate_db 1 2 "${column_family[@]}"
 
                 # host tooling to verify that volume is remounted
-                verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
+                verify_mount_point ${os} ${mountpoint} ${size} ${wwn} false
 
 		# Rerun the expand operation
 		set_artificial_failure none
                 runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os}
 
-		# Verify that expand is successful on host side
- 		verify_mount_point ${os} ${mountpoint} ${size} ${wwn}
 	    else
 	        runcmd expand_volume $TENANT ${hostname} ${volume} ${PROJECT} ${size} ${os} ${failure}
 	    fi
+
+            # Verify that expand is successful on host side
+            verify_mount_point ${os} ${mountpoint} ${size} ${wwn} true
 
             # Report results
             report_results "${test_name}_${os}" ${failure}
@@ -119,15 +120,15 @@ test_expand_host_filesystem() {
 	done
 
 	run unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
-    done 
+    done
 }
 
 test_swap_mounted_volume() {
     test_name="test_swap_mounted_volume"
     echot "Test ${test_name} Begins"
 
-    supported_os="linux"
-    #supported_os="windows linux hpux" 
+    #supported_os="aix"
+    supported_os="windows linux hpux aix"
 
     run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
 
@@ -150,6 +151,9 @@ test_swap_mounted_volume() {
         elif [ "${os}" = "windows" ]
         then
             hostname=winhost1
+        elif [ "${os}" = "aix" ]
+        then
+            hostname=aixhost1
         fi
 
         if [ "${os}" = "windows" ]
@@ -161,22 +165,30 @@ test_swap_mounted_volume() {
             run unix_create_volume_and_mount $TENANT ${hostname} "${volume2}" "/${volume2}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os}
         fi
 
-        size=1
+        size=2
 
+        mountpoint1=`get_volume_mount_point ${PROJECT}/${volume1}`
+        mountpoint2=`get_volume_mount_point ${PROJECT}/${volume2}`
         volume1_id=`volume list ${PROJECT} | grep "${volume1} " | awk '{print $7}'`
         volume2_id=`volume list ${PROJECT} | grep "${volume2} " | awk '{print $7}'`
         host_id=`hosts list ${TENANT} | grep "${hostname} " | awk '{print $4}'`
-        volume1_tag="vipr:mountPoint-${host_id}=/${volume1}"
-        volume2_tag="vipr:mountPoint-${host_id}=/${volume2}"
+        volume1_tag="vipr:mountPoint-${host_id}=${mountpoint1}"
+        volume2_tag="vipr:mountPoint-${host_id}=${mountpoint2}"
 
-        echo "Swapping tags" 
+        echo "Swapping tags"
         remove_tag "volume" ${volume1_id} ${volume1_tag}
         remove_tag "volume" ${volume2_id} ${volume2_tag}
         add_tag "volume" ${volume1_id} ${volume2_tag}
         add_tag "volume" ${volume2_id} ${volume1_tag}
 
-        fail expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
-        fail expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
+        if [ "${os}" = "aix" ]
+        then
+            fail unmount_and_delete_volume $TENANT ${hostname} "${volume1}" ${PROJECT} ${os}
+            fail unmount_and_delete_volume $TENANT ${hostname} "${volume2}" ${PROJECT} ${os}
+        else
+            fail expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
+            fail expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
+        fi
 
         echo "Fixing the tags"
         remove_tag "volume" ${volume1_id} ${volume2_tag}
@@ -184,14 +196,114 @@ test_swap_mounted_volume() {
         add_tag "volume" ${volume1_id} ${volume1_tag}
         add_tag "volume" ${volume2_id} ${volume2_tag}
 
-        runcmd expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
-        runcmd expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
+        if [ "${os}" != "aix" ]
+        then
+            runcmd expand_volume $TENANT ${hostname} ${volume1} ${PROJECT} ${size} ${os} ${failure}
+            runcmd expand_volume $TENANT ${hostname} ${volume2} ${PROJECT} ${size} ${os} ${failure}
+        fi
 
-        report_results "${test_name}_${os}" ${failure}
+        report_results "${test_name}_${os}" ${test_name}
 
 	run unmount_and_delete_volume $TENANT ${hostname} "${volume1}" ${PROJECT} ${os}
 	run unmount_and_delete_volume $TENANT ${hostname} "${volume2}" ${PROJECT} ${os}
-    done 
+    done
+}
+
+test_mount_filesystem() {
+    test_name="test_mount_filesystem"
+    echot "Test ${test_name} Begins"
+    common_failure_injections=""
+
+    os_failure_injections=""
+
+    supported_os="hpux windows linux aix"
+    #supported_os="aix"
+    size=1
+
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop system_proxyuser_encpassword $SYSADMIN_PASSWORD
+
+    for os in ${supported_os[@]}
+    do
+        echo "Running test for ${os}"
+
+        if [ "${os}" = "hpux" ]
+        then
+            hostname=hpuxhost1
+            os_failure_injections="mountHPUXVolume"
+        elif [ "${os}" = "linux" ]
+        then
+            hostname=linuxhost1
+            os_failure_injections="mountLinuxVolume"
+        elif [ "${os}" = "windows" ]
+        then
+            hostname=winhost1
+            os_failure_injections="mountWindowsVolume"
+        elif [ "${os}" = "aix" ]
+        then
+            hostname=aixhost1
+            os_failure_injections="mountAIXVolume"
+        fi
+
+        failure_injections="${os_failure_injections}"
+
+        for failure in ${failure_injections}
+        do
+            secho "Running ${test_name} with failure scenario: ${failure}..."
+            random_number=${RANDOM}
+            TEST_OUTPUT_FILE=test_output_${random_number}.log
+            mkdir -p results/${random_number}
+            volume="FS-${random_number}"
+
+            # Turn on failure at a specific point
+            set_artificial_failure ${failure}
+
+            if [ ${failure} != ${HAPPY_PATH_TEST_INJECTION} ]; then
+                if [ "${os}" = "windows" ]
+                then
+                    fail windows_create_and_mount_volume $TENANT ${hostname} "${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${failure}
+                else
+                    fail unix_create_volume_and_mount $TENANT ${hostname} "${volume}" "/${volume}" ${NH} ${VPOOL_BASE} ${PROJECT} ${os} ${failure}
+                fi
+
+                # Verify injected failures were hit
+                verify_failures ${failure}
+
+                wwn=`get_volume_wwn ${PROJECT}/${volume}`
+
+                # host tooling to verify that volume is not mounted
+                if [ "${os}" = "windows" ]
+                then
+                    verify_mount_point ${os} "/${volume}" ${size} ${wwn} false
+                else
+                    verify_mount_point ${os} "/${volume}" ${size} ${wwn} false gone
+                fi
+
+                # Turn failure injection off
+                set_artificial_failure none
+            fi
+
+            if [ "${os}" = "windows" ]
+            then
+                if [ ${failure} = ${HAPPY_PATH_TEST_INJECTION} ]; then
+                    run windows_create_and_mount_volume $TENANT ${hostname} "${volume}" ${NH} ${VPOOL_BASE} ${PROJECT}
+                else
+                    run windows_mount_volume $TENANT ${hostname} "${volume}" ${NH} ${VPOOL_BASE} ${PROJECT}
+                fi
+            else
+                if [ ${failure} = ${HAPPY_PATH_TEST_INJECTION} ]; then
+                    runcmd volume create ${volume} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB
+                fi
+                run unix_mount_existing_volume $TENANT ${hostname} "${volume}" "/${volume}" ${PROJECT} ${os}
+            fi
+
+            wwn=`get_volume_wwn ${PROJECT}/${volume}`
+            verify_mount_point ${os} "/${volume}" ${size} ${wwn} false
+
+            run unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
+            # Report results
+            report_results "${test_name}_${os}" ${failure}
+        done
+    done
 }
 
 #### Service Catalog methods are below ####
@@ -205,8 +317,26 @@ windows_create_and_mount_volume() {
     virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
     virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
-    
-    runcmd catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,label= BlockServicesforWindows --failOnError true
+    catalog_failure=$7
+
+    catalog order CreateandMountVolume ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,artificialFailure=${catalog_failure},label= BlockServicesforWindows --failOnError true
+    return $?
+}
+
+windows_mount_volume() {
+    # tenant hostname volname varray vpool project
+    tenant_arg=$1
+    host_id=`hosts list ${tenant_arg} | grep "${2} " | awk '{print $4}'`
+    volname_arg=$3
+
+    virtualarray_id=`neighborhood list | grep "${4} " | awk '{print $3}'`
+    virtualpool_id=`cos list block | grep "${5} " | awk '{print $3}'`
+    project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
+    catalog_failure=$7
+    volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
+
+    catalog order MountVolumeonWindows ${tenant_arg} project=${project_id},volume=${volume_id},host=${host_id},fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,artificialFailure=${catalog_failure},label= BlockServicesforWindows --failOnError true
+    return $?
 }
 
 unix_create_volume_and_mount() {
@@ -221,7 +351,8 @@ unix_create_volume_and_mount() {
     project_id=`project list --tenant ${tenant_arg} | grep -v owner | grep "${7} " | awk '{print $4}'`
 
     os=$8
- 
+    catalog_failure=$9
+
     file_system_type=""
 
     # All OS's share the same service catalog name in this operation.
@@ -233,11 +364,51 @@ unix_create_volume_and_mount() {
     then
         service_category=BlockServicesforLinux
         file_system_type=",fileSystemType=ext3"
+    elif [ "${os}" = "aix" ]
+    then
+        service_category=BlockServicesforAIX
+        file_system_type=",fileSystemType=jfs2"
     fi
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg}${file_system_type} ${service_category} --failOnError true
+    catalog order ${service_catalog} ${tenant_arg} project=${project_id},name=${volname_arg},virtualPool=${virtualpool_id},virtualArray=${virtualarray_id},host=${host_id},size=1,mountPoint=${mountpoint_arg}${file_system_type},artificialFailure=${catalog_failure} ${service_category} --failOnError true
+    return $?
+}
+
+unix_mount_existing_volume() {
+    # host, xvirtualArray, xvirtualPool, project, name, xconsistencyGroup, xsize, mountPoint, hlu
+    tenant_arg=$1
+    hostname_arg=$2
+    volname_arg=$3
+    mountpoint_arg=$4
+
+    project_id=`project list --tenant ${tenant_arg} | grep -v owner | grep "${5} " | awk '{print $4}'`
+
+    os=$6
+
+    file_system_type=""
+
+    if [ "${os}" = "hpux" ]
+    then
+        service_catalog=MountExistingVolumeonHPUX
+        service_category=BlockServicesforHP-UX
+    elif [ "${os}" = "linux" ]
+    then
+        service_catalog=MountExistingVolumeonLinux
+        service_category=BlockServicesforLinux
+        file_system_type=",fileSystemType=ext3"
+    elif [ "${os}" = "aix" ]
+    then
+        service_catalog=MountExistingVolumeonAIX
+        service_category=BlockServicesforAIX
+        file_system_type=",fileSystemType=jfs2"
+    fi
+
+    host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+    volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
+
+    catalog order ${service_catalog} ${tenant_arg} project=${project_id},volume=${volume_id},host=${host_id},mountPoint=${mountpoint_arg}${file_system_type} ${service_category} --failOnError true
     return $?
 }
 
@@ -298,12 +469,17 @@ unmount_and_delete_volume() {
     then
         service_category=BlockServicesforWindows
         service_catalog=UnmountandDeleteVolume
+    elif [ "${os}" = "aix" ]
+    then
+        service_category=BlockServicesforAIX
+        service_catalog=UnmountandDeleteVolume
     fi
 
     host_id=`hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
     volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
 
-    runcmd catalog order ${service_catalog} ${tenant_arg} volumes=${volume_id},host=${host_id} ${service_category} --failOnError true
+    catalog order ${service_catalog} ${tenant_arg} volumes=${volume_id},host=${host_id} ${service_category} --failOnError true
+    return $?
 }
 
 get_volume_wwn() {

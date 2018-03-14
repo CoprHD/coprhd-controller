@@ -2034,7 +2034,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
                 assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), true, workflow, null, opId);
             }
 
             // If possible, do the HA side export. To do this we must have both
@@ -2042,7 +2042,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
+                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)), true,
                         workflow, null, opId);
             }
 
@@ -2078,6 +2078,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            if initiators is null, the method will use all initiators from the ExportGroup
      * @param blockObjectMap
      *            the key (URI) of this map can reference either the volume itself or a snapshot.
+     * @param zoningStepNeeded - Determines whether zone step is needed
      * @param workflow
      *            the controller workflow
      * @param waitFor
@@ -2088,7 +2089,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @throws Exception
      */
     private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
-            Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
+            Map<URI, Integer> blockObjectMap, boolean zoningStepNeeded, Workflow workflow, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
 
@@ -2322,10 +2323,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         _log.info("updating zoning if necessary for both new and updated export masks");
-        String zoningStepId = addStepsForZoningUpdate(export, initiators,
-                blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
-                exportMasksToUpdateOnDevice);
-
+        String zoningStepId = waitFor;
+        if (zoningStepNeeded) {
+            _log.info("Adding step to update zones if required.");
+            zoningStepId = addStepsForZoningUpdate(export, initiators, blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
+                    exportMasksToUpdateOnDevice);
+        }
         _log.info("set up initiator pre-registration step");
         String storageViewStepId = 
                 addStepsForInitiatorRegistration(initiators, vplexSystem, vplexClusterName, workflow, zoningStepId);
@@ -3598,13 +3601,33 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
 
+            // Check if Zoning needs to be checked from system config
+            // call the doZoneExportMasksCreate to check/create/remove zones with the flag
+            String addZoneWhileAddingVolume = customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.ZONE_ADD_VOLUME,
+                    CustomConfigConstants.GLOBAL_KEY, null);
+            // Default behavior is we allow zoning checks against the Network System
+            Boolean addZoneOnDeviceOperation = true;
+            _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Default) : {}",
+                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+            if (addZoneWhileAddingVolume != null) {
+                addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
+                _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
+                        addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+            } else {
+                _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
+            }
+
+            _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Custom Config) : {}",
+                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+
             // Add all the volumes to the SRC varray if there are src side volumes and
             // initiators that have connectivity to the source side.
             String srcExportStepId = null;
             if (varrayToInitiators.get(srcVarray) != null && srcVolumes != null) {
                 srcExportStepId = assembleExportMasksWorkflow(vplexURI, exportURI, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes),
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), addZoneOnDeviceOperation,
                         workflow, null, opId);
             }
 
@@ -3616,7 +3639,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 _dbClient.updateObject(exportGroup);
                 assembleExportMasksWorkflow(vplexURI, exportURI, haVarray,
                         varrayToInitiators.get(haVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
+                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)), addZoneOnDeviceOperation,
                         workflow, srcExportStepId, opId);
             }
 
@@ -4378,7 +4401,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Create the ExportMask if there are volumes in this varray.
             if (!varrayVolumeMap.isEmpty()) {
                 lastStepId = assembleExportMasksWorkflow(vplexURI, exportURI, varrayURI,
-                        hostInitiatorURIs, varrayVolumeMap, workflow, previousStepId, opId);
+                        hostInitiatorURIs, varrayVolumeMap, true, workflow, previousStepId, opId);
             }
         } else {
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
@@ -5193,15 +5216,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     VPlexControllerUtils.refreshExportMask(
                             _dbClient, storageView, exportMask, targetPortToPwwnMap, _networkDeviceController);
 
-                    // filter out any of the host's initiators that are not
-                    // contained within this ExportMask (CTRL-12300)
-                    List<Initiator> initsToRemove = new ArrayList<Initiator>();
-                    for (Initiator init : initiators) {
-                        if (exportMask.hasInitiator(init.getId().toString())) {
-                            initsToRemove.add(init);
-                        }
-                    }
-
+                    // initiator filter logic is move inside addStepsForRemoveInitiators and addStepsForInitiatorRemoval as
+                    // it is not required for zone related operation.
                     // validate the remove initiator operation against the export mask volumes
                     List<URI> volumeURIList = (exportMask.getUserAddedVolumes() != null)
                             ? URIUtil.toURIList(exportMask.getUserAddedVolumes().values())
@@ -5217,7 +5233,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                     validator.removeInitiators(ctx).validate();
 
                     lastStep = addStepsForRemoveInitiators(
-                            vplex, workflow, completer, exportGroup, exportMask, initsToRemove,
+                            vplex, workflow, completer, exportGroup, exportMask, initiators,
                             hostURI, initiatorsAlreadyRemovedFromExportGroup, errorMessages, lastStep);
                     if (lastStep != null) {
                         hasStep = true;
@@ -5303,8 +5319,16 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 getInitiatorsWwnsString(initiators), hostURI.toString(), exportMask.getMaskName(), exportMask.getId()));
 
         List<URI> hostInitiatorURIs = new ArrayList<URI>();
+        List<URI> removeInitiatorListURIs = new ArrayList<URI>();
         for (Initiator initiator : initiators) {
-            hostInitiatorURIs.add(initiator.getId());
+            // filter out any of the host's initiators that are not
+            // contained within this ExportMask (CTRL-12300)
+            if (exportMask.hasInitiator(initiator.getId().toString())) {
+                hostInitiatorURIs.add(initiator.getId());
+            }
+            // removeInitiatorListURIs is created to pass it to next method name addStepsForInitiatorRemoval
+            // we have filtering logic placed inside addStepsForInitiatorRemoval to take care of it.
+            removeInitiatorListURIs.add(initiator.getId());
         }
 
         // Determine the targets we should remove for the initiators being removed.
@@ -5406,7 +5430,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         } else {
             // this is just a simple initiator removal, so just do it...
             lastStep = addStepsForInitiatorRemoval(vplex, workflow, completer, exportGroup,
-                    exportMask, hostInitiatorURIs, targetURIs, lastStep,
+                    exportMask, removeInitiatorListURIs, targetURIs, lastStep,
                     removeAllInits, hostURI, errorMessages);
         }
 
@@ -5451,20 +5475,41 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
         String lastStep = workflow.createStepId();
 
+        // filter out any of the host's initiators that are not
+        // contained within this ExportMask (CTRL-12300)
+
+        List<URI> initsToRemove = new ArrayList<URI>();
+        List<URI> initsToRemoveOnlyFromZone = new ArrayList<URI>();
+        for (URI init : hostInitiatorURIs) {
+            if (exportMask.hasInitiator(init.toString())) {
+                initsToRemove.add(init);
+            } else {
+                initsToRemoveOnlyFromZone.add(init);
+            }
+        }
+
+        _log.info("these initiator will be only removed from zone {}",
+                CommonTransformerFunctions.collectionToString(initsToRemoveOnlyFromZone));
         // removeInitiatorMethod will make sure not to remove existing initiators
         // from the storage view on the vplex device.
         Workflow.Method removeInitiatorMethod = storageViewRemoveInitiatorsMethod(vplex.getId(), exportGroup.getId(),
-                exportMask.getId(), hostInitiatorURIs, targetURIs, null, null);
+                exportMask.getId(), initsToRemove, targetURIs, null, null);
         Workflow.Method removeInitiatorRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-        lastStep = workflow.createStep("storageView", "Removing " + hostInitiatorURIs.toString(),
+        lastStep = workflow.createStep("storageView", "Removing " + initsToRemove.toString(),
                 zoneStep, vplex.getId(), vplex.getSystemType(), this.getClass(),
                 removeInitiatorMethod, removeInitiatorRollbackMethod, lastStep);
 
         // Add zoning step for removing initiators
         Map<URI, List<URI>> exportMaskToInitiators = new HashMap<URI, List<URI>>();
-        exportMaskToInitiators.put(exportMask.getId(), hostInitiatorURIs);
+        exportMaskToInitiators.put(exportMask.getId(), initsToRemove);
         List<NetworkZoningParam> zoningParam = NetworkZoningParam.convertExportMaskInitiatorMapsToNetworkZoningParam(
                 exportGroup.getId(), exportMaskToInitiators, _dbClient);
+        
+        // we still need to delete zone if it is not part of masking view
+
+        if (!initsToRemoveOnlyFromZone.isEmpty()) {
+            NetworkZoningParam.updateZoningParamUsingFCZoneReference(zoningParam, initsToRemoveOnlyFromZone, exportGroup, _dbClient);
+        }
         Workflow.Method zoneRemoveInitiatorsMethod = _networkDeviceController.zoneExportRemoveInitiatorsMethod(zoningParam);
         Workflow.Method zoneNullRollbackMethod = _networkDeviceController.zoneNullRollbackMethod();
         lastStep = workflow.createStep(null, "Zone remove initiataors mask: " + exportMask.getMaskName(),

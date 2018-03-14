@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex [normal|quick|xio|vnx] [noingest|ingest [all|exported|unexported]] | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio [quick|hlu|quick hlu] | srdf |
  vnxfile | datadomainfile | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick | sbsdk |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock [all|block|vplex|rp|hlu] | unityfile | arrayaffinity | portgroup'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -225,7 +225,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|sbsdk|ceph|unityblock|unityfile|custvolname|arrayaffinity|portgroup)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -936,16 +936,17 @@ brocade_setup_once()
 
     #Discover the Brocade SAN switch.
     secho "Discovering brocade ..."
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
     sleep 30
     export NETWORK_SYSTEM=$BROCADE_NETWORK
 
-    run transportzone assign FABRIC_losam082-fabric $NH
-    run transportzone assign FABRIC_vplex154nbr2 $NH2
-    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
-    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
-    FC_ZONE_A=FABRIC_losam082-fabric
-    FC_ZONE_B=FABRIC_vplex154nbr2
+    run transportzone assign "FABRIC_losam082-fabric" $NH
+    run transportzone assign "FABRIC_VPlex_LGL6221_FID_40" $NH
+    run transportzone assign "FABRIC_vplex154nbr2" $NH2
+    VPLEX_TZ1="$NH/FABRIC_losam082-fabric"
+    VPLEX_TZ2="$NH2/FABRIC_vplex154nbr2"
+    FC_ZONE_A="FABRIC_losam082-fabric"
+    FC_ZONE_B="FABRIC_vplex154nbr2"
     FCTZ_A=$NH/$FC_ZONE_A
     FCTZ_B=$NH2/$FC_ZONE_B
 }
@@ -1305,8 +1306,9 @@ xtremio_network_setup()
 {
     secho "XtremIO network setup"
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
+    run transportzone assign ${XTREMIO_4X_VSAN} $NH
 }
 
 xtremio_varray_setup()
@@ -1329,8 +1331,8 @@ xtremio_ingest_host_setup() {
         run transportzone add VSAN_11 ${PWWN1}
         run transportzone add VSAN_11 ${PWWN2}
     else
-        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN1}
-        run transportzone add ${SRDF_VMAXA_VSAN} ${PWWN2}
+        run transportzone add ${XTREMIO_4X_VSAN} ${PWWN1}
+        run transportzone add ${XTREMIO_4X_VSAN} ${PWWN2}
     fi
 
 }
@@ -1595,6 +1597,7 @@ xtremio_simulator_setup()
     xtremio_varray_setup   
     
     run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
+    #run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop artificial_failure "none"
 
     run storageprovider create xtremio3x $XIO_SIMULATOR_IP $XIO_3X_SIMULATOR_PORT root root xtremio
     run storageprovider create xtremio4x $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT root root xtremio
@@ -1630,7 +1633,7 @@ xtremio_simulator_setup()
         run transportzone add VSAN_11 $wwn
     done
     xtremio_cos_setup
-    run cos update block $XTREMIO_3X_COS_FC --storage $XIO_3X_SIM_NATIVEGUID
+    run cos update block $XTREMIO_3X_COS_FC --storage $XIO_4X_SIM_NATIVEGUID
     run cos update block $XTREMIO_4X_COS_FC --storage $XIO_4X_SIM_NATIVEGUID
 }
 
@@ -1648,19 +1651,20 @@ xtremio_common_setup()
     do
         wwn=`pwwn $i`
     
-        secho "Adding $wwn to zone $SRDF_VMAXA_VSAN..."
-	run transportzone add $SRDF_VMAXA_VSAN $wwn
+        secho "Adding $wwn to zone $XTREMIO_4X_VSAN..."
+	run transportzone add $XTREMIO_4X_VSAN $wwn
     done
 
 
     for i in B1 B2 B3 B4 B5 B6 B7 B8 D1 D2 D3 D4 D5 D6 D7 D8
     do
         wwn=`pwwn $i`
-        secho "Adding $wwn to zone $SRDF_VMAXA_VSAN..."
-        run transportzone add $SRDF_VMAXA_VSAN $wwn
+        secho "Adding $wwn to zone $XTREMIO_4X_VSAN..."
+        run transportzone add $XTREMIO_4X_VSAN $wwn
     done
+
     xtremio_cos_setup
-    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_3X_NATIVEGUID
+    run cos update block $XTREMIO_3X_COS_FC --storage $XTREMIO_4X_NATIVEGUID
     run cos update block $XTREMIO_4X_COS_FC --storage $XTREMIO_4X_NATIVEGUID
 }
 
@@ -1788,7 +1792,9 @@ xtremio_block_tests()
     volume=${XTREMIOVOL}
     cos2=$XTREMIO_4X_COS_FC
     snap1_label=snap1-${HOSTNAME}-${RANDOM}
+    snap1_label=${snap1_label//.}
     snap2_label=snap2-${HOSTNAME}-${RANDOM}
+    snap2_label=${snap2_label//.}
             
     run volume create ${volume}1 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
@@ -1818,7 +1824,7 @@ xtremio_export_test()
     h=1
     expname=$1
     hostname=$hostbase$tenant$c$h
-    echo $vol1 $vol2 $proj $tenant $hostname $expname
+    echo "Export details: $vol1 $vol2 $proj $tenant $hostname $expname $snap1 $snap2"
 
     exp=$proj/$expname
     k=`wwnIdx $c $h`
@@ -2141,8 +2147,6 @@ srdf_setup_once()
 	SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
 	SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
 
-	project_setup
-	zone_setup
     else
         srdf_network_setup
 
@@ -2154,22 +2158,25 @@ srdf_setup_once()
         # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
         ssleep 300
     fi
+	
+	project_setup
+	zone_setup
 
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
 
     run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
-    
+	
+	smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
+    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
 
     if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
         smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
         run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
     fi
 
-    smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
-
+    
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
     # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
@@ -2192,7 +2199,7 @@ srdf_network_setup() {
     #Discover the Brocade SAN switch.
     #brocade_setup_once
 
-    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
     secho "Sleeping 30 seconds..."
     sleep 30
     is_present=$(transportzone listall | (grep ${SRDF_VMAXA_VSAN} || echo ''))
@@ -2567,6 +2574,8 @@ srdf_basic_sync_test()
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
@@ -2577,8 +2586,13 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
+   srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    echo "Created 2 volumes... now going to sleep..."
    srdf_sleep
@@ -2609,6 +2623,8 @@ srdf_basic_active_test()
    run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
@@ -4603,7 +4619,7 @@ recoverpoint_ingest_host_setup()
     if [ "$RP_QUICK_PARAM" == "quick" ]; then
         CLUSTER1NET_NAME=VSAN_11
     else
-        CLUSTER1NET_NAME=FABRIC_losam082-fabric
+        CLUSTER1NET_NAME="FABRIC_losam082-fabric"
     fi
 
     # Make different initiators for different hosts
@@ -4802,8 +4818,8 @@ recoverpoint_export_host_setup()
         run transportzone add ${RECOVERPOINT_VARRAY2}/VSAN_13 ${PWWN5}
         run transportzone add ${RECOVERPOINT_VARRAY3}/VSAN_13 ${PWWN6}
     else
-        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN1}
-        run transportzone add ${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric ${PWWN2}     
+        run transportzone add "${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric" ${PWWN1}
+        run transportzone add "${RECOVERPOINT_VARRAY1}/FABRIC_losam082-fabric" ${PWWN2}     
     fi
 }
 
@@ -7637,7 +7653,9 @@ vmaxblock_setup_once()
               run storageport update $VMAX_AFA_NATIVEGUID FC --tzone $FCTZ_A --group ${port}
            done
        fi
+       security login $SYSADMIN $SYSADMIN_PASSWORD
        run storageport update $VMAX_NATIVEGUID IP --tzone nh/iptz
+       security login $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD
     fi
 
     run cos update block $COS_VMAXBLOCK --storage $VMAX_NATIVEGUID
@@ -8774,9 +8792,12 @@ datadomainfile_tests()
 vmaxblock_tests()
 {
    #--------------------------------------------------------------
+    echo "Starting to execute VMAX block provisioning tests..."
 
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
+    echo "Sleeping for 60 seconds..."
+    sleep 60
     volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THIN   # work only for concatenate, stripe tbd
 
     if [ "${AUTH}" != "local" -a "${AUTH}" != "ipv6" ]
@@ -13661,9 +13682,10 @@ unityblock_setup()
     run neighborhood allow $NH $TENANT
 
     run transportzone assign ${SRDF_VMAXA_VSAN} $NH
+    run transportzone assign ${XTREMIO_4X_VSAN} $NH
     run storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
-    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
-    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
+    run transportzone add ${XTREMIO_4X_VSAN} $UNITY_INIT_PWWN1
+    run transportzone add ${XTREMIO_4X_VSAN} $UNITY_INIT_PWWN2
     unityblock_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
     if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
@@ -14491,7 +14513,7 @@ arrayaffinity_host_setup()
 {
     portwwn=10:a0:b0:c0:d0:e0:f0:01
     nodewwn=20:a0:b0:c0:d0:e0:f0:01
-	fctz=${NH}/FABRIC_losam082-fabric
+    fctz="${NH}/FABRIC_losam082-fabric"
 
     echo "Creating host with name $HOST_ARRAYAFFINITY"
     run hosts create ${HOST_ARRAYAFFINITY} $TENANT Windows ${HOST_ARRAYAFFINITY_FQDN} --port 8111 --username user --password 'password' --osversion 1.0
@@ -14647,6 +14669,130 @@ arrayaffinity_tests()
     arrayaffinity_cleanup
 
     secho "Completed array affinity tests"
+}
+
+COS_PORTGROUP=cos_portgroup
+HOST_PORTGROUP=hostpg
+portgroup_setup_once()
+{
+    # do this only once
+    smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
+
+    run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
+
+    sleep 15
+
+    secho "VMAX storage pool update"
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    
+    echo "Enabling use port group"
+    customconfig create VMAXUsePortGroupEnabled true systemType vmax --register true
+}
+
+portgroup_cos_setup()
+{
+    secho "setting up port group block virtual pool"
+
+    run cos create block $COS_PORTGROUP \
+        --description 'Virtual-Pool-for-portgroup' true \
+                         --protocols FC \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type vmax \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency 
+
+    run cos update block $COS_PORTGROUP --storage $VMAX_NATIVEGUID
+
+}
+
+portgroup_host_setup()
+{
+    portwwn1=10:a1:b1:c1:d1:e1:f1:01
+    nodewwn1=20:a1:b1:c1:d1:e1:f1:01
+    portwwn2=10:a2:b2:c2:d2:e2:f2:02
+    portwwn3=10:a3:b3:c3:d3:e3:f3:03
+    portwwn4=10:a4:b4:c4:d4:e4:f4:04
+    fctz=${NH}/FABRIC_losam082-fabric
+    host1=hostpg
+    echo "Creating host with name $HOST_PORTGROUP"
+    run hosts create ${HOST_PORTGROUP} $TENANT Other ${HOST_PORTGROUP} --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create ${HOST_PORTGROUP} FC $portwwn1 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn2 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn3 --node $nodewwn1
+    run initiator create ${HOST_PORTGROUP} FC $portwwn4 --node $nodewwn1
+    echo "Adding WWNs to Network"
+    run transportzone add $fctz $portwwn1
+    run transportzone add $fctz $portwwn2
+    run transportzone add $fctz $portwwn3
+    run transportzone add $fctz $portwwn4
+
+    echo "Getting host URI"
+    HOST_PORTGROUP_URI=`hosts list ${TENANT} | grep ${HOST_PORTGROUP} | awk '{print $4}'`
+    echo "Host URI is ${HOST_PORTGROUP_URI}"
+}
+
+portgroup_setup()
+{
+    secho "Run port group tests setup"
+    portgroup_setup_once
+    portgroup_cos_setup
+    portgroup_host_setup
+    secho "Completed port group setup"
+}
+
+portgroup_operations_tests()
+{
+    echo "Executing port group tests"
+    portgroup=portgroup-${RANDOM}
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:4'
+    storageportgroup show $VMAX_NATIVEGUID/$portgroup
+    storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
+    storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
+    
+    vol1=volpg1-${RANDOM}
+    vol2=volpg2-${RANDOM}
+
+    echo "Creating volume with name $vol1 $vol2"
+    run volume create $vol1 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run volume create $vol2 $PROJECT $NH $COS_PORTGROUP $BLK_SIZE --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+
+    eg=egpg-${RANDOM}
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
+    run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
+    
+    echo "Deleting volume $vol1"
+    run export_group delete ${PROJECT}/${eg}
+    run volume delete ${PROJECT}/${vol1} --wait
+    run volume delete ${PROJECT}/${vol2} --wait
+    storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
+
+    echo "**** Done port group operations tests"
+}
+
+portgroup_cleanup()
+{
+    echo "Deleting VPools"
+
+    # delete cos so that test can be executed again
+    run cos delete $COS_PORTGROUP block
+    echo "Deleting host ${HOST_PORTGROUP}"
+    run hosts delete ${HOST_PORTGROUP}
+}
+
+# Port group tests command: "sanity sanity.conf viprIP portgroup"
+portgroup_tests()
+{
+    secho "Executing portgroup tests"
+
+    portgroup_operations_tests
+    portgroup_cleanup
+
+    secho "Completed portgroup tests"
 }
 
 # set DO_TESTS_ONLY to 1 if setup does not need to be re-run

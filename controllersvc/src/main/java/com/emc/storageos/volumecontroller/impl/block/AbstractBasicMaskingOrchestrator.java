@@ -58,7 +58,12 @@ import com.google.common.collect.Lists;
  */
 abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator implements MaskingOrchestrator {
 
-
+    /**
+     * Return the StorageDevice.
+     *
+     * @return
+     */
+    public abstract BlockStorageDevice getDevice();
 
     /**
      * Creation of steps will depend on the device type. So, it is the

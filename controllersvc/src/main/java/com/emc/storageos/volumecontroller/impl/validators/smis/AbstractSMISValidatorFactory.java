@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -128,19 +129,11 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     public AbstractSMISValidator createMultipleExportMasksForInitiatorsValidator(ExportMaskValidationContext ctx) {
         return truthyValidator;
     }
-    
-    /**
-     * Allow subclasses to provide a Validator for export mask port group.
-     *
-     * @param ctx ExportMaskValidationContext
-     * @return AbstractSMISValidator
-     */
-    public abstract AbstractSMISValidator createExportMaskPortGroupValidator(ExportMaskValidationContext ctx);
 
     /**
      * Allow subclasses to return a {@link ValidatorLogger}
      *
-     * @return ValidatorLogger
+     * @return  ValidatorLogger
      */
     public abstract ValidatorLogger createValidatorLogger(String validatedObjectName, String storageSystemName);
 
@@ -236,7 +229,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
      * @param logger        ValidatorLogger
      * @param validators    List of AbstractSMISValidator instances
      */
-    protected void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
+    private void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
         EMCRefreshSystemInvoker emcRefreshSystem = new OneTimeEMCRefreshSystem(helper);
 
         for (AbstractSMISValidator validator : validators) {
@@ -274,13 +267,4 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         return null;
     }
 
-    @Override
-    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
-        return null;
-    }
-
-    @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
-        return null;
-    }
 }

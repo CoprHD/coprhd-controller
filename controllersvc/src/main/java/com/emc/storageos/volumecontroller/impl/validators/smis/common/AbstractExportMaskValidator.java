@@ -4,19 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.common;
 
-import static com.google.common.collect.Collections2.transform;
-
-import java.util.Collection;
-import java.util.Set;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -26,6 +13,17 @@ import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValid
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import java.util.Collection;
+import java.util.Set;
+
+import static com.google.common.collect.Collections2.transform;
 
 /**
  * Abstract template class for comparing a set of ExportMask-related database values against hardware values.
@@ -36,7 +34,6 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
 
     public static final String FIELD_INITIATORS = "initiators";
     public static final String FIELD_VOLUMES = "volumes";
-    public static final String FIELD_STORAGEPORTS = "storagePorts";
 
     private static final Logger log = LoggerFactory.getLogger(AbstractExportMaskValidator.class);
 
@@ -88,7 +85,7 @@ public abstract class AbstractExportMaskValidator extends AbstractSMISValidator 
 
     protected abstract Set<String> getDatabaseResources();
 
-    protected Set<String> getHardwareResources() {
+    private Set<String> getHardwareResources() {
         Set<String> hardware = Sets.newHashSet();
         CloseableIterator<CIMInstance> associatedResources = null;
 

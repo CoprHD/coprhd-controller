@@ -116,13 +116,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     protected ValidatorConfig validatorConfig;
 
     /**
-     * Return the StorageDevice.
-     *
-     * @return
-     */
-    public abstract BlockStorageDevice getDevice();
-    
-    /**
      * Simple class to hold two values that would be associated with
      * the call to generateExportMaskCreateWorkflow.
      */
@@ -336,6 +329,20 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             pathParams.setAllowFewerPorts(true);
         }
 
+        URI portGroupURI = null;
+        if (pathParams.getPortGroup() != null) {
+            portGroupURI = pathParams.getPortGroup();
+            StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
+            _log.info(String.format("port group is %s", portGroup.getLabel()));
+            List<URI> storagePorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
+            if (!CollectionUtils.isEmpty(storagePorts)) {
+                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(storagePorts));
+            } else {
+                _log.error(String.format("The port group %s does not have any port members", portGroup));
+                throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());
+            }
+        }
+
         Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
                 initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
@@ -350,6 +357,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
                 initiators, volumeMap, targets, assignments, maskName, _dbClient);
+
+        if (portGroupURI != null) {
+            exportMask.setPortGroup(portGroupURI);
+        }
 
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
@@ -1849,7 +1860,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Map<String, List<URI>> computeResourceToInitiators,
             Map<String, Set<URI>> initiatorToExportMapOnArray,
             Map<String, URI> portNameToInitiatorURI,
-            Collection<URI> volumes,
             Set<URI> partialMasks) {
         Map<String, Set<URI>> initiatorToExportMaskURIMap = new HashMap<String, Set<URI>>();
         Map<String, Set<URI>> computeResourceToExportMaskMap = ExportMaskUtils.mapComputeResourceToExportMask(_dbClient, exportGroup,
@@ -1890,8 +1900,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         for (Map.Entry<String, Set<URI>> entry : initiatorToExportMapOnArray.entrySet()) {
             allExportMaskURIs.addAll(entry.getValue());
         }
-        
-        if (volumes == null && exportGroup.getVolumes() != null) {
+
+        Collection<URI> volumes = new HashSet<URI>();
+        if (exportGroup.getVolumes() != null) {
             volumes = Collections2.transform(exportGroup.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
         }

@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 
@@ -48,8 +49,10 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
             if (exportMask != null) {
 			    URI pgURI = exportMask.getPortGroup();
                 exportGroup.removeExportMask(exportMask.getId());
-                // What if this mask is being referenced by another EG?
-                dbClient.markForDeletion(exportMask);
+				if (ExportMaskUtils.getExportGroups(dbClient, exportMask.getId()).isEmpty()
+						&& !exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes()) {
+					dbClient.markForDeletion(exportMask);
+				}
                 dbClient.updateObject(exportGroup);
                 updatePortGroupVolumeCount(pgURI, dbClient);
             }

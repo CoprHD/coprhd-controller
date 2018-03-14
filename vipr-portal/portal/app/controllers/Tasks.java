@@ -55,7 +55,7 @@ public class Tasks extends Controller {
     private static final String DELETED = "resource.task.deleted";
 
     private static final int NORMAL_DELAY = 3000;
-    private static final int MAX_TASKS = 1000;
+    private static final int MAX_TASKS = 100;
 
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MINIMUM_TASK_PROGRESS = 10;

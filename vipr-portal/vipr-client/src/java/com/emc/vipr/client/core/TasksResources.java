@@ -23,6 +23,7 @@ import com.emc.storageos.model.tasks.TaskStatsRestRep;
 import com.emc.storageos.model.tasks.TasksList;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.client.system.Config;
 
 /**
  * Tasks resources.
@@ -41,6 +42,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     public static final String START_TIME_PARAM = "startTime";
     public static final String END_TIME_PARAM = "endTime";
     public static final String STATE_PARAM = "state";
+    public static final String CONFIG_TASK_MAX_COUNT = "task_max_count_display";
 
     public static enum State {
         PENDING("pending"),
@@ -146,7 +148,19 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
      * @param maxCount Number of tasks to return or {@link #FETCH_ALL} for all matching tasks
      */
     public List<TaskResourceRep> findCreatedSince(URI tenantId, long startTime, int maxCount) {
-        return getByRefs(listByTenant(tenantId, maxCount, startTime, null));
+    	//return getByRefs(listByTenant(tenantId, maxCount, startTime, null));
+    	Config viprConfig = new Config(client);
+    	String config_task_max_count = viprConfig.getProperties().getProperty(CONFIG_TASK_MAX_COUNT);
+    	
+        if (maxCount == 5) {
+        	return getByRefs(listByTenant(tenantId, maxCount, startTime, null));
+        } 
+        if (config_task_max_count.equals("All")) {
+        	maxCount = FETCH_ALL;
+        } else {
+        	maxCount = Integer.parseInt(config_task_max_count);
+        }
+        return getByRefs(listByTenant(tenantId, maxCount, null, null));
     }
 
     public TaskStatsRestRep getStats() {

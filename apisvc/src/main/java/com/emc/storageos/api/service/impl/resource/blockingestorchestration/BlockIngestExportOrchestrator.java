@@ -579,7 +579,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             }
             List<URI> targets = new ArrayList<URI>(Collections2.transform(
                     unmanagedMask.getKnownStoragePortUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            if (!portGroup.getStoragePorts().isEmpty()) {
+            if (portGroup.getStoragePorts() != null && !portGroup.getStoragePorts().isEmpty()) {
                 portGroup.getStoragePorts().replace(StringSetUtil.uriListToStringSet(targets));
             } else {
                 portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(targets));

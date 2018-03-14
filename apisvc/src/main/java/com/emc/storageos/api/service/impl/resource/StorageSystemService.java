@@ -2177,10 +2177,15 @@ public class StorageSystemService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
         StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        if (portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+            // internal port group
+            throw APIException.badRequests.internalPortGroup(portGroup.getNativeGuid());
+        }
         if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
                 portGroup.getRegistrationStatus())) {
             // Setting status to UNREGISTERED.
             portGroup.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
+            portGroup.setMutable(true);
             _dbClient.updateObject(portGroup);
 
             // Record the storage port group deregister event.
@@ -2218,7 +2223,7 @@ public class StorageSystemService extends TaskResourceService {
         }
         if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
                 portGroup.getRegistrationStatus())) {
-            // Setting status to UNREGISTERED.
+            // Setting status to REGISTERED.
             portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
             portGroup.setMutable(false);
             _dbClient.updateObject(portGroup);

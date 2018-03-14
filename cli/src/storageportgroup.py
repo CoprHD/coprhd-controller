@@ -62,12 +62,11 @@ class Storageportgroup(object):
                 storage_device_type)
 
         addports = []
-    for portname in storageports:
-        print portname
-        storage_port = Storageport(self.__ipAddr, self.__port)
-        porturi = storage_port.storageport_query(storage_system_uri, portname)
-        print porturi
+        for portname in storageports:
+            storage_port = Storageport(self.__ipAddr, self.__port)
+            porturi = storage_port.storageport_query(storage_system_uri, portname)
             addports.append(porturi)
+            
         body = json.dumps(
                           {'name': portgroup_name,
                            'storage_ports': addports
@@ -344,7 +343,7 @@ def storageportgroup_create(args):
             "create", "storageportgroup", e.err_text, e.err_code)
 
 
-def resgister_parser(subcommand_parsers, common_parser):
+def register_parser(subcommand_parsers, common_parser):
     # register command parser
     register_parser = subcommand_parsers.add_parser('register',
                                                     description='ViPR' +
@@ -353,12 +352,8 @@ def resgister_parser(subcommand_parsers, common_parser):
                                                     ' usage',
                                                     parents=[common_parser],
                                                     conflict_handler='resolve',
-                                                    help='Storageport ' +
-                                                    'registration or \n ' +
-                                                    'register the discovered' +
-                                                    ' storage port group with the' +
-                                                    ' passed id, on the \
-     registered storage system with the passed id.')
+                                                    help='To register ' +
+                                                    ' port group')
     mandatory_args = register_parser.add_argument_group('mandatory arguments')
 
     arggroup = register_parser.add_mutually_exclusive_group(required=True)
@@ -686,7 +681,7 @@ def storageportgroup_parser(parent_subparser, common_parser):
     create_parser(subcommand_parsers, common_parser)
 
     # register command parser
-    resgister_parser(subcommand_parsers, common_parser)
+    register_parser(subcommand_parsers, common_parser)
 
     # deregister command parser
     deregister_parser(subcommand_parsers, common_parser)

@@ -1750,21 +1750,21 @@ public class PortMetricsProcessor {
                 List<StoragePort> portMembers = _dbClient.queryObject(StoragePort.class, StringSetUtil.stringSetToUriList(ports));
                 Double portMetricTotal = 0.0;
                 StringMap dbMetrics = portGroup.getMetrics();
-                boolean metricsSet = true;
+                boolean isMetricsSet = true;
                 for (StoragePort port : portMembers) {
                     StringMap portMetrics = port.getMetrics();
                     if (portMetrics == null) {
-                        metricsSet = false;
+                        isMetricsSet = false;
                         break;
                     }
                     Double portMetric = MetricsKeys.getDouble(MetricsKeys.portMetric, portMetrics);
                     if (portMetric == null) {
-                        metricsSet = false;
+                        isMetricsSet = false;
                         break;
                     }
                     portMetricTotal += portMetric;
                 }
-                if (metricsSet && portMetricTotal != null) {
+                if (isMetricsSet && portMetricTotal != null) {
                     _log.info(String.format("port group %s portMetric %s", portGroup.getNativeGuid(), portMetricTotal.toString()));
                     MetricsKeys.putDouble(MetricsKeys.portMetric, portMetricTotal / portMembers.size(),
                             dbMetrics);
@@ -1806,7 +1806,7 @@ public class PortMetricsProcessor {
             if (mask.getExistingVolumes() != null) {
                 volumeCount += mask.getExistingVolumes().size();
             }
-            if (system.checkIfVmax3() == true) {
+            if (system.checkIfVmax3()) {
                 // VMAX3 does not have a dependency on meta-luns, so these are not counted.
                 if (mask.getUserAddedVolumes() != null) {
                     volumeCount += mask.getUserAddedVolumes().size();

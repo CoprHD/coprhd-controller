@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017  DELL-EMC Corporation
+ * Copyright (c) 2018 Dell-EMC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;

@@ -24,6 +24,7 @@ from host import Host
 from virtualarray import VirtualArray
 from storageport import Storageport
 from storagesystem import StorageSystem
+from storageportgroup import Storageportgroup
 import uuid
 import json
 import pprint
@@ -407,7 +408,6 @@ class ExportGroup(object):
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
         
-        from storageportgroup import Storageportgroup
         if(portgroupname):
             storage_system = StorageSystem(self.__ipAddr, self.__port)
             storage_system_uri = None
@@ -851,35 +851,19 @@ class ExportGroup(object):
 						      storageports, useexistingpaths, hosts, verbose, wait, dorealloc)
 
 	body = json.dumps(parms)
-
-	operation = 'ExportGroup Path Adjustment' 
+    
 	if (dorealloc):
 		(s, h) = common.service_json_request(self.__ipAddr,
 						     self.__port, "PUT",
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT.format(exportgroup_uri),
 						     body)
-	else:
-		operation += (' Preview')
-		(s, h) = common.service_json_request(self.__ipAddr,
+        else:
+            (s, h) = common.service_json_request(self.__ipAddr,
 						     self.__port, "POST",
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
-        output = common.json_decode(s)
-            
-	# Display output when verbose is set to true or if the operation is Preview.
- 	if (verbose or not self.PATH_ADJ_OPERATION):
-         print operation
-         print json.dumps(output, sort_keys=True, indent=4) 
-         print ' '
-
-	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
-	if (not verbose and wait and self.PATH_ADJ_OPERATION):
-		if (output.get('id') and parms['removed_paths']) :
-    		print operation
-		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
-		    print  output['id']
-
-	return output
+    output = common.json_decode(s)
+    return output
 
 def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,
                    serialnumber, type, portgroupname, currentportgroupname, exportmask, verbose, wait):
@@ -911,21 +895,8 @@ def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesyst
         (s, h) = common.service_json_request(self.__ipAddr,
                              self.__port, "PUT",
                              self.URI_EXPORT_GROUP_CHANGE_PORT_GROUP.format(exportgroup_uri), body)
+        
         output = common.json_decode(s)
-             
-        # Display output when verbose is set to true or if the operation is Preview.
-        if (verbose):
-            print operation
-            print json.dumps(output, sort_keys=True, indent=4) 
-            print ' '
-
-        # If wait is true and no verbose option selected, then display the task id of the suspended task
-        if (not verbose and wait):
-            if (output.get('id')) :
-                print operation
-                print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
-                print  output['id']
-
         return output
 
 def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):

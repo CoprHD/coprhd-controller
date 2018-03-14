@@ -2147,8 +2147,6 @@ srdf_setup_once()
 	SRDF_V3_VMAXA_NATIVEGUID=${VMAX3_SIMULATOR_NATIVE_GUID}
 	SRDF_V3_VMAXB_NATIVEGUID=${VMAX3_SIMULATOR_R2_NATIVE_GUID}
 
-	project_setup
-	zone_setup
     else
         srdf_network_setup
 
@@ -2160,22 +2158,25 @@ srdf_setup_once()
         # COP-25856 RDF group is not available 3 minutes after created via symcli, add more time
         ssleep 300
     fi
+	
+	project_setup
+	zone_setup
 
     project show $SRDF_PROJECT &> /dev/null && return $?
     run project create $SRDF_PROJECT --tenant $TENANT
 
     run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
-    
+	
+	smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
+    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
 
     if [ "$SRDF_QUICK_PARAM" != "quick" ]; then
         smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
         run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
     fi
 
-    smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
-
+    
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
     # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
@@ -2573,6 +2574,8 @@ srdf_basic_sync_test()
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
@@ -2583,8 +2586,13 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
+   srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    echo "Created 2 volumes... now going to sleep..."
    srdf_sleep
@@ -2615,6 +2623,8 @@ srdf_basic_active_test()
    run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
+   echo "Rediscovering storage systems"
+   run storagedevice discover_all --ignore_error
    run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    srdf_sleep
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait

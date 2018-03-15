@@ -50,7 +50,7 @@ import com.google.common.collect.Sets;
 
 import controllers.Common;
 import controllers.Tasks;
-import controllers.Tasks.WorkflowStep;
+import controllers.util.*;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.resources.AffectedResources;
@@ -77,6 +77,8 @@ import util.ModelExtensions;
 import util.OrderUtils;
 import util.StringOption;
 import util.TagUtils;
+import util.TaskUtils;
+import util.TaskUtils.WorkflowStep;
 import util.api.ApiMapperUtils;
 import util.datatable.DataTableParams;
 import util.datatable.DataTablesSupport;
@@ -594,7 +596,7 @@ public class Orders extends OrderExecution {
             viprTaskStepMessages = Maps.newHashMap();
             for (TaskResourceRep task : viprTasks) {
                 if (task.getWorkflow() != null && TaskUtil.isSuspended(task)) {
-                    List<WorkflowStep> steps = Tasks.getWorkflowSteps(task.getWorkflow().getId());
+                    List<WorkflowStep> steps = TaskUtils.getWorkflowSteps(task.getWorkflow().getId());
                     String message = "";
                     for (WorkflowStep step : steps) {
                         if (TaskUtil.isSuspended(task) && step.isSuspended()) {

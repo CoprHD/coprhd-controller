@@ -40,6 +40,7 @@
       </ul>
    #{/if}
 
+
     <div class="pull-left" style="vertical-align: middle; line-height: 20px;" ng-controller="summaryCountCtrl">
       <span class="text-info" style="margin-right:25px">
           <a href="#" ng-click="filterTasks('pending')" class="no-decoration">
@@ -78,7 +79,21 @@
         </a>
       </span>
     </div>
-
+	<div class="max-tasks-selector" id="taskSelector" >   
+	    <div class="control col-sm-6"  >
+	    #{field 'tasks.maxTasks'}
+	    %{
+	        field.cssClass = 'span4'
+	        field.options = maxTasksOptions
+	        field.disableSearch = true
+	        field.addEmptyOption = true
+	        field.emptyOptionLabel = messages.get("chosen.select.single")
+	        }%
+	        #{Form.selectOneControlGroup field:field/}
+	    #{/field}
+	    </div>
+		
+	</div>
     %{
      options = [
          'fnServerParams': 'loadServerParams'
@@ -110,7 +125,7 @@
   <script type="text/javascript">
     var tenantId = '${tenantId}';
 
-    table.tasks.dataTable.setMaxRows(1000, function(data) {
+    table.tasks.dataTable.setMaxRows(-1, function(data) {
         var oldestTime = -1;
         var oldestIndex = -1;
 
@@ -133,8 +148,22 @@
     
     function loadServerParams(aoData) {
       aoData.push({"name": "systemTasks", "value" : ${systemTasks}});
+      aoData.push({"name": "maxTasks", "value": "${maxTasks}"});
     }    
     
+    $(document).ready(function () {
+//     	if(localStorage.getItem('tasks_maxTasks')) {
+//     		$('#tasks_maxTasks').val(localStorage.getItem('tasks_maxTasks'));
+//     	}
+        $('#tasks_maxTasks').on('change', function () {
+            var maxTasks = $(this).val();
+            var url = #{jsAction @Tasks.listAll(':systemTasks')/}({"systemTasks": "${systemTasks}"}) + "&maxTasks=" + maxTasks;
+            window.location.href = url;
+//             localStorage.setItem('tasks_maxTasks',$('#tasks_maxTasks').val());
+//             $('#tasks_maxTasks option[value=1000]').attr('selected','true');;
+//    			$('#tasks_maxTasks').trigger('chosen:updated');
+            });
+        });
   </script>    
 
 #{/set}      

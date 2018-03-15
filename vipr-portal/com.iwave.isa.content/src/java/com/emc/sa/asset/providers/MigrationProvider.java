@@ -87,14 +87,17 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     }
 
     private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, List<InitiatorRestRep> hostInitiators) {
+        getLog().info("========== matching cg " + bcg);
         InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
         if (bcgInitiators.getInitiators().isEmpty()) return false;
 
         Set<URI> hostInitiatorSet = new HashSet<>();
         for (InitiatorRestRep initiator: hostInitiators) {
+            getLog().info("host init is  " + initiator.getId());
             hostInitiatorSet.add(initiator.getId());
         }
         for (NamedRelatedResourceRep bcgInitiator: bcgInitiators.getInitiators()) {
+            getLog().info("bcg init is  " + bcgInitiator.getId());
             if (!hostInitiatorSet.contains(bcgInitiator)) return false;
         }
         getLog().info("========== cg " + bcg + " matched. Init # is " + bcgInitiators.getInitiators().size());

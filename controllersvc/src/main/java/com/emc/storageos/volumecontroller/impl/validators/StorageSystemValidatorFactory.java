@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -111,20 +112,4 @@ public interface StorageSystemValidatorFactory {
      * @return
      */
     Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume);
-
-    /**
-     * Create an {@link Validator} instance for validating a change port group add paths operation.
-     *
-     * @param ctx - ExportMaskValidationContext
-     * @return - Validator
-     */
-    Validator changePortGroupAddPaths(ExportMaskValidationContext ctx);
-
-    /**
-     * Create an {@link Validator} instance for validating Export path adjustment add paths operation.
-     * 
-     * @param ctx - ExportMaskValidationContext
-     * @return - Validator
-     */
-    Validator ExportPathAdjustment(ExportMaskValidationContext ctx);
 }

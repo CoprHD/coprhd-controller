@@ -107,12 +107,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         List<URI> storagePortURIs = new ArrayList<URI>();
                         storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(dbClient, storagePorts),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
-                        
-                        if (!portGroup.getStoragePorts().isEmpty()) {
-                            portGroup.getStoragePorts().replace(StringSetUtil.uriListToStringSet(storagePortURIs));
-                       } else {
-                        	portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(storagePortURIs));
-                        }
+                        portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(storagePortURIs));
                         dbClient.updateObject(portGroup);
                     } else {
                         // no storage ports in the port group, remove it

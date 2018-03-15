@@ -4,16 +4,14 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.contexts;
 
-import java.net.URI;
-import java.util.Collection;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
+
+import java.net.URI;
+import java.util.Collection;
 
 /**
  * Defines the context for validating an export mask operation.
@@ -24,8 +22,6 @@ public class ExportMaskValidationContext implements ExceptionContext {
     private ExportMask exportMask;
     private Collection<? extends BlockObject> blockObjects;
     private Collection<Initiator> initiators;
-    private Collection<StoragePort> storagePorts;
-    private StoragePortGroup portGroup;
     private boolean allowExceptions = true;
 
     /**
@@ -132,41 +128,5 @@ public class ExportMaskValidationContext implements ExceptionContext {
      */
     public void setInitiators(Collection<Initiator> initiators) {
         this.initiators = initiators;
-    }
-
-    /**
-     * Get the collection of storage ports
-     * 
-     * @return Collection of storage ports
-     */
-    public Collection<StoragePort> getStoragePorts() {
-        return storagePorts;
-    }
-
-    /**
-     * Set the storage ports
-     * 
-     * @param storagePorts - storage ports used in the export mask
-     */
-    public void setStoragePorts(Collection<StoragePort> storagePorts) {
-        this.storagePorts = storagePorts;
-    }
-
-    /**
-     * Get the port group
-     * 
-     * @return the port group
-     */
-    public StoragePortGroup getPortGroup() {
-        return portGroup;
-    }
-
-    /**
-     * Set the port group
-     * 
-     * @param portGroup
-     */
-    public void setPortGroup(StoragePortGroup portGroup) {
-        this.portGroup = portGroup;
     }
 }

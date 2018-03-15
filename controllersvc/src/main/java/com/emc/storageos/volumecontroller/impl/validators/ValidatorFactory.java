@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -173,15 +174,5 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
      */
     private StorageSystemValidatorFactory getSystemValidator(StorageSystem system) {
         return systemFactories.get(system.getSystemType());
-    }
-
-    @Override
-    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
-        return getSystemValidator(ctx.getStorage()).changePortGroupAddPaths(ctx);
-    }
-
-    @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
-        return getSystemValidator(ctx.getStorage()).ExportPathAdjustment(ctx);
     }
 }

@@ -149,14 +149,4 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
         return null;
     }
-
-    @Override
-    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
-        return null;
-    }
-
-    @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
-        return null;
-    }
 }

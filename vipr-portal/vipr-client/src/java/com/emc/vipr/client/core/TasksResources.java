@@ -151,16 +151,17 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     	//Retrieve the task max count value from the configuration properties
     	Config viprConfig = new Config(client);
     	String config_task_max_count = viprConfig.getProperties().getProperty(CONFIG_TASK_MAX_COUNT);
+    	int taskMaxCount = maxCount;
     	
-        if (maxCount == 5) {
+        if (taskMaxCount == 5) {
         	return getByRefs(listByTenant(tenantId, maxCount, startTime, null));
         } 
         if (config_task_max_count.equals("All")) {
-        	maxCount = FETCH_ALL;
+        	taskMaxCount = FETCH_ALL;
         } else {
-        	maxCount = Integer.parseInt(config_task_max_count);
+        	taskMaxCount = Integer.parseInt(config_task_max_count);
         }
-        return getByRefs(listByTenant(tenantId, maxCount, null, null));
+        return getByRefs(listByTenant(tenantId, taskMaxCount, null, null));
     }
 
     public TaskStatsRestRep getStats() {

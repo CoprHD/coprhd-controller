@@ -88,6 +88,8 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
 
     private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, List<InitiatorRestRep> hostInitiators) {
         InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
+        if (bcgInitiators.getInitiators().isEmpty()) return false;
+        
         Set<URI> hostInitiatorSet = new HashSet<>();
         for (InitiatorRestRep initiator: hostInitiators) {
             hostInitiatorSet.add(initiator.getId());

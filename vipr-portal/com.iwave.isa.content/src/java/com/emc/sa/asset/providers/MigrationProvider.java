@@ -11,6 +11,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
@@ -86,12 +87,12 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     }
 
     private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, List<InitiatorRestRep> hostInitiators) {
-        List<InitiatorRestRep> bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
+        InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
         Set<URI> hostInitiatorSet = new HashSet<>();
         for (InitiatorRestRep initiator: hostInitiators) {
             hostInitiatorSet.add(initiator.getId());
         }
-        for (InitiatorRestRep bcgInitiator: bcgInitiators) {
+        for (NamedRelatedResourceRep bcgInitiator: bcgInitiators.getInitiators()) {
             if (!hostInitiatorSet.contains(bcgInitiator)) return false;
         }
         return true;

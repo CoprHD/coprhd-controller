@@ -40,6 +40,8 @@ import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileQuotaDirectory;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -491,6 +493,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         if (isAllRulesValid) {
                             log.info("Validating rules success for export {}", unManagedFs.getPath());
                             unManagedFs.setHasExports(true);
+                            associateNfsExportMapWithUMFS(unManagedFs, unManagedExpRule, storagePort);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                                             .toString(),
@@ -702,6 +705,54 @@ public class VNXUnityUnManagedObjectDiscoverer {
         } catch (Exception ex) {
             log.warn("VNXe file share retrieve processor failed for path {}, cause {}",
                     exp.getName(), ex);
+        }
+    }
+
+    private void associateNfsExportMapWithUMFS(UnManagedFileSystem vnxufs,
+            UnManagedFileExportRule unManagedfileExport, StoragePort storagePort) {
+        
+
+        String path = unManagedfileExport.getExportPath();
+        UnManagedFSExportMap currUnManagedExportMap = vnxufs.getFsUnManagedExportMap();
+        String access = null;
+        List<String> hostList = null;
+        if (currUnManagedExportMap == null) {
+            currUnManagedExportMap = new UnManagedFSExportMap();
+            vnxufs.setFsUnManagedExportMap(currUnManagedExportMap);
+        }
+        
+
+        if (unManagedfileExport != null && unManagedfileExport.getReadOnlyHosts() != null
+                && !unManagedfileExport.getReadOnlyHosts().isEmpty()) {
+            access = "ro";
+            hostList = new ArrayList<String>(unManagedfileExport.getReadOnlyHosts());
+        }
+
+        if (unManagedfileExport != null && unManagedfileExport.getReadWriteHosts() != null
+                && !unManagedfileExport.getReadWriteHosts().isEmpty()) {
+            access = "rw";
+            hostList = new ArrayList<String>(unManagedfileExport.getReadWriteHosts());
+        }
+
+        if (unManagedfileExport != null && unManagedfileExport.getRootHosts() != null
+                && !unManagedfileExport.getRootHosts().isEmpty()) {
+            access = "root";
+            hostList = new ArrayList<String>(unManagedfileExport.getRootHosts());
+        }
+
+        UnManagedFSExport unManagedFsExport = new UnManagedFSExport(hostList, storagePort.getPortName(),
+                storagePort.getPortName() + ":" + path, unManagedfileExport.getSecFlavor(), access, ROOT_USER_ACCESS, "NFS",
+                storagePort.getPortName(), path, unManagedfileExport.getExportPath());
+
+        String exportKey = unManagedFsExport.getFileExportKey();
+        if (currUnManagedExportMap.get(exportKey) == null) {
+            currUnManagedExportMap.put(exportKey, unManagedFsExport);
+            log.debug("associateExportMapWithFS {} no export already exists for mount path {}",
+                    exportKey, unManagedFsExport.getMountPath());
+        } else {
+            currUnManagedExportMap.put(exportKey, unManagedFsExport);
+            log.warn("associateExportMapWithFS {} Identical export already exists for mount path {} Overwrite",
+                    exportKey, unManagedFsExport.getMountPath());
         }
     }
 

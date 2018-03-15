@@ -534,7 +534,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (unManagedFileSystem.getHasExports()) {
 
                     filesystem.setFsExports(PropertySetterUtil.convertUnManagedExportMapToManaged(
-                            unManagedFileSystem.getFsUnManagedExportMap(), sPort, dataMover));
+                            unManagedFileSystem.getFsUnManagedExportMap(), sPort, dataMover, filesystem.getPath()));
 
                     _logger.info("Export map for {} = {}", fsName, filesystem.getFsExports());
 

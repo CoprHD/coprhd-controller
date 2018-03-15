@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.lang.reflect.Method;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,8 @@ import com.emc.storageos.util.ExportUtils;
 public class PropertySetterUtil {
 
     private static final Logger _logger = LoggerFactory.getLogger(PropertySetterUtil.class);
+
+    private static final String SLASH = "/";
 
     /**
      * Mapping between Key present in VolumeInfo's StringSetMap
@@ -365,15 +368,16 @@ public class PropertySetterUtil {
     }
 
     /**
-     * extract value from a String Set
-     * This method is used, to get value from a StringSet of size 1.
+     * This method converts unmanaged Fs export map to managed Fs export map
      * 
-     * @param key
-     * @param volumeInformation
-     * @return String
+     * @param unManagedFSExportMap
+     * @param storagePort
+     * @param dataMover
+     * @param fsPath
+     * @return
      */
     public static FSExportMap convertUnManagedExportMapToManaged(
-            UnManagedFSExportMap unManagedFSExportMap, StoragePort storagePort, StorageHADomain dataMover) {
+            UnManagedFSExportMap unManagedFSExportMap, StoragePort storagePort, StorageHADomain dataMover, String fsPath) {
 
         FSExportMap fsExportMap = new FSExportMap();
 
@@ -418,6 +422,11 @@ public class PropertySetterUtil {
                 fsExport.setMountPath(export.getMountPath());
             }
 
+            String subDir = getSubDirectory(export.getPath(), fsPath);
+            if (null != subDir) {
+                fsExport.setSubDirectory(subDir);
+            }
+
             fsExport.setPath(export.getPath());
             fsExport.setPermissions(export.getPermissions());
             fsExport.setProtocol(export.getProtocol());
@@ -430,4 +439,28 @@ public class PropertySetterUtil {
         return fsExportMap;
     }
 
+    /**
+     * Method to extract sub directory name from the export path using file system path
+     * 
+     * @param exportPath
+     * @param fsPath
+     * @return
+     */
+    private static String getSubDirectory(String exportPath, String fsPath) {
+
+        String fsPathWithSlash = fsPath + SLASH;
+        if (StringUtils.isNotEmpty(exportPath) && exportPath.contains(fsPathWithSlash)) {
+            String[] pathArray = exportPath.split(fsPathWithSlash);
+            if (pathArray.length > 0) {
+                String subDirName = pathArray[pathArray.length - 1];
+                if (subDirName.contains(SLASH)) {
+                    subDirName = subDirName.split(SLASH)[0];
+                }
+                _logger.info("Subdirectroy : {}", subDirName);
+                return subDirName;
+            }
+        }
+        _logger.info("Subdirectory is null for export path {} and File system path {}.", exportPath, fsPath);
+        return null;
+    }
 }

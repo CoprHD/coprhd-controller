@@ -500,6 +500,8 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.UN_VOLUME_EXPORT_MASK_HLUS_MAP, volumeToExportMasksHLUMap);
 
         _keyMap.put(Constants.MIGRATION_STORAGE_GROUPS, new HashSet<String>());
+        _keyMap.put(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS, new HashSet<String>());
+      
         Project project = getMigrationProject();
         _keyMap.put(MIGRATION_PROJECT, project);
 

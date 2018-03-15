@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -62,6 +63,8 @@ public class MaskingViewComponentProcessor extends Processor {
             // Storage group names for book-keeping
             @SuppressWarnings("unchecked")
             Set<String> storageGroupNames = (Set<String>) keyMap.get(Constants.MIGRATION_STORAGE_GROUPS);
+            @SuppressWarnings("unchecked")
+			Set<String> unmanagedStorageGroupNames = (Set<String>) keyMap.get(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS);
             // Add all the storage groups to a Project named Migration
             Project project = (Project) keyMap.get(MIGRATION_PROJECT);
 
@@ -71,6 +74,7 @@ public class MaskingViewComponentProcessor extends Processor {
             BlockConsistencyGroup storageGroup = null;
             StringSet initiators = new StringSet();
             boolean sgCreated = false;
+            boolean sgHasUnknownInitiator = false;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
                 if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
@@ -133,9 +137,20 @@ public class MaskingViewComponentProcessor extends Processor {
                     if (knownInitiator != null) {
                         logger.info("Found an initiator ({}) in ViPR for network id {} ",
                                 knownInitiator.getId(), initiatorNetworkId);
+                        if (knownInitiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+                        	logger.info("This initiator ({}) is RecoverPoint based",
+                                    knownInitiator.getId());
+                        	sgHasUnknownInitiator = true;
+                        }
+                        else if (NetworkUtil.getStoragePort(initiatorNetworkId, dbClient) != null) {
+                        	logger.info("This network id ({}) is associated to Storage Port as well (VPLEX)",
+                        			initiatorNetworkId);
+                        	sgHasUnknownInitiator = true;                        	
+                        }
                         initiators.add(knownInitiator.getId().toString());
                     } else {
                         logger.info("No hosts in ViPR found configured for network id {}", initiatorNetworkId);
+                        sgHasUnknownInitiator = true;
                     }
                 } else {
                     logger.debug("Skipping associator {}", associatedInstancePath.toString());
@@ -145,9 +160,15 @@ public class MaskingViewComponentProcessor extends Processor {
             if (!initiators.isEmpty()) {
                 storageGroup.setInitiators(initiators);
             }
-            if (sgCreated) {
+            //If a single unknown initiator is associated with the Storage Group, we should treat it
+            // as a unmanaged Storage Group that is not suitable for Migration..
+            if (sgHasUnknownInitiator){
+            	unmanagedStorageGroupNames.add(storageGroup.getLabel());
+            }
+            //Create/Update Only if the SG does not have unknown initiators
+            if (sgCreated && !sgHasUnknownInitiator) {
                 dbClient.createObject(storageGroup);
-            } else {
+            } else if (storageGroup != null && !sgHasUnknownInitiator) {
                 dbClient.updateObject(storageGroup);
             }
         } catch (Exception e) {

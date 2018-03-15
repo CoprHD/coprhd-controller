@@ -44,6 +44,9 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
             URI systemId = profile.getSystemId();
             @SuppressWarnings("unchecked")
             Set<String> discoveredStorageGroups = (Set<String>) keyMap.get(Constants.MIGRATION_STORAGE_GROUPS);
+            @SuppressWarnings("unchecked")
+			Set<String> storageGroupsWithUnmanagedInitiators = (Set<String>) keyMap.get(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS);
+            
             List<BlockConsistencyGroup> inactiveStorageGroups = new ArrayList<>();
 
             URIQueryResultList storageGroupURIs = new URIQueryResultList();
@@ -54,9 +57,10 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
                 URI storageGroupURI = storageGroupItr.next();
                 BlockConsistencyGroup storageGroupInDB = dbClient.queryObject(BlockConsistencyGroup.class, storageGroupURI);
                 String sgLabel = storageGroupInDB.getLabel();
+                //Remove SG's from the DB if they are not part of recent discover and if they have unmanaged initiators
                 if (storageGroupInDB.getTypes().contains(Types.MIGRATION.name())
-                        && !discoveredStorageGroups.contains(sgLabel)) {
-                    logger.info("Storage group {} not found on array. Migration status {}",
+                        && (!discoveredStorageGroups.contains(sgLabel) || storageGroupsWithUnmanagedInitiators.contains(sgLabel))) {
+                    logger.info("Storage group {} not found on array or has unmanaged initiators. Migration status {}",
                             sgLabel, storageGroupInDB.getMigrationStatus());
                     // Only remove if the MigrationStatus is NONE
                     if (MigrationStatus.None.name().equalsIgnoreCase(storageGroupInDB.getMigrationStatus())) {

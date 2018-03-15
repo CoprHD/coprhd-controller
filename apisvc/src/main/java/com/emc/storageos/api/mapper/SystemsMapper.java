@@ -529,6 +529,7 @@ public class SystemsMapper {
                 to.setVolumeCount(volumeCount);
             }
         }
+		mapDiscoveredDataObjectFields(from, to);
         return to;
     }
 }

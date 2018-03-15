@@ -795,7 +795,7 @@ public class BlockService extends TaskResourceService {
 
         // Validate the port group
         URI portGroupURI = param.getPortGroup();
-        if (portGroupURI != null) {
+        if (!NullColumnValueGetter.isNullURI(portGroupURI)) {
             ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             if (portGroup == null ||

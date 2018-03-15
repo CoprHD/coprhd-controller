@@ -27,23 +27,23 @@ verify_mount_point() {
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
     
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -host ${OS_TYPE} -method get_mount_point -params ${MOUNT_POINT},${VOLUME_WWN} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -host ${OS_TYPE} -method get_mount_point -params "${MOUNT_POINT},${VOLUME_WWN}" > ${TMPFILE1} 2> ${TMPFILE2}
     if [ $? -ne 0 ]
     then
-    	if [ "$2" = "gone" ]
-	then
-	    echo "PASSED: Verified mount point ${MOUNT_POINT} doesn't exist."
-	    exit 0;
+        if [ "$6" = "gone" ]
+        then
+	        echo "PASSED: Verified mount point ${MOUNT_POINT} doesn't exist."
+	        exit 0;
     	fi
     	echo -e "\e[91mERROR\e[0m::expected mount point - ${MOUNT_POINT} doesn't exist.";
     	exit 1;
     
     else 
-    	if [ "$2" = "gone" ]
+        if [ "$6" = "gone" ]
 	then
-	    echo -e "\e[91mERROR\e[0m: Expected MOUNT_POINT to be gone, but it was found";
-	    exit 1;
-    	fi
+	       echo -e "\e[91mERROR\e[0m: Expected mount point ${MOUNT_POINT} to be gone, but it was found";
+	       exit 1;
+        fi
         if [ "$VERIFY_SIZE" = true -a "$OS_TYPE" = "hpux" ]; then
             result=$(awk 'NF{s=$0}END{print s}' ${TMPFILE1})
             actualFilesystemSize=$(echo $result | cut -d " " -f 2)

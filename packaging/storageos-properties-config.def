@@ -2175,7 +2175,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "100"
+        value : "1000"
     },
     {
         key : "task_clean_interval",

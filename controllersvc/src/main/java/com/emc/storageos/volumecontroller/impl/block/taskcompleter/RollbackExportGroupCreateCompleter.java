@@ -73,7 +73,7 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 				dbClient.updateObject(exportMask);
 				// if its not used anywhere and is system created delete it
 				if (ExportMaskUtils.getExportGroups(dbClient, exportMask.getId()).isEmpty()
-						&& !exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes()) {
+						&& exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes()) {
 					dbClient.markForDeletion(exportMask);
 				}
                 updatePortGroupVolumeCount(pgURI, dbClient);

@@ -3963,6 +3963,7 @@ public class ExportGroupService extends TaskResourceService {
                     throw APIException.badRequests.changePortGroupExistingInitiators(exportMask.getMaskName(),
                             Joiner.on(',').join(exportMask.getExistingInitiators()));
                 }
+                affectedMasks.add(exportMask.getId());
             } else {
                 _log.info(
                         String.format("The export mask %s uses the same port group %s", exportMask.getMaskName(), newPortGroup.getLabel()));

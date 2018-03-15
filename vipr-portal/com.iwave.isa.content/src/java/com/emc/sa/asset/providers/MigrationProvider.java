@@ -62,7 +62,7 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("storageConsistencyGroup")
-    @AssetDependencies({ "storageType","host","allStorageSystems" })
+    @AssetDependencies({ "blockStorageType","host","allStorageSystems" })
     public List<AssetOption> getConsistencyGroupOptions(AssetOptionsContext ctx, String storageType, URI storageSystemId, URI hostId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();

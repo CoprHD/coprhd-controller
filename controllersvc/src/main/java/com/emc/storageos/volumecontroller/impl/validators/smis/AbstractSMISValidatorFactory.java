@@ -275,4 +275,14 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
         return null;
     }
 
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+
+    @Override
+    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
+        return null;
+    }
+
 }

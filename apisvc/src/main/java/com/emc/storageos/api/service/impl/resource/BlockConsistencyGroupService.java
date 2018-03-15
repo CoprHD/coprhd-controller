@@ -41,6 +41,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.model.host.InitiatorList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,10 +66,6 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computecontroller.HostRescanController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -3382,6 +3380,35 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         return cgMigrations;
+    }
+
+    /**
+     * Returns a list of the initiator ids associated with the consistency group.
+     *
+     * @param id the URN of Block Consistency Group
+     * @return A list of initiator ids associated with the consistency group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/initiators")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public InitiatorList getInitiatorsByCG(@PathParam("id") URI id) throws DatabaseException {
+        _log.info("==========  get init for cg {}", id);
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        List<NamedRelatedResourceRep> inits = new ArrayList<>();
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        StringSet initIdSet = cg.getInitiators();
+        if (initIdSet != null) {
+            for (String init: initIdSet) {
+                inits.add(new NamedRelatedResourceRep(URI.create(init), null, ""));
+            }
+        }
+
+        InitiatorList initiatorList = new InitiatorList(inits);
+        _log.info("==========  return init {}", initiatorList.getInitiators().size());
+        return initiatorList;
     }
 
     /**

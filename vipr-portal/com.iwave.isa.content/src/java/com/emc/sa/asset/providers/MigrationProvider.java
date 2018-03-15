@@ -11,6 +11,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
@@ -21,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -59,18 +61,40 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("storageConsistencyGroup")
-    @AssetDependencies({ "allStorageSystems" })
-    public List<AssetOption> getConsistencyGroupOptions(AssetOptionsContext ctx, URI storageSystemId) {
+    @AssetDependencies({ "storageType","host","allStorageSystems" })
+    public List<AssetOption> getConsistencyGroupOptions(AssetOptionsContext ctx, String storageType, URI storageSystemId, URI hostId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
 
         final BlockConsistencyGroupList consistencyGrps = client.storageSystems().getConsistencyGroups(storageSystemId);
-
         final List <NamedRelatedResourceRep> consistencyGrpList = consistencyGrps.getConsistencyGroupList();
         for(NamedRelatedResourceRep consistencygrp: consistencyGrpList) {
-            options.add(new AssetOption(consistencygrp.getId(), consistencygrp.getName()));
+            if (filterBCG(client, consistencygrp.getId(), storageType, hostId)) {
+                options.add(new AssetOption(consistencygrp.getId(), consistencygrp.getName()));
+            }
         }
         return options;
+    }
+
+    private boolean filterBCG(ViPRCoreClient client, URI bcgId, String storageType, URI hostId) {
+        if (storageType.equals(BlockProvider.EXCLUSIVE_STORAGE)) {
+            List<InitiatorRestRep> hostInitiators = client.initiators().getByHost(hostId);
+            return matchBCGWithHost(client, bcgId, hostInitiators);
+        } else { // Shared
+        }
+        return false;
+    }
+
+    private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, List<InitiatorRestRep> hostInitiators) {
+        List<InitiatorRestRep> bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
+        Set<URI> hostInitiatorSet = new HashSet<>();
+        for (InitiatorRestRep initiator: hostInitiators) {
+            hostInitiatorSet.add(initiator.getId());
+        }
+        for (InitiatorRestRep bcgInitiator: bcgInitiators) {
+            if (!hostInitiatorSet.contains(bcgInitiator)) return false;
+        }
+        return true;
     }
 
     @Asset("targetSystemStoragePorts")

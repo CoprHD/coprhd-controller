@@ -1102,7 +1102,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     workflow, lockKeys, LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
             if (!acquiredLocks) {
                 _log.error("Change port group could not acquire locks");
-                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("change port group", "Could not acquire workflow loc");
+                ServiceError serviceError = DeviceControllerException.errors.jobFailedOpMsg("change port group", "Could not acquire workflow lock");
                 taskCompleter.error(_dbClient, serviceError);
                 return;
 

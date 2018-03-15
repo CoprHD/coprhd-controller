@@ -528,7 +528,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                  // check if the storage group is shared before delete it
                     if (_helper.checkExists(storage, storageGroupPath, false, false) != null &&
                         _helper.checkMaskingGroupShared(storage, storageGroupPath, exportMask.getMaskName())) {
-                     // if the storage group is shared, don't delete the storage group
+                         // if the storage group is shared, don't delete the storage group
+                        _log.info("The Storage group {} is shared, so it will not be deleted", groupName);
                         taskCompleter.ready(_dbClient);
                         return;
                     }

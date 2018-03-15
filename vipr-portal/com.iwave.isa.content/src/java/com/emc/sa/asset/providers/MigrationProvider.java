@@ -98,7 +98,7 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
         }
         for (NamedRelatedResourceRep bcgInitiator: bcgInitiators.getInitiators()) {
             getLog().info("bcg init is  " + bcgInitiator.getId());
-            if (!hostInitiatorSet.contains(bcgInitiator)) return false;
+            if (!hostInitiatorSet.contains(bcgInitiator.getId())) return false;
         }
         getLog().info("========== cg " + bcg + " matched. Init # is " + bcgInitiators.getInitiators().size());
         return true;

@@ -5,11 +5,14 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Operation;
@@ -48,12 +51,31 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 
             if (exportMask != null) {
 			    URI pgURI = exportMask.getPortGroup();
+				// clean up export group
                 exportGroup.removeExportMask(exportMask.getId());
+				dbClient.updateObject(exportGroup);
+				List<URI> boURIs = new ArrayList<>();
+				// clean up export mask, if there are volumes added that are
+				// part of export group then we should remove that volumes
+				for (String emUri : exportGroup.getExportMasks()) {
+					if (URIUtil.isValid(emUri) && !emUri.equals(exportMask.getId())) {
+						ExportMask em = dbClient.queryObject(ExportMask.class, URI.create(emUri));
+						if (em != null) {
+							for (String boURI : em.getUserAddedVolumes().keySet()) {
+								if (URIUtil.isValid(boURI)) {
+									boURIs.add(URI.create(boURI));
+								}
+							}
+						}
+					}
+				}
+				exportMask.removeFromUserAddedVolumesByURI(boURIs);
+				dbClient.updateObject(exportMask);
+				// if its not used anywhere and is system created delete it
 				if (ExportMaskUtils.getExportGroups(dbClient, exportMask.getId()).isEmpty()
 						&& !exportMask.getCreatedBySystem() && !exportMask.hasAnyVolumes()) {
 					dbClient.markForDeletion(exportMask);
 				}
-                dbClient.updateObject(exportGroup);
                 updatePortGroupVolumeCount(pgURI, dbClient);
             }
             _log.info(String.format("Done RollbackExportGroupCreate - Id: %s, OpId: %s, status: %s",

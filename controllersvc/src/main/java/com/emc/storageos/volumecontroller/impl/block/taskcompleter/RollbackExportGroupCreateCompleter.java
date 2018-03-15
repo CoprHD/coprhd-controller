@@ -61,7 +61,7 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 					if (URIUtil.isValid(emUri) && !emUri.equals(exportMask.getId())) {
 						ExportMask em = dbClient.queryObject(ExportMask.class, URI.create(emUri));
 						if (em != null) {
-							for (String boURI : em.getUserAddedVolumes().keySet()) {
+							for (String boURI : em.getUserAddedVolumes().values()) {
 								if (URIUtil.isValid(boURI)) {
 									boURIs.add(URI.create(boURI));
 								}

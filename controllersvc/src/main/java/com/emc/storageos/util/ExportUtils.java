@@ -419,8 +419,9 @@ public class ExportUtils {
                         of only volumes. This is for VPlex coexistence case, in particular when ViPR
                         is trying to use information in StorageView on VPlex to create corresponding ExportMask
                         Check COP-31815
-                        */
-                        (mask.getVolumes() != null || mask.getExistingVolumes() != null) &&
+                        */ 
+                        ((mask.getVolumes() != null && !mask.getVolumes().isEmpty()) ||
+                            (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty())) &&
                         mask.getStoragePorts() != null) {
                     exportMasks.add(mask);
                 }

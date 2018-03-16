@@ -104,7 +104,7 @@ ${include="storageos-cluster-properties.xml"}
           <vssd:ElementName>Virtual Hardware Family</vssd:ElementName>
           <vssd:InstanceID>0</vssd:InstanceID>
           <vssd:VirtualSystemIdentifier>${product_name}</vssd:VirtualSystemIdentifier>
-          <vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>
+          <vssd:VirtualSystemType>vmx-09</vssd:VirtualSystemType>
         </System>
         <Item>
           <rasd:AllocationUnits>hertz * 10^6</rasd:AllocationUnits>

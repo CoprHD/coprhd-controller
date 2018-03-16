@@ -3933,13 +3933,13 @@ public class ExportGroupService extends TaskResourceService {
             exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, system.getId(), currentPortGroup);
         }
         if (exportMasks.isEmpty()) {
-            throw APIException.badRequests.changePortGroupInvalidPortGroup(newPortGroup.getNativeGuid());
+            throw APIException.badRequests.noValidExportMaskInExportGroup(exportGroup.getLabel());
         }
         List<URI> affectedMasks = new ArrayList<URI>();
         for (ExportMask exportMask : exportMasks) {
             URI currentPGUri = exportMask.getPortGroup();
             StringSet newPorts = newPortGroup.getStoragePorts();
-                
+
             if (!newPortGroup.getId().equals(currentPGUri)) {
                 StoragePortGroup currentPG = queryObject(StoragePortGroup.class, currentPGUri, false);
                 StringSet currentPorts = currentPG.getStoragePorts();

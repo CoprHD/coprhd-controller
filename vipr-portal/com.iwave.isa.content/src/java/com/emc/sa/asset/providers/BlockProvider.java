@@ -1176,22 +1176,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return options;
     }
-    
+
     @Asset("exportPathPorts")
     @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem", "exportPathExport" })
-    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId, URI exportId) {
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId,
+            URI exportId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-        
-        // Get all the PGs for the varray/storage system/EG combo then check to see if there are any non-mutable PGs; 
-        // if there are the storage ports displayed to the user would be limited to just those ones.
-        StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(vArrayId, 
-                exportId, storageSystemId, null, null, false);
-        
+
+        // Get all the PGs for the varray/storage system/EG combo then check to
+        // see if there are any non-mutable PGs;
+        // if there are the storage ports displayed to the user would be limited
+        // to just those ones.
+        StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(vArrayId, exportId,
+                storageSystemId, null, null, false);
+
         // Keep a list of ports from the non-mutable PGs. This could remain
         // empty if there are no PGs or none that are non-mutable.
         List<URI> nonMutablePGPortURIs = new ArrayList<URI>();
-        
+
         if (portGroupsRestRep != null) {
             // Drill down to get the PG and the storage ports
             List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
@@ -1199,17 +1202,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 for (StoragePortGroupRestRep pg : portGroups) {
                     // Check to see if the PG is non-mutable
                     if (!pg.getMutable()) {
-                        // Keep track of these storage ports, they will be used to filter out
+                        // Keep track of these storage ports, they will be used
+                        // to filter out
                         // other storage ports.
                         StoragePortList pgPortsList = pg.getStoragePorts();
-                        List<NamedRelatedResourceRep> pgPorts = pgPortsList.getPorts();                
+                        List<NamedRelatedResourceRep> pgPorts = pgPortsList.getPorts();
                         for (NamedRelatedResourceRep pgPort : pgPorts) {
                             nonMutablePGPortURIs.add(pgPort.getId());
                         }
                     }
                 }
-            } 
-        }       
+            }
+        }
         
         List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
                 

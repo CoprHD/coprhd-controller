@@ -72,7 +72,7 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
                 } else if(storageGroupInDB.getTypes().contains(Types.MIGRATION.name()) && storageGroupToInitiatorMapping.containsKey(storageGroupInDB.getLabel())){
                 	StringSet dbInitiators = storageGroupInDB.getInitiators();
                		StringSet discoveredInitiators = storageGroupToInitiatorMapping.get(storageGroupInDB.getLabel());
-               		if(!discoveredInitiators.equals(dbInitiators)){
+               		if ((discoveredInitiators.size() != dbInitiators.size()) || (!discoveredInitiators.containsAll(dbInitiators))){
                			storageGroupInDB.setInitiators(discoveredInitiators);
                			storageGroupsTobeUpdated.add(storageGroupInDB);               			
                		}              	                	

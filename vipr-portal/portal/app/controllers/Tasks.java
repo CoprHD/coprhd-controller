@@ -95,7 +95,7 @@ public class Tasks extends Controller {
     private static void addMaxTasksRenderArgs() {
         Integer maxTasks = params.get("maxTasks", Integer.class);
         if (maxTasks == null) {
-            maxTasks = 1000;
+            maxTasks = 100;
         }
         if (maxTasks == 0) {
             maxTasks = -1;
@@ -125,7 +125,7 @@ public class Tasks extends Controller {
 
         Integer maxTasks = params.get("maxTasks", Integer.class);
         if (maxTasks == null) {
-            maxTasks = 1000;
+            maxTasks = 100;
         }
         if (maxTasks == 0) {
             maxTasks = -1;

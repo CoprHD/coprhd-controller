@@ -3927,10 +3927,13 @@ public class ExportGroupService extends TaskResourceService {
 				if (currentPortGroup != null && !currentPortGroup.equals(mask.getPortGroup())) {
 					throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
 				}
-				exportMasks.add(mask);
-			} else {
-				exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, system.getId(), currentPortGroup);
-            }
+			}
+		}
+
+		if (mask != null) {
+			exportMasks.add(mask);
+		} else {
+			exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, system.getId(), currentPortGroup);
         }
 
         if (exportMasks.isEmpty()) {

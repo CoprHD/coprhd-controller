@@ -2597,6 +2597,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Storage ports that needs to be added will be calculated in the
             // add storage ports method from the zoning Map.
             exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), new ArrayList<URI>());
+            /*currently the Export Mask is added to the Export Group after all the hosts are being processed
+              Change made for COP-31815
+              This is so that ViPR can discover this ExportMask in the function:
+               VPlexDEviceController.getInitiatorExportMasks 
+            */
+            exportGroup.addExportMask(exportMask.getId());
+            _dbClient.updateObject(exportGroup);
         }
 
         return foundMatchingStorageView;

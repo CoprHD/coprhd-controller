@@ -8,7 +8,8 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
     <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
-    <!-- can be referenced.                                                            -->
+    <!-- can be referenced.
+    <import resource="classpath:controller-custom-config-info.xml"/>                                                            -->
     <import resource="classpath:controller-configinfo.xml"/>
     <import resource="CimAdapterSpringContext.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
@@ -20,7 +21,6 @@
     <import resource="classpath:controller-hds-prov.xml"/>
     <import resource="classpath:controller-scaleio-prov.xml"/>
     <import resource="classpath:controller-xtremio-prov.xml"/>
-    <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-unity.xml"/>
 
 	<context:property-placeholder location="classpath:isilon.properties" ignore-unresolvable="true"/>
@@ -37,6 +37,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils"/>
     </bean>
 
     <bean id="vnxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VnxMaskingOrchestrator">

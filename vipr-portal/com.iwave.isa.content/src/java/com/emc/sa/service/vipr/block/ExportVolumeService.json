@@ -63,6 +63,12 @@
             min:1,
             max:65535
           }
+        },
+        
+        portGroup: {
+            type:"assetType.vipr.exportVolumePortGroups",
+            required: false,
+            hideIfEmpty: true
         }
         
       }

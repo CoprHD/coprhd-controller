@@ -2034,7 +2034,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
                 assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), true, workflow, null, opId);
             }
 
             // If possible, do the HA side export. To do this we must have both
@@ -2042,7 +2042,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             if (haVarray != null && varrayToInitiators.get(haVarray) != null) {
                 assembleExportMasksWorkflow(vplex, export, haVarray,
                         varrayToInitiators.get(haVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
+                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)), true,
                         workflow, null, opId);
             }
 
@@ -2078,6 +2078,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      *            if initiators is null, the method will use all initiators from the ExportGroup
      * @param blockObjectMap
      *            the key (URI) of this map can reference either the volume itself or a snapshot.
+     * @param zoningStepNeeded - Determines whether zone step is needed
      * @param workflow
      *            the controller workflow
      * @param waitFor
@@ -2088,7 +2089,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
      * @throws Exception
      */
     private String assembleExportMasksWorkflow(URI vplexURI, URI export, URI varrayUri, List<URI> initiators,
-            Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
+            Map<URI, Integer> blockObjectMap, boolean zoningStepNeeded, Workflow workflow, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
 
@@ -2322,10 +2323,12 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         }
 
         _log.info("updating zoning if necessary for both new and updated export masks");
-        String zoningStepId = addStepsForZoningUpdate(export, initiators,
-                blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
-                exportMasksToUpdateOnDevice);
-
+        String zoningStepId = waitFor;
+        if (zoningStepNeeded) {
+            _log.info("Adding step to update zones if required.");
+            zoningStepId = addStepsForZoningUpdate(export, initiators, blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
+                    exportMasksToUpdateOnDevice);
+        }
         _log.info("set up initiator pre-registration step");
         String storageViewStepId = 
                 addStepsForInitiatorRegistration(initiators, vplexSystem, vplexClusterName, workflow, zoningStepId);
@@ -2594,6 +2597,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Storage ports that needs to be added will be calculated in the
             // add storage ports method from the zoning Map.
             exportMasksToUpdateOnDeviceWithStoragePorts.put(exportMask.getId(), new ArrayList<URI>());
+            /*currently the Export Mask is added to the Export Group after all the hosts are being processed
+              Change made for COP-31815
+              This is so that ViPR can discover this ExportMask in the function:
+               VPlexDEviceController.getInitiatorExportMasks 
+            */
+            exportGroup.addExportMask(exportMask.getId());
+            _dbClient.updateObject(exportGroup);
         }
 
         return foundMatchingStorageView;
@@ -3598,13 +3608,33 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
 
             findAndUpdateFreeHLUsForClusterExport(vplexSystem, exportGroup, exportGroupInitiatorList, volumeMap);
 
+            // Check if Zoning needs to be checked from system config
+            // call the doZoneExportMasksCreate to check/create/remove zones with the flag
+            String addZoneWhileAddingVolume = customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.ZONE_ADD_VOLUME,
+                    CustomConfigConstants.GLOBAL_KEY, null);
+            // Default behavior is we allow zoning checks against the Network System
+            Boolean addZoneOnDeviceOperation = true;
+            _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Default) : {}",
+                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+            if (addZoneWhileAddingVolume != null) {
+                addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
+                _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
+                        addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+            } else {
+                _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
+            }
+
+            _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Custom Config) : {}",
+                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+
             // Add all the volumes to the SRC varray if there are src side volumes and
             // initiators that have connectivity to the source side.
             String srcExportStepId = null;
             if (varrayToInitiators.get(srcVarray) != null && srcVolumes != null) {
                 srcExportStepId = assembleExportMasksWorkflow(vplexURI, exportURI, srcVarray,
                         varrayToInitiators.get(srcVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes),
+                        ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), addZoneOnDeviceOperation,
                         workflow, null, opId);
             }
 
@@ -3616,7 +3646,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 _dbClient.updateObject(exportGroup);
                 assembleExportMasksWorkflow(vplexURI, exportURI, haVarray,
                         varrayToInitiators.get(haVarray),
-                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)),
+                        ExportMaskUtils.filterVolumeMap(volumeMap, varrayToVolumes.get(haVarray)), addZoneOnDeviceOperation,
                         workflow, srcExportStepId, opId);
             }
 
@@ -4378,7 +4408,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Create the ExportMask if there are volumes in this varray.
             if (!varrayVolumeMap.isEmpty()) {
                 lastStepId = assembleExportMasksWorkflow(vplexURI, exportURI, varrayURI,
-                        hostInitiatorURIs, varrayVolumeMap, workflow, previousStepId, opId);
+                        hostInitiatorURIs, varrayVolumeMap, true, workflow, previousStepId, opId);
             }
         } else {
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);

@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RequestedTokenMap;
 import com.emc.storageos.db.client.model.SMISProvider;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
@@ -793,6 +794,16 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getExecutionWindowTenantIdIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(ExecutionWindow.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(ExecutionWindow.TENANT), altId);
+        }
+        
+        public static AlternateIdConstraint getPortGroupNativeGuidConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(StoragePortGroup.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
+        }
+
+        public static AlternateIdConstraint getExportMasksByPortGroup(String portGroupId) {
+            DataObjectType doType = TypeMap.getDoType(ExportMask.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("portGroup"), portGroupId);
         }
     }
 }

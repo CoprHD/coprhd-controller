@@ -62,13 +62,13 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
@@ -7460,5 +7460,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      */
     private boolean rpCGExists(BlockConsistencyGroup cg, RecoverPointClient rp, String cgName, URI rpSystemId) {
         return (cg.created() && cg.nameExistsForStorageSystem(rpSystemId, cgName) && rp.doesCgExist(cgName));
+    }
+    
+    @Override
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval,
+            String token) {
+     // supported only for VMAX.
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

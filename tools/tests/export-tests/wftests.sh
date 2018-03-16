@@ -48,7 +48,7 @@ Usage()
 cd $(dirname $0)
 
 # Extra debug output
-DUTEST_DEBUG=${DUTEST_DEBUG:-0}
+DUTEST_DEBUG=${DUTEST_DEBUG:-1}
 
 # Global test repo location
 GLOBAL_RESULTS_IP=10.247.101.46
@@ -1418,7 +1418,10 @@ setup() {
 	if [ "${SIM}" != "1" ]; then
             echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
             echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
-
+			
+            sshpass -p $SMIS_ROOT_PASSWD ssh -o StrictHostKeyChecking=no root@${VMAX_SMIS_IP} "/opt/emc/SYMCLI/bin/stordaemon setvar storsrvd -name security_level=NONSECURE" > /dev/null 2> /dev/null              
+            echo "Setting security level as NONSECURE in SYMAPI server-${VMAX_SMIS_IP}"
+			
             echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
             symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
             echo $symapi_verify
@@ -1433,7 +1436,7 @@ setup() {
     fi
 
     if [ "${SIM}" != "1" -a "${SS}" != "vblock" ]; then
-	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+	run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5989 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl true
 	BROCADE=1;
     elif [ "${SS}" = "vblock" ]; then
         secho "Configure vblock switches"

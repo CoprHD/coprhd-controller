@@ -420,8 +420,7 @@ public class ExportUtils {
                         is trying to use information in StorageView on VPlex to create corresponding ExportMask
                         Check COP-31815
                         */ 
-                        ((mask.getVolumes() != null && !mask.getVolumes().isEmpty()) ||
-                            (mask.getExistingVolumes() != null && !mask.getExistingVolumes().isEmpty())) &&
+                        (!mask.getVolumes().isEmpty() || !mask.getExistingVolumes().isEmpty()) &&
                         mask.getStoragePorts() != null) {
                     exportMasks.add(mask);
                 }

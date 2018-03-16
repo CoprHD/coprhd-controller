@@ -3906,7 +3906,7 @@ public class ExportGroupService extends TaskResourceService {
         com.emc.storageos.api.service.impl.resource.utils.ExportUtils.validatePortGroupWithVirtualArray(newPortGroup, varray, _dbClient);
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,  exportGroup, system.getId());
         if (exportMasks.isEmpty()) {
-            throw APIException.badRequests.changePortGroupInvalidPortGroup(newPortGroup.getNativeGuid());
+            throw APIException.badRequests.noValidExportMaskInExportGroup(exportGroup.getLabel());
         }
         List<ExportMask> affectedMasks = new ArrayList<ExportMask>();
         for (ExportMask exportMask : exportMasks) {
@@ -3921,6 +3921,12 @@ public class ExportGroupService extends TaskResourceService {
                     if (!Collections.disjoint(newPorts, currentPorts)) {
                         throw APIException.badRequests.changePortGroupPortGroupNoOverlap(newPortGroup.getLabel());
                     }
+                    // Check if there is any existing volumes in the export mask
+                    if (exportMask.getExistingVolumes() != null && !exportMask.getExistingVolumes().isEmpty()) {
+                        throw APIException.badRequests.changePortGroupExistingVolumes(exportMask.getMaskName(), 
+                                Joiner.on(',').join(exportMask.getExistingVolumes().keySet()));
+                    }
+                    
                     // We could not support volumes with host IO limit for port group change. users have to disable Host IO limit first
                     // because we could not add use the same storage group and a new port group to create the new masking view
                     if (system.checkIfVmax3()) {
@@ -3929,11 +3935,6 @@ public class ExportGroupService extends TaskResourceService {
                             throw APIException.badRequests.changePortGroupNotSupportedforHostIOLimit(volumeWithHostIO);
                         }
                         
-                    }
-                    // Check if there is any existing volumes in the export mask
-                    if (exportMask.getExistingVolumes() != null && !exportMask.getExistingVolumes().isEmpty()) {
-                        throw APIException.badRequests.changePortGroupExistingVolumes(exportMask.getMaskName(), 
-                                Joiner.on(',').join(exportMask.getExistingVolumes().keySet()));
                     }
                     affectedMasks.add(exportMask);
                 } else {

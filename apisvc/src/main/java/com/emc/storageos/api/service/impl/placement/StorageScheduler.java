@@ -1942,6 +1942,59 @@ public class StorageScheduler implements Scheduler {
         return true;
     }
     
+    /** If there are VMAX Storage Systems to consider, we need to check to see if there
+        are existing Export Masks to the Host/Cluster and the VMAX. If so, the
+        PG is not required and these VMAX Storage Systems (and their storage pools) are valid 
+        for the order.
+     */
+    private void checkExistingsMasksToHostFromStorageSystems(VirtualPoolCapabilityValuesWrapper capabilities, VirtualPool vpool, 
+            AttributeMapBuilder provMapBuilder, Set<String> noPortGroupRequiredStorageSystemSet, List<URI> vmaxStorageSystems
+            ) {
+        if (!CollectionUtils.isEmpty(vmaxStorageSystems)) {
+            // Check to see if this is a Host or Cluster, keep track of the type.
+            String computeResource = capabilities.getCompute();
+            String computeResourceType = "";
+            if (computeResource.toLowerCase().contains("cluster")) {
+                computeResourceType = "cluster";
+            } else {
+                computeResourceType= "host";                        
+            }                                                
+            URI computeResourceURI = URIUtil.uri(computeResource);
+
+            // Get the existing Export Masks for the Host/Cluster using the initiators from the Host/Cluster.
+            URIQueryResultList initiatorURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(computeResourceURI, Initiator.class, computeResourceType), initiatorURIs);
+            Iterator<Initiator> initiatorIter = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
+            List<Initiator> initiators = Lists.newArrayList(initiatorIter);
+            Map<URI, ExportMask> existingExportMasks = ExportMaskUtils.getExportMasksWithInitiators(_dbClient, initiators);
+
+            // If existing Export Masks were found, let's see if any of them are for the VMAXs that were
+            // found in the storage pools.
+            if (!CollectionUtils.isEmpty(existingExportMasks)) {
+                for (ExportMask existingExportMask : existingExportMasks.values()) {
+                    // Make sure there is at least 1 volume in the EM, if not, it can not be used.                            
+                    if (!existingExportMask.emptyVolumes()) {
+                        if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
+                            // An existing Export Mask was found for this VMAX to the Host/Cluster, 
+                            // it's OK to proceed using this VMAX and it's storage pools without a PG.
+                            _log.info(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
+                                    + "no port group required. All valid storage pools from this VMAX can be considered.", 
+                                    existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
+                                    existingExportMask.getLabel(), computeResourceURI));
+                            noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());
+                        } 
+                    } else {
+                        _log.warn(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
+                                + "however there were no volumes found in the Export Mask. Storage pools from this VMAX may be skipped if no other "
+                                + "valid existing Export Masks (that have volumes) are found.", 
+                                existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
+                                existingExportMask.getLabel(), computeResourceURI));
+                    }
+                }
+            } 
+        }
+    }
     /**
      * No PG was supplied in the order therefore the valid storage pools will be limited or an exception may be thrown 
      * in these cases:
@@ -2006,50 +2059,8 @@ public class StorageScheduler implements Scheduler {
                 // are existing Export Masks to the Host/Cluster and the VMAX. If so, the
                 // PG is not required and these VMAX Storage Systems (and their storage pools) are valid 
                 // for the order.
-                if (!CollectionUtils.isEmpty(vmaxStorageSystems)) {
-                    // Check to see if this is a Host or Cluster, keep track of the type.
-                    String computeResource = capabilities.getCompute();
-                    String computeResourceType = "";
-                    if (computeResource.toLowerCase().contains("cluster")) {
-                        computeResourceType = "cluster";
-                    } else {
-                        computeResourceType= "host";                        
-                    }                                                
-                    URI computeResourceURI = URIUtil.uri(computeResource);
-                    
-                    // Get the existing Export Masks for the Host/Cluster using the initiators from the Host/Cluster.
-                    URIQueryResultList initiatorURIs = new URIQueryResultList();
-                    _dbClient.queryByConstraint(
-                            ContainmentConstraint.Factory.getContainedObjectsConstraint(computeResourceURI, Initiator.class, computeResourceType), initiatorURIs);
-                    Iterator<Initiator> initiatorIter = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-                    List<Initiator> initiators = Lists.newArrayList(initiatorIter);
-                    Map<URI, ExportMask> existingExportMasks = ExportMaskUtils.getExportMasksWithInitiators(_dbClient, initiators);
-                    
-                    // If existing Export Masks were found, let's see if any of them are for the VMAXs that were
-                    // found in the storage pools.
-                    if (!CollectionUtils.isEmpty(existingExportMasks)) {
-                        for (ExportMask existingExportMask : existingExportMasks.values()) {
-                            // Make sure there is at least 1 volume in the EM, if not, it can not be used.                            
-                            if (!existingExportMask.emptyVolumes()) {
-                                if (vmaxStorageSystems.contains(existingExportMask.getStorageDevice())) {
-                                    // An existing Export Mask was found for this VMAX to the Host/Cluster, 
-                                    // it's OK to proceed using this VMAX and it's storage pools without a PG.
-                                    _log.info(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
-                                            + "no port group required. All valid storage pools from this VMAX can be considered.", 
-                                            existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
-                                            existingExportMask.getLabel(), computeResourceURI));
-                                    noPortGroupRequiredStorageSystemSet.add(existingExportMask.getStorageDevice().toString());
-                                } 
-                            } else {
-                                _log.warn(String.format("Storage system [%s] is VMAX and has existing export mask [%s](%s) to host/cluster [%s], "
-                                        + "however there were no volumes found in the Export Mask. Storage pools from this VMAX may be skipped if no other "
-                                        + "valid existing Export Masks (that have volumes) are found.", 
-                                        existingExportMask.getStorageDevice().toString(), existingExportMask.getId(), 
-                                        existingExportMask.getLabel(), computeResourceURI));
-                            }
-                        }
-                    } 
-                }
+                checkExistingsMasksToHostFromStorageSystems(capabilities, vpool, 
+                        provMapBuilder, noPortGroupRequiredStorageSystemSet, vmaxStorageSystems);
                 
                 // Check to see if we can proceed with the order...
                 if (CollectionUtils.isEmpty(noPortGroupRequiredStorageSystemSet)) {

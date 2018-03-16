@@ -3404,6 +3404,9 @@ public interface BadRequestExceptions {
     public BadRequestException changePortGroupInvalidPortGroup(String portGroup);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noValidExportMaskInExportGroup(String exportGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException changePortGroupExistingVolumes(String exportMask, String volumes);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

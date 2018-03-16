@@ -79,17 +79,18 @@
         </a>
       </span>
     </div>
-	<div class="max-tasks-selector" id="taskSelector" >   
-	    <div class="control col-sm-6"  >
+	<div class="max-tasks-selector" id="taskSelector" >
+	 <div class="description col-sm-2" style="text-align:right;font-size:14px; line-height:30px;"><span>&{'tasks.maxTasks'}</span></div> 
+	    <div class="control col-sm-3" style="width:210px;" >
 	    #{field 'tasks.maxTasks'}
 	    %{
-	        field.cssClass = 'span4'
+	        field.cssClass = 'input-sm'
 	        field.options = maxTasksOptions
 	        field.disableSearch = true
 	        field.addEmptyOption = true
 	        field.emptyOptionLabel = messages.get("chosen.select.single")
 	        }%
-	        #{Form.selectOneControlGroup field:field/}
+	        #{Form.selectOne field:field/}
 	    #{/field}
 	    </div>
 		

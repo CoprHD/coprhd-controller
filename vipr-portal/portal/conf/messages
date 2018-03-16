@@ -4065,7 +4065,6 @@ tasks.viewOrder=View Order
 tasks.warningMessages=Warning Messages
 
 tasks.maxTasks=Showing the last
-tasks.maxTasks.last=the last
 tasks.100tasks=100 Tasks
 tasks.1000tasks=1000 Tasks
 tasks.2000tasks=2000 Tasks

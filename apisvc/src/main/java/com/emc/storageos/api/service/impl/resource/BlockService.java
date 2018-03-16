@@ -803,7 +803,7 @@ public class BlockService extends TaskResourceService {
                 throw APIException.internalServerErrors.invalidObject(portGroupURI.toString());
             }
             // check if port group's storage system is associated to the requested virtual array
-            validatePortGroupValidWithVirtualArray(portGroup, varray.getId());
+            ExportUtils.validatePortGroupWithVirtualArray(portGroup, varray.getId(), _dbClient);
             capabilities.put(VirtualPoolCapabilityValuesWrapper.PORT_GROUP, portGroupURI);
         }
 
@@ -5691,25 +5691,6 @@ public class BlockService extends TaskResourceService {
                 if (Mode.ACTIVE.equals(Mode.valueOf(targetVolume.getSrdfCopyMode()))) {
                     throw BadRequestException.badRequests.cannotExpandSRDFActiveVolume(srdfVolume.getLabel());
                 }
-            }
-        }
-    }
-
-    /*
-     * Validate if the storage ports in the port group is associated to the virtual array
-     * 
-     * @param portGroup The port group instance
-     * 
-     * @param varray The virtual array URI
-     */
-    private void validatePortGroupValidWithVirtualArray(StoragePortGroup portGroup, URI varray) {
-        List<URI> ports = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
-        for (URI portURI : ports) {
-            StoragePort port = _dbClient.queryObject(StoragePort.class, portURI);
-            List<URI> varrays = StringSetUtil.stringSetToUriList(port.getTaggedVirtualArrays());
-            if (!varrays.contains(varray)) {
-                throw APIException.badRequests.portGroupNotInVarray(port.getPortName(), portGroup.getNativeGuid(),
-                        varray.toString());
             }
         }
     }

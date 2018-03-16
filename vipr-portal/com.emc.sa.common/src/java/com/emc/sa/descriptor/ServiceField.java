@@ -49,6 +49,9 @@ public class ServiceField extends ServiceItem {
 
     /** Whether the field belongs to the service modal */
     public boolean modalField = false;
+    
+    /** Whether the field should be hidden from the UI if no options are available */
+    public boolean hideIfEmpty = false;
 
     /** For choice or asset fields, whether one or many values can be selected. */
     private String select = SELECT_ONE;
@@ -95,6 +98,14 @@ public class ServiceField extends ServiceItem {
         this.modalField = modalField;
     }
 
+    public boolean getHideIfEmpty() {
+        return hideIfEmpty;
+    }
+
+    public void setHideIfEmpty(boolean hideIfEmpty) {
+        this.hideIfEmpty = hideIfEmpty;
+    }
+    
     public void setInitialValue(String initialValue) {
         this.initialValue = initialValue;
     }

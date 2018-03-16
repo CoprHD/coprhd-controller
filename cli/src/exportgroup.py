@@ -46,6 +46,7 @@ class ExportGroup(object):
     URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST + '/{1}'
     URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW = URI_EXPORT_GROUPS_SHOW +  '/paths-adjustment-preview'
     URI_EXPORT_GROUP_PATH_ADJUSTMENT = URI_EXPORT_GROUPS_SHOW +  '/paths-adjustment'
+    URI_EXPORT_GROUP_CHANGE_PORT_GROUP = URI_EXPORT_GROUPS_SHOW + '/change-port-group'
     # 'Exclusive' is for backward compatibility only
     EXPORTGROUP_TYPE = ['Initiator', 'Host', 'Cluster', 'Exclusive']
     URI_EXPORT_GROUP_TAG = URI_EXPORT_GROUPS_SHOW + '/tags'
@@ -850,35 +851,47 @@ class ExportGroup(object):
 						      storageports, useexistingpaths, hosts, verbose, wait, dorealloc)
 
 	body = json.dumps(parms)
-
-	operation = 'ExportGroup Path Adjustment' 
+    
 	if (dorealloc):
 		(s, h) = common.service_json_request(self.__ipAddr,
 						     self.__port, "PUT",
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT.format(exportgroup_uri),
 						     body)
-	else:
-		operation += (' Preview')
-		(s, h) = common.service_json_request(self.__ipAddr,
+        else:
+            (s, h) = common.service_json_request(self.__ipAddr,
 						     self.__port, "POST",
 						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
 						     body)
+    output = common.json_decode(s)
+    return output
+
+def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,
+                   serialnumber, type, portgroupname, verbose, wait):
+        parms = {}
+        varrayuri = None
+        if(varray):
+            varrayObject = VirtualArray(self.__ipAddr, self.__port)
+            varrayuri = varrayObject.varray_query(varray)
+
+        exportgroup_uri = self.exportgroup_query(name, project, tenant, varrayuri)
+        storageportgroupobj = Storageportgroup(self.__ipAddr, self.__port)
+        ssuri = storageportgroupobj.storagesystem_query(storagesystem, serialnumber, type)
+        spguri = storageportgroupobj.storageportgroup_query(ssuri, portgroupname)
+              
+        if (wait):
+            parms['wait_before_remove_paths'] = "true"
+        parms['new_port_group'] = spguri
+
+        body = json.dumps(parms)
+
+        operation = 'Export Change Port Group' 
+
+        (s, h) = common.service_json_request(self.__ipAddr,
+                             self.__port, "PUT",
+                             self.URI_EXPORT_GROUP_CHANGE_PORT_GROUP.format(exportgroup_uri), body)
+        
         output = common.json_decode(s)
-            
-	# Display output when verbose is set to true or if the operation is Preview.
- 	if (verbose or not self.PATH_ADJ_OPERATION):
-    		print operation
-		print json.dumps(output, sort_keys=True, indent=4) 
-	 	print ' '
-
-	# If opeation is path_adjustment and wait is true and no verbose option selected, then display the task id of the suspended task
-	if (not verbose and wait and self.PATH_ADJ_OPERATION):
-		if (output.get('id') and parms['removed_paths']) :
-    		    print operation
-		    print 'There are tasks (URIs listed below) that are suspended as part of this operation. Manually resume the tasks.'
-		    print  output['id']
-
-	return output
+        return output
 
 def exportgroup_pathadjustment_parser(subcommand_parsers, common_parser):
 	# path adjustment command parser
@@ -985,6 +998,76 @@ def exportgroup_pathadjustment_preview(args):
     except SOSError as e:
 	raise common.format_err_msg_and_raise("pathadjustment_preview", "exportgroup",
 				      e.err_text, e.err_code)
+
+def exportgroup_changeportgroup_parser(subcommand_parsers, common_parser):
+        # change port group command parser
+        change_port_group_parser = subcommand_parsers.add_parser(
+                                        'change_port_group',
+                                        description='ViPR Export Group change port group usage.',
+                                        parents=[common_parser],
+                                        conflict_handler='resolve',
+                                        help='Export group change port group')
+        mandatory_args = change_port_group_parser.add_argument_group('mandatory arguments')
+        mandatory_args.add_argument('-name', '-n',
+                               metavar='<exportgroupname>',
+                               dest='name',
+                               help='name of Export Group',
+                               required=True)
+        mandatory_args.add_argument('-project', '-pr',
+                               metavar='<projectname>',
+                               dest='project',
+                               help='container project name',
+                               required=True)
+        mandatory_args.add_argument('-portgroup', '-pg',
+                               help='Name of Storageportgroup',
+                               metavar='<portgroupname>',
+                               dest='portgroupname',
+                               required=True)
+        mandatory_args.add_argument('-t', '-type',
+                               choices=StorageSystem.SYSTEM_TYPE_LIST,
+                               dest='type',
+                               metavar="<storagesystemtype>",
+                               help='Type of storage system',
+                               required=True)
+        change_port_group_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='container tenant')
+        change_port_group_parser.add_argument('-varray', '-va',
+                               metavar='<varray>',
+                               dest='varray',
+                               help='virtual array for export')
+        system_arggroup = change_port_group_parser.add_mutually_exclusive_group(required=True)
+        system_arggroup.add_argument('-storagesystem', '-ss',
+                               help='Name of Storagesystem',
+                               dest='storagesystem',
+                               metavar='<storagesystemname>')
+        system_arggroup.add_argument('-serialnumber', '-sn',
+                               metavar="<serialnumber>",
+                               help='Serial Number of the storage system',
+                               dest='serialnumber')
+        change_port_group_parser.add_argument('-wait', '-w',
+                               dest='wait',
+                               help='Wait before removal of paths',
+                               action='store_true')
+        change_port_group_parser.add_argument('-verbose', '-v',
+                               dest='verbose',
+                               help='Print verbose output',
+                               action='store_true')
+    
+        change_port_group_parser.set_defaults(func=exportgroup_changeportgroup)
+    
+def exportgroup_changeportgroup(args):
+    try:
+        obj = ExportGroup(args.ip, args.port)
+        obj.exportgroup_changeportgroup(args.name, args.project, args.tenant,
+                                        args.varray, args.storagesystem,
+                                        args.serialnumber, args.type, args.portgroupname,
+                                        args.verbose, args.wait)
+    except SOSError as e:
+        raise common.format_err_msg_and_raise("changeportgroup", "exportgroup",
+                                               e.err_text, e.err_code)
+                          
 
 # Export Group Create routines
 def create_parser(subcommand_parsers, common_parser):
@@ -2032,6 +2115,9 @@ def exportgroup_parser(parent_subparser, common_parser):
 
     # export path adjustment parser
     exportgroup_pathadjustment_parser(subcommand_parsers, common_parser)
+    
+    # export change port group parser
+    exportgroup_changeportgroup_parser(subcommand_parsers, common_parser)
     
     task_parser(subcommand_parsers, common_parser)
 

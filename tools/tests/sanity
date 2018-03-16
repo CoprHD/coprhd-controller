@@ -14717,6 +14717,7 @@ portgroup_host_setup()
     portwwn2=10:a2:b2:c2:d2:e2:f2:02
     portwwn3=10:a3:b3:c3:d3:e3:f3:03
     portwwn4=10:a4:b4:c4:d4:e4:f4:04
+	portwwn5=50:00:09:73:68:03:14:4B
     fctz=${NH}/FABRIC_losam082-fabric
     host1=hostpg
     echo "Creating host with name $HOST_PORTGROUP"
@@ -14730,6 +14731,7 @@ portgroup_host_setup()
     run transportzone add $fctz $portwwn2
     run transportzone add $fctz $portwwn3
     run transportzone add $fctz $portwwn4
+	run transportzone add $fctz $portwwn5
 
     echo "Getting host URI"
     HOST_PORTGROUP_URI=`hosts list ${TENANT} | grep ${HOST_PORTGROUP} | awk '{print $4}'`
@@ -14749,10 +14751,13 @@ portgroup_operations_tests()
 {
     echo "Executing port group tests"
     portgroup=portgroup-${RANDOM}
-    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:4'
+	portgroup2=portgroup-${RANDOM}
+    storageportgroup create $portgroup --storage=$VMAX_NATIVEGUID --storageports 'FA-1D:5' 'FA-1D:6'
+	storageportgroup create $portgroup2 --storage=$VMAX_NATIVEGUID --storageports 'FA-2D:5' 'FA-2D:6'
     storageportgroup show $VMAX_NATIVEGUID/$portgroup
     storageportgroup deregister ${VMAX_NATIVEGUID}/${portgroup}
     storageportgroup register ${VMAX_NATIVEGUID}/${portgroup}
+	storageportgroup register ${VMAX_NATIVEGUID}/${portgroup2}
     
     vol1=volpg1-${RANDOM}
     vol2=volpg2-${RANDOM}
@@ -14764,12 +14769,14 @@ portgroup_operations_tests()
     eg=egpg-${RANDOM}
     run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $HOST_PORTGROUP --portgroup ${VMAX_NATIVEGUID}/${portgroup}
     run export_group update ${PROJECT}/$eg --addVolspec "${PROJECT}/${vol2}"
+	run export_group changeportgroup ${PROJECT}/$eg ${VMAX_NATIVEGUID}/${portgroup2}
     
     echo "Deleting volume $vol1"
     run export_group delete ${PROJECT}/${eg}
     run volume delete ${PROJECT}/${vol1} --wait
     run volume delete ${PROJECT}/${vol2} --wait
     storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup}
+	storageportgroup delete ${VMAX_NATIVEGUID}/${portgroup2}
 
     echo "**** Done port group operations tests"
 }

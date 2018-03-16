@@ -1508,7 +1508,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     }
     
     @Override
-    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, boolean waitForApproval, String token) {
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval,
+            String token) {
         // supported only for VMAX.
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

@@ -107,14 +107,22 @@ public interface BlockExportController extends Controller {
             ExportPathParams exportPathParam, boolean waitForApproval, String opId) throws ControllerException;
     
     /**
-     * Change port group for existing exports. This is only valid for VMAX for now
-     * 
-     * @param systemURI - URI of storage system
-     * @param exportGroupURI - URI of export group
-     * @param newPortGroupURI - URI of new port group
-     * @param waitForApproval - If remove paths should be pending until resumed by user
-     * @param opId - The task id
-     * @throws ControllerException
-     */
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, boolean waitForApproval, String opId);
+	 * Change port group for existing exports. This is only valid for VMAX for
+	 * now
+	 * 
+	 * @param systemURI
+	 *            - URI of storage system
+	 * @param exportGroupURI
+	 *            - URI of export group
+	 * @param newPortGroupURI
+	 *            - URI of new port group
+	 * @param exportMaskURI
+	 *            - URI of export mask
+	 * @param waitForApproval
+	 *            - If remove paths should be pending until resumed by user
+	 * @param opId
+	 *            - The task id
+	 */
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, List<URI> exportMaskURI,
+            boolean waitForApproval, String opId);
 }

@@ -2311,7 +2311,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
     
     @Override
-    public void changePortGroup(URI storageURI, URI exportGroupURI, URI portGroupURI, boolean waitForApproval, String token) {
+    public void changePortGroup(URI storageURI, URI exportGroupURI, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval,
+            String token) {
         ExportChangePortGroupCompleter taskCompleter = null;
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -2327,7 +2328,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), workflowKey, false, token);
             
-            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
+			if (CollectionUtils.isEmpty(exportMaskURIs)) {
+                _log.info("No export masks to change");
+                taskCompleter.ready(_dbClient);
+                return;
+            }
+            List<ExportMask> exportMasks = _dbClient.queryObject(ExportMask.class, exportMaskURIs);
+
             String previousStep = null;
             Set<URI> hostURIs = new HashSet<URI>();
             for (ExportMask oldMask : exportMasks) {
@@ -2336,7 +2343,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 oldMask = device.refreshExportMask(storage, oldMask);
                 StringSet existingInits = oldMask.getExistingInitiators();
                 StringMap existingVols = oldMask.getExistingVolumes();
-                if (existingInits != null && !existingInits.isEmpty()) {
+				if (!CollectionUtils.isEmpty(existingInits)) {
                     String error = String.format("The export mask %s has unmanaged initiators %s", oldMask.getMaskName(),
                             Joiner.on(',').join(existingInits));
                     _log.error(error);
@@ -2344,7 +2351,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     taskCompleter.error(_dbClient, serviceError);
                     return;
                 }
-                if (existingVols != null && !existingVols.isEmpty()) {
+				if (!CollectionUtils.isEmpty(existingVols)) {
                     String error = String.format("The export mask %s has unmanaged volumes %s", oldMask.getMaskName(),
                             Joiner.on(',').join(existingVols.keySet()));
                     _log.error(error);
@@ -2360,16 +2367,19 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         volumes, 0, storageURI, exportGroupURI);
                 pathParams.setStoragePorts(portGroup.getStoragePorts());
                 List<Initiator> initiators = ExportUtils.getExportMaskInitiators(oldMask, _dbClient);
+                List<URI> initURIs = new ArrayList<URI>();
                 for (Initiator init : initiators) {
                     if (!NullColumnValueGetter.isNullURI(init.getHost())) {
                         hostURIs.add(init.getHost());
                     }
+                    initURIs.add(init.getId());
                 }
                 
                 // Get impacted export groups
                 List<ExportGroup> impactedExportGroups = ExportMaskUtils.getExportGroups(_dbClient, oldMask);
                 List<URI> exportGroupURIs = URIUtil.toUris(impactedExportGroups);
-                _log.info("changePortGroup: impacted export groups: {}", Joiner.on(',').join(exportGroupURIs));
+                _log.info("changePortGroup: exportMask {}, impacted export groups: {}", oldMask.getMaskName(),
+                        Joiner.on(',').join(exportGroupURIs));
                 Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                         null, pathParams, volumes, _networkDeviceController, exportGroup.getVirtualArray(), token);
                 
@@ -2398,7 +2408,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     Workflow.Method maskingRollbackMethod = new Workflow.Method(
                             "rollbackExportGroupAddVolumes", storageURI, exportGroupURI, exportGroupURIs,
-                            newMask.getId(), volumesToAdd, initiators, addVolumeStep);
+                            newMask.getId(), volumesToAdd, initURIs, addVolumeStep);
 
                     previousStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                             String.format("Adding volumes to mask %s (%s)",
@@ -2473,34 +2483,34 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     masks.add(newMask.getId());
                     previousStep = generateZoningCreateWorkflow(workflow, maskingStep, exportGroup, masks, volumesToAdd, zoningStep);
                 }
-                previousStep = _wfUtils.generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep);
-                
-                if (waitForApproval) {
-                    // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
-                    // which are released when the workflow suspends.
-                    List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
-                            _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
-                            StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), storageURI);
-                    String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
-                            + "\"Rollback\" will terminate the order and roll back";
-                    Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys, 
-                            LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
-                    Workflow.Method rollbackNull = Workflow.NULL_METHOD;
-                    previousStep =  workflow.createStep("AcquireLocks", 
-                            "Suspending for user verification of host/cluster connectivity.",
-                            previousStep, storage.getId(),
-                            storage.getSystemType(), 
-                            WorkflowService.class, method, rollbackNull, waitForApproval, null);
-                    workflow.setSuspendedStepMessage(previousStep, suspendMessage);
-                    
-                }
-                for (ExportMask exportMask : exportMasks) {
-                    previousStep = generateChangePortGroupDeleteMaskWorkflowstep(storageURI, exportGroup, exportMask, previousStep, workflow);
-                }
-                
-                _wfUtils.generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep);
-                
             }
+            previousStep = _wfUtils.generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep);
+            if (waitForApproval) {
+                // Insert a step that will be suspended. When it resumes, it will re-acquire the lock keys,
+                // which are released when the workflow suspends.
+                List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
+                        _dbClient, ExportGroup.ExportGroupType.valueOf(exportGroup.getType()),
+                        StringSetUtil.stringSetToUriList(exportGroup.getInitiators()), storageURI);
+                String suspendMessage = "Adjust/rescan host/cluster paths. Press \"Resume\" to start removal of unnecessary paths."
+                        + "\"Rollback\" will terminate the order and roll back";
+                Workflow.Method method = WorkflowService.acquireWorkflowLocksMethod(lockKeys,
+                        LockTimeoutValue.get(LockType.EXPORT_GROUP_OPS));
+                Workflow.Method rollbackNull = Workflow.NULL_METHOD;
+                previousStep = workflow.createStep("AcquireLocks",
+                        "Suspending for user verification of host/cluster connectivity.",
+                        previousStep, storage.getId(),
+                        storage.getSystemType(),
+                        WorkflowService.class, method, rollbackNull, waitForApproval, null);
+                workflow.setSuspendedStepMessage(previousStep, suspendMessage);
+                    
+            }
+
+            for (ExportMask exportMask : exportMasks) {
+                previousStep = generateChangePortGroupDeleteMaskWorkflowstep(storageURI, exportGroup, exportMask, previousStep, workflow);
+            }
+
+            _wfUtils.generateHostRescanWorkflowSteps(workflow, hostURIs, previousStep);
+
             if (!workflow.getAllStepStatus().isEmpty()) {
                 _log.info("The change port group workflow has {} steps. Starting the workflow.",
                         workflow.getAllStepStatus().size());

@@ -1,0 +1,182 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2017 Dell-EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# storage port group functions
+#----------------------------------------------------------------------
+def storageportgroup_query(args):
+    bourne.connect(args.ip)
+    print bourne.storageport_query(args.name)
+
+def storageportgroup_list(args):
+    bourne.connect(args.ip)
+    sduri  = bourne.storagedevice_querybynativeguid(args.storage)
+    storageportgroups = bourne.storageportgroup_list(sduri)
+    for pg in storageportgroups:
+        id = pg['id']
+        portgroup = bourne.storageportgroup_show(sduri, id)
+        port_group_display(portgroup)
+
+
+def storageportgroup_register(args):
+    bourne.connect(args.ip)
+    (systemname, portgroupname) = args.name.split('/', 1)
+    sduri  = bourne.storagedevice_query(systemname)
+    portgroupuris = bourne.storageportgroup_list(sduri)
+    for portgroupuri in portgroupuris:
+        portgroup = bourne.storageportgroup_show(sduri, portgroupuri['id'])
+        if (portgroup['name'] == portgroupname):
+            portgroup = bourne.storageportgroup_register(sduri, portgroupuri['id'])
+            print portgroup
+
+def storageportgroup_deregister(args):
+    bourne.connect(args.ip)
+    (systemname, portgroupname) = args.name.split('/', 1)
+    sduri  = bourne.storagedevice_query(systemname)
+    portgroupuris = bourne.storageportgroup_list(sduri)
+    for portgroupuri in portgroupuris:
+        portgroup = bourne.storageportgroup_show(sduri, portgroupuri['id'])
+        if (portgroup['name'] == portgroupname):
+            portgroup = bourne.storageportgroup_deregister(sduri, portgroupuri['id'])
+            print portgroup
+
+def storageportgroup_show(args):
+    bourne.connect(args.ip)
+    name = args.name
+    (systemname, portgroupname) = name.split('/', 1)
+    systemuri  = bourne.storagedevice_query(systemname)
+    portgroupuri  = bourne.storageportgroup_query(name)
+    portgroup = bourne.storageportgroup_show(systemuri, portgroupuri)
+    print portgroup
+
+def storageportgroup_delete(args):
+    bourne.connect(args.ip)
+    name = args.name
+    (systemname, portgroupname) = name.split('/', 1)
+    systemuri  = bourne.storagedevice_query(systemname)
+    uri  = bourne.storageportgroup_query(name)
+    bourne.storageportgroup_delete(systemuri, uri)
+
+def storageportgroup_create(args):
+    bourne.connect(args.ip)
+    name = args.name
+    systemuri  = bourne.storagedevice_query(args.storage)
+    bourne.storageportgroup_create(systemuri, name, args.storageports)
+    
+
+
+#
+# display storage port group in list form
+#
+port_group_display_fmt = '{0:4s} {1:16s} {2:16s} {3:40s}'
+
+
+
+
+def port_group_display(pg):
+    
+    try:
+        portMetric = "{0:04.1f}".format(pg['port_metric'])
+    except:
+        portMetric = '---'
+    try:
+        volumeCnt = str(pg['volume_count'])
+    except:
+        volumeCnt = '---'
+    
+    print port_group_display_fmt.format(pg['name'], pg['registration_status'], portMetric, volumeCnt)
+
+
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# storageportgroup <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne storage port group cli usage.')
+parser.add_argument('cmd', help = 'cmd = (show | list | register | deregister | query | create | delete)')
+parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
+
+# port group register
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('name',    help = 'Port group name')
+
+# port group list name
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('storage',    help = 'storage system name')
+
+# port group show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',    help = 'storage port group name');
+
+# port group query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',    help = 'storage port group name')
+
+# port group deregister name
+deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deregister.add_argument('name',    help = 'storage port group name')
+
+
+# port group delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',    help = 'storage port group name')
+
+# port group create name --storage --storageports
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',     help = 'storage port group name')
+create.add_argument('--storage', help = 'Storage system where this port belongs')
+create.add_argument('--storageports', help = 'Storage ports names in this port group', nargs='*')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "show"):
+        args = show.parse_args()
+        storageportgroup_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        storageportgroup_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        storageportgroup_list(args)
+    elif (cmd == "register"):
+        args = register.parse_args()
+        storageportgroup_register(args) 
+    elif (cmd == "deregister"):
+        args = deregister.parse_args()
+        storageportgroup_deregister(args) 
+    elif (cmd == "create"):
+        args = create.parse_args()
+        storageportgroup_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        storageportgroup_delete(args)
+    else:
+        parser.print_help()
+except:
+    raise

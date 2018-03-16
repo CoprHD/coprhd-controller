@@ -31,9 +31,11 @@ import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePortGroup;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
@@ -42,6 +44,7 @@ import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
@@ -495,4 +498,37 @@ public class SystemsMapper {
 
 		return to;
 	}
+
+    /**
+     * Map a StoragePortGroup instance to StoragePortGroupRestRep
+     * 
+     * @param from
+     *            The StoragePortGroup instance
+     * @return StoragePortGroupRestRep
+     */
+    public static StoragePortGroupRestRep map(StoragePortGroup from) {
+        if (from == null) {
+            return null;
+        }
+        StoragePortGroupRestRep to = new StoragePortGroupRestRep();
+        to.setName(from.getLabel());
+        to.setId(from.getId());
+        to.setStorageDevice(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
+        to.setRegistrationStatus(from.getRegistrationStatus());
+        to.setNativeGuid(from.getNativeGuid());
+        to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
+        StringMap metrics = from.getMetrics();
+        if (metrics != null && !metrics.isEmpty()) {
+            Double portMetric = MetricsKeys.getDoubleOrNull(MetricsKeys.portMetric, metrics);
+            if (portMetric != null) {
+                to.setPortMetric(portMetric);
+            }
+            Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, metrics);
+            if (volumeCount != null) {
+                to.setVolumeCount(volumeCount);
+            }
+        }
+		mapDiscoveredDataObjectFields(from, to);
+        return to;
+    }
 }

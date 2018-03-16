@@ -85,6 +85,9 @@ public class ExportMask extends DataObject {
     // as a convenience.
     private String _resource;
 
+    // port group uri
+    private URI _portGroup;
+    
     // Captures the Device Specific information that are created for this export mask.
     private StringSetMap _deviceDataMap;
 
@@ -862,7 +865,18 @@ public class ExportMask extends DataObject {
         return (_resource != null) ? _resource :
                 NullColumnValueGetter.getNullURI().toString();
     }
+   
+    @Name("portGroup")
+    @AlternateId("ExportMaskPortGroup")
+    public URI getPortGroup() {
+        return _portGroup;
+    }
 
+    public void setPortGroup(URI portGroup) {
+        _portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     public boolean checkIfVolumeHLUSet(URI volumeURI) {
         boolean isHLUSet = false;
         String volumeURIStr = volumeURI.toString();
@@ -931,6 +945,7 @@ public class ExportMask extends DataObject {
                         "\tVolumes             : %s\n" +
                         "\tInitiators          : %s\n" +
                         "\tStoragePorts        : %s\n" +
+                        "\tPortGroup           : %s\n" +
                         "\tUserAddedVolumes    : %s\n" +
                         "\tExistingVolumes     : %s\n" +
                         "\tUserAddedInitiators : %s\n" +
@@ -944,6 +959,7 @@ public class ExportMask extends DataObject {
                 collectionString(_volumes),
                 collectionString(_initiators),
                 collectionString(_storagePorts),
+                _portGroup,
                 collectionString(_userAddedVolumes),
                 collectionString(_existingVolumes),
                 collectionString(_userAddedInitiators),

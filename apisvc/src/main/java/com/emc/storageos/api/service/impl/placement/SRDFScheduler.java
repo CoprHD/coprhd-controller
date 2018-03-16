@@ -1209,8 +1209,8 @@ public class SRDFScheduler implements Scheduler {
             if (raGroups.size() > 1 && null != cgObj && raGroup.getVolumes() != null
                     && !raGroup.getVolumes().isEmpty() && !cgObj.getLabel().equalsIgnoreCase(raGroup.getLabel())) {
                 _log.info(String
-                        .format("Found that the RDF Group has existing volumes with a CG different from expected: %s .",
-                                cgObj.getLabel()));
+                        .format("Found that the RDF Group %s has existing volumes with a CG different from expected: %s .",
+                        		raGroup.getLabel(), cgObj.getLabel()));
                 continue;
             }
 

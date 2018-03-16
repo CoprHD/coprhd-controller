@@ -75,6 +75,7 @@ public class MaskingViewComponentProcessor extends Processor {
             StringSet initiators = new StringSet();
             boolean sgCreated = false;
             boolean sgHasUnknownInitiator = false;
+            boolean newInitiatorsAreAdded = false;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
                 if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
@@ -104,12 +105,9 @@ public class MaskingViewComponentProcessor extends Processor {
                         tagSet.add(tagLabel);
                         storageGroup.setTag(tagSet);
                     } else {
-                        // clear initiators only for first encounter of storage group during rediscovery
-                        if (!storageGroupNames.contains(instanceID)) {
-                            storageGroup.getInitiators().clear();
-                        }
+                    	initiators = storageGroup.getInitiators();
                     }
-                    storageGroupNames.add(instanceID);
+                	storageGroupNames.add(instanceID);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.CP_SE_STORAGE_HARDWARE_ID)) {
                     // SE_StorageHardwareID.InstanceID="I-+-iqn.1994-05.com.redhat:xxxx9999"
                     // SE_StorageHardwareID.InstanceID="W-+-10000000FFFFFFFF"
@@ -134,8 +132,8 @@ public class MaskingViewComponentProcessor extends Processor {
 
                     // check if a host initiator exists for this id
                     Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, dbClient);
-                    if (knownInitiator != null) {
-                        logger.info("Found an initiator ({}) in ViPR for network id {} ",
+                    if (knownInitiator != null && !initiators.contains(knownInitiator.getId().toString())) {
+                        logger.info("Found an initiator ({}) in ViPR for network id {} not in current Initiator list ",
                                 knownInitiator.getId(), initiatorNetworkId);
                         if (knownInitiator.checkInternalFlags(Flag.RECOVERPOINT)) {
                         	logger.info("This initiator ({}) is RecoverPoint based",
@@ -148,6 +146,7 @@ public class MaskingViewComponentProcessor extends Processor {
                         	sgHasUnknownInitiator = true;                        	
                         }
                         initiators.add(knownInitiator.getId().toString());
+                        newInitiatorsAreAdded = true;
                     } else {
                         logger.info("No hosts in ViPR found configured for network id {}", initiatorNetworkId);
                         sgHasUnknownInitiator = true;
@@ -157,19 +156,21 @@ public class MaskingViewComponentProcessor extends Processor {
                 }
             }
 
-            if (!initiators.isEmpty()) {
-                storageGroup.setInitiators(initiators);
-            }
             //If a single unknown initiator is associated with the Storage Group, we should treat it
             // as a unmanaged Storage Group that is not suitable for Migration..
             if (sgHasUnknownInitiator){
+            	//The reason we are adding is to make sure to remove it from the list as part of Storage GroupBookkeepingProceesor
             	unmanagedStorageGroupNames.add(storageGroup.getLabel());
             }
-            //Create/Update Only if the SG does not have unknown initiators
-            if (sgCreated && !sgHasUnknownInitiator) {
-                dbClient.createObject(storageGroup);
-            } else if (storageGroup != null && !sgHasUnknownInitiator) {
-                dbClient.updateObject(storageGroup);
+            
+            //Create/Update only if the SG does not have unknown initiators and new Initiators are added
+            if (storageGroup != null && !sgHasUnknownInitiator && newInitiatorsAreAdded){
+            	storageGroup.setInitiators(initiators);
+            	if (sgCreated){
+            		dbClient.createObject(storageGroup);
+            	} else {
+            		dbClient.updateObject(storageGroup);
+            	}
             }
         } catch (Exception e) {
             logger.error(

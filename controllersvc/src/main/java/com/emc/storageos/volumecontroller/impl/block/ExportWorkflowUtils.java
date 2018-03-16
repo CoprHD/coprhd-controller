@@ -869,12 +869,13 @@ public class ExportWorkflowUtils {
      * @param wfGroupId - Workflow group Id
      * @param exportGroupURI - Export group URI
      * @param portGroupURI - New port group URI
-     * @param waitForApproval - If wait until approval 
+     * @param exportMaskURIs - The URI list of affected export masks in the export group
+     * @param waitForApproval - If wait until approval
      * @return - The generated step
      * @throws ControllerException
      */
     public String generateExportGroupChangePortWorkflow(Workflow workflow, String wfGroupId,
-            URI exportGroupURI, URI portGroupURI, boolean waitForApproval) throws ControllerException {
+            URI exportGroupURI, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval) throws ControllerException {
             
         Workflow.Method rollbackMethod =rollbackMethodNullMethod();
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
@@ -882,7 +883,7 @@ public class ExportWorkflowUtils {
         DiscoveredSystemObject system = _dbClient.queryObject(StorageSystem.class, portGroup.getStorageDevice());
         
         Workflow.Method method = ExportWorkflowEntryPoints.exportChangePortGroupMethod(system.getId(), exportGroupURI, 
-                portGroupURI, waitForApproval);
+                portGroupURI, exportMaskURIs, waitForApproval);
         String stepDescription = String.format("Change port group to %s for the export group %s", portGroup.getNativeGuid(),
                 exportGroup.getLabel());
         return newWorkflowStep(workflow, wfGroupId, stepDescription, system, method, rollbackMethod, null);

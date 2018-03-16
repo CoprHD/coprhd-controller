@@ -80,6 +80,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         String portName = CIMPropertyFactory.getPropertyValue(cimInstance,
                                 Constants._Name);
                         String fixedName = Initiator.toPortNetworkId(portName);
+                        log.debug("Storage Port: {}", fixedName);
                         storagePorts.add(fixedName);
                     }
                     if (!storagePorts.isEmpty()) {

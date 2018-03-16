@@ -142,8 +142,8 @@ public class BlockExportControllerImpl implements BlockExportController {
     }
     
     @Override
-    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI, boolean waitForApproval,
-            String opId) {
-        blockRMI("exportGroupChangePortGroup", systemURI, exportGroupURI, newPortGroupURI, waitForApproval, opId);
+    public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, URI newPortGroupURI,
+            List<URI> exportMaskURI, boolean waitForApproval, String opId) {
+        blockRMI("exportGroupChangePortGroup", systemURI, exportGroupURI, newPortGroupURI, exportMaskURI, waitForApproval, opId);
     }
 }

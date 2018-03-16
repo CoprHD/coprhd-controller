@@ -501,7 +501,9 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
         _keyMap.put(Constants.MIGRATION_STORAGE_GROUPS, new HashSet<String>());
         _keyMap.put(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS, new HashSet<String>());
-      
+        Map<String, StringSet> storageGroupToInitiatorMapping = new HashMap<String, StringSet>();
+        _keyMap.put(Constants.MIGRATION_STORAGE_GROUPS_TO_INITATOR_MAPPING, storageGroupToInitiatorMapping);
+
         Project project = getMigrationProject();
         _keyMap.put(MIGRATION_PROJECT, project);
 

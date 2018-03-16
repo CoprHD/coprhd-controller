@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.plugins.AccessProfile;
@@ -34,7 +35,8 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
     private Logger logger = LoggerFactory.getLogger(StorageGroupsMigrationBookkeepingProcessor.class);
     private DbClient dbClient;
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
@@ -42,12 +44,12 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
             dbClient = (DbClient) keyMap.get(Constants.dbClient);
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             URI systemId = profile.getSystemId();
-            @SuppressWarnings("unchecked")
             Set<String> discoveredStorageGroups = (Set<String>) keyMap.get(Constants.MIGRATION_STORAGE_GROUPS);
-            @SuppressWarnings("unchecked")
 			Set<String> storageGroupsWithUnmanagedInitiators = (Set<String>) keyMap.get(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS);
-            
+            Map<String, StringSet> storageGroupToInitiatorMapping = (Map<String, StringSet>) keyMap
+                    .get(Constants.MIGRATION_STORAGE_GROUPS_TO_INITATOR_MAPPING);            
             List<BlockConsistencyGroup> inactiveStorageGroups = new ArrayList<>();
+            List<BlockConsistencyGroup> storageGroupsTobeUpdated = new ArrayList<>();
 
             URIQueryResultList storageGroupURIs = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceBlockConsistencyGroupConstraint(systemId),
@@ -67,10 +69,20 @@ public class StorageGroupsMigrationBookkeepingProcessor extends MaskingViewCompo
                         logger.info("Marking storage group {} inactive as its migration status is NONE", sgLabel);
                         inactiveStorageGroups.add(storageGroupInDB);
                     }
+                } else if(storageGroupInDB.getTypes().contains(Types.MIGRATION.name()) && storageGroupToInitiatorMapping.containsKey(storageGroupInDB.getLabel())){
+                	StringSet dbInitiators = storageGroupInDB.getInitiators();
+               		StringSet discoveredInitiators = storageGroupToInitiatorMapping.get(storageGroupInDB.getLabel());
+               		if(!discoveredInitiators.equals(dbInitiators)){
+               			storageGroupInDB.setInitiators(discoveredInitiators);
+               			storageGroupsTobeUpdated.add(storageGroupInDB);               			
+               		}              	                	
                 }
             }
             if (!inactiveStorageGroups.isEmpty()) {
                 dbClient.markForDeletion(inactiveStorageGroups);
+            }
+            if (!storageGroupsTobeUpdated.isEmpty()){
+                dbClient.updateObject(storageGroupsTobeUpdated);
             }
         } catch (Exception e) {
             logger.error("Exception caught while trying to run bookkeeping on VMAX storage groups", e);

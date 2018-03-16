@@ -1049,6 +1049,29 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
+     * VPLEX always returns cluster-1 NativeGuid for distributed volumes, for cases where 
+     * dd volumes was created by ViPR on cluster-2 we have to tweak the NativeGuid only so 
+     * we can query the Volume in ViPR DB.
+     * 
+     * @param clusters
+     * @param volumeNativeGuid
+     * @return String volumeNativeGuid
+     */
+    private String replaceNativeGuid(List<String> clusters, String volumeNativeGuid) {
+    	String c1 = clusters.get(0);
+		String c2 = clusters.get(1);
+		
+		if(volumeNativeGuid.contains(c1)) {
+			volumeNativeGuid = volumeNativeGuid.replaceFirst(c1, c2);
+			s_logger.info("Updated volumeNativeGuid  : {}" ,volumeNativeGuid);
+		} else {
+			volumeNativeGuid = volumeNativeGuid.replaceFirst(c1, c2);
+			s_logger.info("Updated volumeNativeGuid  : {}" ,volumeNativeGuid);
+	    }
+		return volumeNativeGuid;
+    }
+    
+    /**
      * Determines if the given VPLEX volume information represents a
      * virtual volume that is already managed by ViPR.
      *
@@ -1056,24 +1079,45 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @return a Volume object if a match is found in the ViPR database
      */
     private Volume findVirtualVolumeManagedByVipr(VPlexVirtualVolumeInfo info) {
-        if (info != null) {
+    	Volume volume = null;
+    	if (info != null) {
+        	
             s_logger.info("Determining if Virtual Volume {} is managed by ViPR", info.getName());
             String volumeNativeGuid = info.getPath();
             s_logger.info("...checking ViPR's Volume table for volume native guid {}", volumeNativeGuid);
-
+            List<String> clusters = new ArrayList<String>();
+            clusters = info.getClusters();
+            
             URIQueryResultList result = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeNativeIdConstraint(volumeNativeGuid), result);
+            
             if (result.iterator().hasNext()) {
-                Volume volume = _dbClient.queryObject(Volume.class, result.iterator().next());
+            	volume = _dbClient.queryObject(Volume.class, result.iterator().next());
                 // only return active volumes
                 if (null != volume && !volume.getInactive()) {
                     return volume;
                 }
+            } else {
+            	if (null == volume) {
+                	if(clusters.size() == 2) {
+                		volumeNativeGuid = replaceNativeGuid(clusters,volumeNativeGuid);
+                   }
+                }
+                URIQueryResultList result2 = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getVolumeNativeIdConstraint(volumeNativeGuid), result2);
+                
+                if (result2.iterator().hasNext()) {
+                	volume = _dbClient.queryObject(Volume.class, result2.iterator().next());
+                    // only return active volumes
+                    if (null != volume && !volume.getInactive()) {
+                    	return volume;
+                        }
+                    }
             }
-        }
-
-        return null;
+    	}
+        return volume;
     }
 
     /**
@@ -1089,18 +1133,35 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         s_logger.info("Determining if Unmanaged Volume {} is known to ViPR", info.getName());
         String volumeNativeGuid = info.getPath();
         s_logger.info("...checking ViPR's UnManagedVolume table for volume native guid {}", volumeNativeGuid);
-
+        UnManagedVolume unManagedVolume = null;
+        List<String> clusters = new ArrayList<String>();
+        clusters = info.getClusters();
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(volumeNativeGuid), result);
         if (result.iterator().hasNext()) {
-            UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
             if (null != unManagedVolume && !unManagedVolume.getInactive()) {
                 return unManagedVolume;
             }
+        } else {
+        	if (null == unManagedVolume) {
+            	if(clusters.size() == 2) {
+            		volumeNativeGuid = replaceNativeGuid(clusters,volumeNativeGuid);
+               }
+            }
+        	URIQueryResultList result2 = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(volumeNativeGuid), result2);
+            if (result.iterator().hasNext()) {
+                unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+                if (null != unManagedVolume && !unManagedVolume.getInactive()) {
+                    return unManagedVolume;
+                }
+            }
         }
 
-        return null;
+        return unManagedVolume;
     }
 
     /**

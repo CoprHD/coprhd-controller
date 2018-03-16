@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.compute;
 import static com.emc.sa.service.ServiceParams.CLUSTER;
 import static com.emc.sa.service.ServiceParams.COMPUTE_VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.HLU;
+import static com.emc.sa.service.ServiceParams.PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
@@ -51,7 +52,10 @@ public class AddBareMetalHostToClusterService extends ViPRService {
 
     @Param(value = HLU, required = false)
     protected Integer hlu;
-
+   
+    @Param(value = PORT_GROUP, required = false)
+    protected URI portGroup;
+    
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
 
@@ -148,7 +152,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
 
         Map<Host, URI> hostToBootVolumeIdMap = ComputeUtils.makeBootVolumes(project, virtualArray, virtualPool, size, hosts,
-                getClient());
+                getClient(), portGroup);
         logInfo("compute.cluster.boot.volumes.created", 
                 hostToBootVolumeIdMap != null ? ComputeUtils.nonNull(hostToBootVolumeIdMap.values()).size() : 0);
 
@@ -156,7 +160,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
         hostToBootVolumeIdMap = ComputeUtils.deactivateHostsWithNoBootVolume(hostToBootVolumeIdMap, cluster);
 
         // Export the boot volume, return a map of hosts and their EG IDs
-        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu);
+        Map<Host, URI> hostToEgIdMap = ComputeUtils.exportBootVols(hostToBootVolumeIdMap, project, virtualArray, hlu, portGroup);
         logInfo("compute.cluster.exports.created", 
                 hostToEgIdMap != null ? ComputeUtils.nonNull(hostToEgIdMap.values()).size(): 0);
         

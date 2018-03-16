@@ -274,4 +274,7 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError existingMaskFoundDuringBootVolumeExportXio(final String igNames, final String hostname);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError changePortGroupValidationError(final String error);
 }

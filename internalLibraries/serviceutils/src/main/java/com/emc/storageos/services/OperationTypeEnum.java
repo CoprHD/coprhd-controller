@@ -520,6 +520,11 @@ public enum OperationTypeEnum {
     REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "Storage system type is removed."),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "Schedule policy is created."),
     EXPORT_PATH_ADJUSTMENT("EXPORT PATH ADJUSTMENT", "", "Export path adjustment performed."),
+    REGISTER_STORAGE_PORT_GROUP("REGIESTER PORT GROUP", "", "Storage port group is registered"),
+    DEREGISTER_STORAGE_PORT_GROUP("DEREGIESTER PORT GROUP", "", "Storage port group is unregistered"),
+    CREATE_STORAGE_PORT_GROUP("CREATE STORAGE PORT GROUP", "", "Storage port group is created"),
+    DELETE_STORAGE_PORT_GROUP("DELETE STORAGE PORT GROUP", "", "Storage port group is deleted"),
+    EXPORT_CHANGE_PORT_GROUP("CHANGE EXPORT PORT GROUP", "", "Change port group for export"),
     /* Filesystem Mount Operations*/
     MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "NFS export is mounted."),
     UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "NFS export is unmounted."),

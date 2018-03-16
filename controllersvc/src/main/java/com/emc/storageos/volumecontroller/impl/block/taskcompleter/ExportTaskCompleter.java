@@ -18,6 +18,8 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.StoragePortGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -27,6 +29,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public abstract class ExportTaskCompleter extends TaskCompleter {
@@ -34,6 +37,8 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(ExportTaskCompleter.class);
 
     private URI _mask;
+    
+    private List<URI> _exportGroups = null;
 
     public ExportTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -44,12 +49,26 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         setMask(emURI);
     }
 
+    public ExportTaskCompleter(Class clazz, List<URI> exportGroups, URI emURI, String opId) {
+        super(clazz, exportGroups.get(0), opId);
+        setMask(emURI);
+        _exportGroups = exportGroups;
+    }
+    
     public URI getMask() {
         return _mask;
     }
 
     public void setMask(URI mask) {
         _mask = mask;
+    }
+    
+    public List<URI> getExportGroups() {
+        return _exportGroups;
+    }
+    
+    public void setExportGroups(List<URI> exportGroups) {
+        _exportGroups = exportGroups;
     }
 
     /**
@@ -158,5 +177,24 @@ public abstract class ExportTaskCompleter extends TaskCompleter {
         _logger.info("this ExportGroup does not have any remaining active masks: "
                 + exportGroup.getGeneratedName());
         return false;
+    }
+
+    /**
+     * Update volume count for the port group
+     * 
+     * @param pgURI
+     *            - Port group URI
+     * @param dbClient
+     *            - DbClient
+     */
+    protected void updatePortGroupVolumeCount(URI pgURI, DbClient dbClient) {
+        if (!NullColumnValueGetter.isNullURI(pgURI)) {
+            StoragePortGroup portGroup = dbClient.queryObject(StoragePortGroup.class, pgURI);
+            if (portGroup != null && !portGroup.getInactive()) {
+                PortMetricsProcessor.computePortGroupVolumeCounts(portGroup, portGroup.getMetrics(), dbClient);
+                dbClient.updateObject(portGroup);
+                _logger.info(String.format("Updated the port group %s volume count", portGroup.getNativeGuid()));
+            }
+        }
     }
 }

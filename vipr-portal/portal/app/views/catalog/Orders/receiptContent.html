@@ -219,8 +219,10 @@
     <div class="section-header"><h1>&{'order.taskWarningMessages'}</h1></div>
     <div class="content">
       <div class="task-warning-messages">
-        #{list details.viprTaskWarningMessages, as:'message'}
+        #{list details.viprTaskWarningMessages, as:'task'}
+          #{list task.value, as:'message'}
           <p>${message}</p>
+          #{/list}
         #{/list}
       </div>
     </div>

@@ -68,6 +68,12 @@
             min:1,
             max:65535
           }
+        },
+        
+        portGroup: {
+            type:"assetType.vipr.exportContinousCopyForHostPortGroups",
+            required: false,
+            hideIfEmpty: true
         }
         
       }

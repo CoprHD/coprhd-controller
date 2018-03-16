@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.model;
 
 import java.beans.Transient;
+import java.net.URI;
 
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -24,7 +25,8 @@ public class ExportPathParams extends DataObject {
     // If explicitly created is true, a user specifically create an ExportPathParam record.
     // If explicitly created is false, the entry was created as a side effect of an export operation.
     private Boolean explicitlyCreated;
-    
+    // port group URI
+    private URI portGroup;
     /*
      * If allowFewerPorts is true, may allocate fewer than the calculated port requirement
      * for a Network. This is used for RP situations where we're zoning all Initiators to all Ports.
@@ -81,6 +83,9 @@ public class ExportPathParams extends DataObject {
        if (modelPathParameters.getStoragePorts() != null) {
            this.storagePorts = StringSetUtil.uriListToStringSet(modelPathParameters.getStoragePorts());
        }
+       if (modelPathParameters.getPortGroup() != null) {
+           this.portGroup = modelPathParameters.getPortGroup();
+       }
     }
     
     public String toString() {
@@ -130,7 +135,17 @@ public class ExportPathParams extends DataObject {
         this.storagePorts = storagePorts;
         setChanged("storagePorts");
     }
-
+    
+    @Name("portGroup")
+    public URI getPortGroup() {
+        return portGroup;
+    }
+    
+    public void setPortGroup(URI portGroup) {
+        this.portGroup = portGroup;
+        setChanged("portGroup");
+    }
+    
     @Name("explicitlyCreated")
     public Boolean getExplicitlyCreated() {
         return explicitlyCreated;

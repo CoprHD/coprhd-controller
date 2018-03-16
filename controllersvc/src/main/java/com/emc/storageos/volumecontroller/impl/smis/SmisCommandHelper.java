@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.google.common.collect.Collections2.transform;
 import static java.util.Arrays.asList;
 import static javax.cim.CIMDataType.STRING_T;
 import static javax.cim.CIMDataType.UINT16_T;
@@ -74,6 +75,7 @@ import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -8091,21 +8093,212 @@ public class SmisCommandHelper implements SmisConstants {
     public boolean checkPortGroupShared(StorageSystem system, String portGroupName, String mvName) throws Exception {
         CIMObjectPath portGroupPath = _cimPath.getMaskingGroupPath(system, portGroupName,
                 SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        return checkMaskingGroupShared(system, portGroupPath, mvName);
+    }
+
+    /**
+     * Create port group
+     * 
+     * @param storage
+     *            The storage system
+     * @param portGroupName
+     *            The port group name
+     * @param targetURIList
+     *            The list of storage ports
+     * @return The created port group CIMObjectPath
+     * @throws Exception
+     */
+    public CIMObjectPath createTargetPortGroup(StorageSystem storage,
+            String portGroupName,
+            List<URI> targetURIList) throws Exception {
+        _log.debug("{} createTargetPortGroup {} START...", storage.getSerialNumber(), portGroupName);
+        CIMObjectPath targetPortGroupPath = null;
+
+        CIMArgument[] inArgs = getCreatePortGroupInputArguments(storage, portGroupName, targetURIList);
+        CIMArgument[] outArgs = new CIMArgument[5];
+
+        // Try to look up the port group. If it already exists, use it,
+        // otherwise try to create it.
+        targetPortGroupPath = _cimPath.getMaskingGroupPath(storage, portGroupName,
+                SmisConstants.MASKING_GROUP_TYPE.SE_TargetMaskingGroup);
+        CIMInstance instance = checkExists(storage, targetPortGroupPath, false, false);
+        if (instance == null) {
+            invokeMethod(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "CreateGroup", inArgs, outArgs);
+            targetPortGroupPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, "MaskingGroup");
+        } else {
+            _log.info("The port group exists");
+            // check if the ports members are the same
+            boolean isSame = true;
+            List<String> storagePorts = new ArrayList<String>();
+            CloseableIterator<CIMInstance> iterator = getAssociatorInstances(storage, targetPortGroupPath, null,
+                    Constants.CIM_PROTOCOL_ENDPOINT, null, null, Constants.PS_NAME);
+            while (iterator.hasNext()) {
+                CIMInstance cimInstance = iterator.next();
+                String portName = CIMPropertyFactory.getPropertyValue(cimInstance,
+                        Constants._Name);
+                String fixedName = Initiator.toPortNetworkId(portName);
+                storagePorts.add(fixedName);
+            }
+            if (!storagePorts.isEmpty()) {
+                List<URI> storagePortURIs = new ArrayList<URI>();
+                storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI));
+                if (!storagePortURIs.containsAll(targetURIList) || !(storagePortURIs.size() == targetURIList.size())) {
+                    isSame = false;
+                }
+            } else {
+                isSame = false;
+            }
+            if (!isSame) {
+                _log.error("The port group exists, but the port members are different");
+                throw DeviceControllerException.exceptions.portGroupNameInvalid(portGroupName);
+            }
+        }
+        _log.debug("{} createTargetPortGroup END...", storage.getSerialNumber());
+        return targetPortGroupPath;
+    }
+
+    /**
+     * create port group input arguments
+     * 
+     * @param storageDevice
+     *            - Storage system
+     * @param groupName
+     *            - Port group name
+     * @param targetURIList
+     *            - Storage ports URIs
+     * @return The input arguments for creating port group
+     */
+    public CIMArgument[] getCreatePortGroupInputArguments(StorageSystem storageDevice, String groupName, List<URI> targetURIList) {
+        CIMObjectPath[] targetPortPaths;
+        try {
+            targetPortPaths = _cimPath.getTargetPortPaths(storageDevice, targetURIList);
+        } catch (Exception e) {
+            _log.error(String.format("Problem creating target port group: %s on array %s",
+                    groupName, storageDevice.getSerialNumber()), e);
+            throw new IllegalStateException("Problem creating target port group: " + groupName + "on array: "
+                    + storageDevice.getSerialNumber());
+        }
+        return new CIMArgument[] {
+                _cimArgument.string(CP_GROUP_NAME, groupName),
+                _cimArgument.uint16(CP_TYPE, TARGET_PORT_GROUP_TYPE),
+                _cimArgument.referenceArray(CP_MEMBERS, targetPortPaths),
+                _cimArgument.bool(CP_DELETE_WHEN_BECOMES_UNASSOCIATED, Boolean.FALSE)
+        };
+    }
+
+    /**
+     * Finds the port group attached to the masking view.
+     *
+     * @param maskingViewName
+     *            name of masking view
+     * @param storage
+     *            storage system
+     * @return name of port group
+     * @throws Exception
+     */
+    public String getPortGroupForGivenMaskingView(String maskingViewName,
+            StorageSystem storage) throws Exception {
+        CIMObjectPath maskingViewPath = _cimPath.getMaskingViewPath(storage, maskingViewName);
+        CIMInstance maskingViewInstance = checkExists(storage, maskingViewPath, false, false);
+        return getPortGroupForGivenMaskingView(maskingViewInstance, maskingViewName, storage);
+    }
+
+    /**
+     * Finds the port group attached to the masking view.
+     *
+     * @param maskingViewInstance
+     *            CIMInstance that points to the Symm_LunMaskingView
+     * @param maskingViewName
+     *            name of masking view
+     * @param storage
+     *            storage system
+     * @return name of port group
+     * @throws Exception
+     */
+    public String getPortGroupForGivenMaskingView(CIMInstance maskingViewInstance, String maskingViewName,
+            StorageSystem storage) throws Exception {
+
+        String discoveredGroupName = null;
+        CloseableIterator<CIMInstance> targetGroupPathItr = null;
+        try {
+            if (null == maskingViewInstance) {
+                _log.error(
+                        "Masking View {} not available in Provider, either its deleted or provider might take some time to sync with Array.  Try again if group is available on Array",
+                        maskingViewName);
+            } else {
+                _log.debug("Masking View {} found", maskingViewName);
+                targetGroupPathItr = getAssociatorInstances(storage, maskingViewInstance.getObjectPath(), null,
+                        SmisCommandHelper.MASKING_GROUP_TYPE.SE_TargetMaskingGroup.toString(), null, null, PS_ELEMENT_NAME);
+                _log.info("Trying to find existing Port Groups under Masking view {}", maskingViewName);
+                while (targetGroupPathItr.hasNext()) {
+                    discoveredGroupName = CIMPropertyFactory.getPropertyValue(
+                            targetGroupPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
+                    _log.info("Port Group Name {} found", discoveredGroupName);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("Failed trying to find existing Storage Groups under Masking View {}", maskingViewName, e);
+            throw e;
+        } finally {
+            closeCIMIterator(targetGroupPathItr);
+        }
+
+        return discoveredGroupName;
+    }
+
+    /**
+     * Get storage ports in the port group
+     * 
+     * @param storage
+     *            The storage system
+     * @param portGroupPath
+     *            The port group CIMObjectPath
+     * @return The list of storage ports URIs
+     * @throws Exception
+     */
+    public List<URI> getPortGroupMembers(StorageSystem storage, CIMObjectPath portGroupPath) throws Exception {
+        if (storage.getSystemType().equals(Type.vnxblock)) {
+            return null;
+        }
+        CIMInstance instance = getInstance(storage, portGroupPath, false, false, null);
+        WBEMClient client = getConnection(storage).getCimClient();
+        List<String> storagePorts = getStoragePortsFromLunMaskingInstance(client,
+                instance);
+        _log.info("port group members : {}", Joiner.on(',').join(storagePorts));
+        List<URI> storagePortURIs = new ArrayList<URI>();
+        storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        return storagePortURIs;
+    }
+    
+    /**
+     * Check if masking groups (port group or storage group) is shared with other masking view than the passed in masking view name.
+     * If masking view name is null, then it is to check if the masking group has any masking view associated
+     *
+     * @param system - Storage system
+     * @param maskingGroup - masking group CIMObjectPath
+     * @param mvName - masking view name to check with
+     * @return true or false
+     * @throws Exception
+     */
+    public boolean checkMaskingGroupShared(StorageSystem system, CIMObjectPath maskingGroup, String mvName) throws Exception {
         CloseableIterator<CIMInstance> cimPathItr = null;
         boolean result = false;
         try {
-            _log.info("Trying to find the masking view associated with port group {}", portGroupName);
-            cimPathItr = getAssociatorInstances(system, portGroupPath, null, SYMM_LUNMASKINGVIEW,
+            _log.info("Trying to find if any masking view associates with masking group {}", maskingGroup.toString());
+            cimPathItr = getAssociatorInstances(system, maskingGroup, null, SYMM_LUNMASKINGVIEW,
                     null, null, PS_ELEMENT_NAME);
             
             while (cimPathItr.hasNext()) {
                 if (mvName == null) {
-                    // Just to check if there is any masking view associated to the port group
+                    // Just to check if there is any masking view associated to the storage group
                     result = true;
                     break;
                 } else {
                     String maskingName = CIMPropertyFactory.getPropertyValue(cimPathItr.next(), SmisConstants.CP_ELEMENT_NAME);
-                    _log.info("The port group {} has lun masking view {} associated", portGroupName, maskingName);
+                    _log.info("The masking group {} has lun masking view {} associated", maskingGroup.toString(), maskingName);
                     if (maskingName != null && !maskingName.equals(mvName)) {
                         result = true;
                         break;

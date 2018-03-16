@@ -3913,25 +3913,26 @@ public class ExportGroupService extends TaskResourceService {
 
         URI exportMaskURI = param.getExportMask();
         ExportMask mask = null;
+		List<ExportMask> exportMasks = new ArrayList<ExportMask>();
         if (exportMaskURI != null) {
             mask = queryObject(ExportMask.class, exportMaskURI, true);
-            if (!exportGroup.getExportMasks().contains(exportMaskURI.toString())) {
-                throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
-            }
-            if (!systemURI.equals(mask.getStorageDevice())) {
-                throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
+			if (mask != null) {
+				if (!exportGroup.getExportMasks().contains(exportMaskURI.toString())) {
+					throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
+				}
+				if (!systemURI.equals(mask.getStorageDevice())) {
+					throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
 
-            }
-            if (currentPortGroup != null && !currentPortGroup.equals(mask.getPortGroup())) {
-                throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
+				}
+				if (currentPortGroup != null && !currentPortGroup.equals(mask.getPortGroup())) {
+					throw APIException.badRequests.changePortGroupInvalidExportMask(mask.getMaskName());
+				}
+				exportMasks.add(mask);
+			} else {
+				exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, system.getId(), currentPortGroup);
             }
         }
-        List<ExportMask> exportMasks = new ArrayList<ExportMask>();
-        if (mask != null) {
-            exportMasks.add(mask);
-        } else {
-            exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, system.getId(), currentPortGroup);
-        }
+
         if (exportMasks.isEmpty()) {
             throw APIException.badRequests.noValidExportMaskInExportGroup(exportGroup.getLabel());
         }

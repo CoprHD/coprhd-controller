@@ -2328,7 +2328,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(), workflowKey, false, token);
             
-            if (exportMaskURIs == null || exportMaskURIs.isEmpty()) {
+			if (CollectionUtils.isEmpty(exportMaskURIs)) {
                 _log.info("No export masks to change");
                 taskCompleter.ready(_dbClient);
                 return;
@@ -2343,7 +2343,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 oldMask = device.refreshExportMask(storage, oldMask);
                 StringSet existingInits = oldMask.getExistingInitiators();
                 StringMap existingVols = oldMask.getExistingVolumes();
-                if (existingInits != null && !existingInits.isEmpty()) {
+				if (CollectionUtils.isEmpty(existingInits)) {
                     String error = String.format("The export mask %s has unmanaged initiators %s", oldMask.getMaskName(),
                             Joiner.on(',').join(existingInits));
                     _log.error(error);
@@ -2351,7 +2351,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     taskCompleter.error(_dbClient, serviceError);
                     return;
                 }
-                if (existingVols != null && !existingVols.isEmpty()) {
+				if (CollectionUtils.isEmpty(existingVols)) {
                     String error = String.format("The export mask %s has unmanaged volumes %s", oldMask.getMaskName(),
                             Joiner.on(',').join(existingVols.keySet()));
                     _log.error(error);

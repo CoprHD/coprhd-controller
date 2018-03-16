@@ -153,16 +153,10 @@
     }    
     
     $(document).ready(function () {
-//     	if(localStorage.getItem('tasks_maxTasks')) {
-//     		$('#tasks_maxTasks').val(localStorage.getItem('tasks_maxTasks'));
-//     	}
         $('#tasks_maxTasks').on('change', function () {
             var maxTasks = $(this).val();
             var url = #{jsAction @Tasks.listAll(':systemTasks')/}({"systemTasks": "${systemTasks}"}) + "&maxTasks=" + maxTasks;
             window.location.href = url;
-//             localStorage.setItem('tasks_maxTasks',$('#tasks_maxTasks').val());
-//             $('#tasks_maxTasks option[value=1000]').attr('selected','true');;
-//    			$('#tasks_maxTasks').trigger('chosen:updated');
             });
         });
   </script>    

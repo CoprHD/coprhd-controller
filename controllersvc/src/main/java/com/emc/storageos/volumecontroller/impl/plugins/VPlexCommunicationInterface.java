@@ -1065,7 +1065,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 			volumeNativeGuid = volumeNativeGuid.replaceFirst(c1, c2);
 			s_logger.info("Updated volumeNativeGuid  : {}" ,volumeNativeGuid);
 		} else {
-			volumeNativeGuid = volumeNativeGuid.replaceFirst(c1, c2);
+			volumeNativeGuid = volumeNativeGuid.replaceFirst(c2, c1);
 			s_logger.info("Updated volumeNativeGuid  : {}" ,volumeNativeGuid);
 	    }
 		return volumeNativeGuid;

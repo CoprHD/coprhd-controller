@@ -52,7 +52,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportDeleteCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationUpdateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportPortRebalanceCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportUpdateCompleter;
@@ -208,7 +208,7 @@ public class BlockDeviceExportController implements BlockExportController {
                         }
                     } else {
                         exportGroup.removeExportMask(tempExportMask.getId());
-                        _dbClient.persistObject(exportGroup);
+                        _dbClient.updateObject(exportGroup);
                     }
                 }
                 workflow.executePlan(taskCompleter, "Removed export from all devices.");
@@ -651,7 +651,7 @@ public class BlockDeviceExportController implements BlockExportController {
             updatedVolumes.add(volume);
             _log.info(String.format("Changing VirtualPool PathParams for volume %s (%s) from %s to %s",
                     volume.getLabel(), volume.getId(), oldVpoolURI, newVpoolURI));
-            _dbClient.updateAndReindexObject(updatedVolumes);
+            _dbClient.updateObject(updatedVolumes);
         } catch (Exception ex) {
             _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
@@ -1077,7 +1077,7 @@ public class BlockDeviceExportController implements BlockExportController {
     public void exportGroupChangePortGroup(URI systemURI, URI exportGroupURI, 
             URI newPortGroupURI, List<URI> exportMaskURIs, boolean waitForApproval, String opId) {
         _log.info("Received request for change port group. Creating master workflow.");
-        ExportTaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI, opId);
+        ExportTaskCompleter taskCompleter = new ExportOrchestrationUpdateTaskCompleter(exportGroupURI, opId);
         Workflow workflow = null;
         try {
             workflow = _wfUtils.newWorkflow("exportChangePortGroup", false, opId);

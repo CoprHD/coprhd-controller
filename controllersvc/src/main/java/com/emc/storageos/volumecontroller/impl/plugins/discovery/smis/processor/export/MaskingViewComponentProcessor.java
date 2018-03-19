@@ -128,15 +128,15 @@ public class MaskingViewComponentProcessor extends Processor {
                     // check if a host initiator exists for this id
                     Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, dbClient);
                     if (knownInitiator != null) {
-                        logger.info("Found an initiator ({}) in ViPR for network id {} not in current Initiator list ",
+                        logger.info("Found an initiator {} in ViPR for network id {} not in current Initiator list ",
                                 knownInitiator.getId(), initiatorNetworkId);
                         if (knownInitiator.checkInternalFlags(Flag.RECOVERPOINT)) {
-                        	logger.info("This initiator ({}) is RecoverPoint based",
+                        	logger.info("This initiator {} is RecoverPoint based",
                                     knownInitiator.getId());
                         	sgHasUnmanagedInitiator = true;
                         }
                         else if (NetworkUtil.getStoragePort(initiatorNetworkId, dbClient) != null) {
-                        	logger.info("This network id ({}) is associated to Storage Port as well (VPLEX)",
+                        	logger.info("This network id {} is associated to Storage Port as well (VPLEX)",
                         			initiatorNetworkId);
                         	sgHasUnmanagedInitiator = true;                        	
                         }

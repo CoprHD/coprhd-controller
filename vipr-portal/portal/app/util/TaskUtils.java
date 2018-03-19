@@ -209,6 +209,8 @@ public class TaskUtils {
         return logMessages;
     }
     
+ // "Suppressing Sonar violation of Field names should comply with naming convention"
+    @SuppressWarnings("squid:S00116")
     private static class TaskSummary {
         public URI id;
         public String opId;

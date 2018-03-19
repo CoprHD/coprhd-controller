@@ -82,13 +82,11 @@
 	<div class="max-tasks-selector" id="taskSelector" >
 	 <div class="description col-sm-2" style="text-align:right;font-size:14px; line-height:30px;"><span>&{'tasks.maxTasks'}</span></div> 
 	    <div class="control col-sm-3" style="width:210px;" >
-	    #{field 'tasks.maxTasks'}
+	    #{field 'maxTasks'}
 	    %{
 	        field.cssClass = 'input-sm'
 	        field.options = maxTasksOptions
 	        field.disableSearch = true
-	        field.addEmptyOption = true
-	        field.emptyOptionLabel = messages.get("chosen.select.single")
 	        }%
 	        #{Form.selectOne field:field/}
 	    #{/field}
@@ -153,7 +151,7 @@
     }    
     
     $(document).ready(function () {
-        $('#tasks_maxTasks').on('change', function () {
+        $('#maxTasks').on('change', function () {
             var maxTasks = $(this).val();
             var url = #{jsAction @Tasks.listAll(':systemTasks')/}({"systemTasks": "${systemTasks}"}) + "&maxTasks=" + maxTasks;
             window.location.href = url;

@@ -432,7 +432,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"aixHost", "project"} )
     public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId)
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumePortGroups")
@@ -444,7 +444,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"windowsHost", "project"} )
     public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId)
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumePortGroups")

@@ -300,6 +300,8 @@ public class TaskUtils {
         }
     }
 
+    // "Suppressing Sonar violation of Field names should comply with naming convention"
+    @SuppressWarnings("squid:S00116")
     public static class WorkflowStep {
         public String name;
         public String state;

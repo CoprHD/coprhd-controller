@@ -152,7 +152,7 @@ public class MaskingViewComponentProcessor extends Processor {
 
             //If a single unknown initiator is associated with the Storage Group, we should treat it
             // as a unmanaged Storage Group that is not suitable for Migration..
-            if (sgHasUnmanagedInitiator && storageGroup!= null){
+            if (storageGroup!= null && sgHasUnmanagedInitiator){
             	//The reason we are adding is to make sure to remove it from the list as part of StorageGroupBookkeepingProceesor
     			Set<String> unmanagedStorageGroupNames = (Set<String>) keyMap.get(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS);           	
             	unmanagedStorageGroupNames.add(storageGroup.getLabel());

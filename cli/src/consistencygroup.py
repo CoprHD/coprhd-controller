@@ -1428,7 +1428,7 @@ def migration_create_parser(subcommand_parsers, common_parser):
                                 help='name of storage pool')
     migration_create_parser.add_argument('-validate', '-val',
                              dest='validate',
-                             help='validate migration')
+                             help=argparse.SUPPRESS)
     migration_create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',

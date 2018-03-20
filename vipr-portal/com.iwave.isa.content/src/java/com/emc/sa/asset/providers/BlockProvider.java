@@ -91,6 +91,7 @@ import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
+import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
@@ -1175,25 +1176,64 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return options;
     }
-    
+
     @Asset("exportPathPorts")
-    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem" })
-    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId) {
+    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem", "exportPathExport" })
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId,
+            URI exportId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
+
+        // Get all the PGs for the varray/storage system/EG combo then check to
+        // see if there are any non-mutable PGs;
+        // if there are the storage ports displayed to the user would be limited
+        // to just those ones.
+        StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(vArrayId, exportId,
+                storageSystemId, null, null, false);
+
+        // Keep a list of ports from the non-mutable PGs. This could remain
+        // empty if there are no PGs or none that are non-mutable.
+        List<URI> nonMutablePGPortURIs = new ArrayList<URI>();
+
+        if (portGroupsRestRep != null) {
+            // Drill down to get the PG and the storage ports
+            List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
+            if (!CollectionUtils.isEmpty(portGroups)) {
+                for (StoragePortGroupRestRep pg : portGroups) {
+                    // Check to see if the PG is non-mutable
+                    if (!pg.getMutable()) {
+                        // Keep track of these storage ports, they will be used
+                        // to filter out
+                        // other storage ports.
+                        StoragePortList pgPortsList = pg.getStoragePorts();
+                        List<NamedRelatedResourceRep> pgPorts = pgPortsList.getPorts();
+                        for (NamedRelatedResourceRep pgPort : pgPorts) {
+                            nonMutablePGPortURIs.add(pgPort.getId());
+                        }
+                    }
+                }
+            }
+        }
         
         List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
-        
+                
         for (StoragePortRestRep port : ports) {
-            if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
-                    port.getStorageDevice().getId().equals(storageSystemId) &&
-                    port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
-                if (port.getNetwork() != null) {
-                    String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
-                    String networkName = client.networks().get(port.getNetwork().getId()).getName();
-                    String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
-                            port.getPortNetworkId(), portPercentBusy);
-                    options.add(new AssetOption(port.getId(), label));
+        	// Check to see if this port needs to be filtered out.
+            boolean filterOutPortBasedOnPG = (!nonMutablePGPortURIs.isEmpty()) ? 
+                    !nonMutablePGPortURIs.contains(port.getId()) : false;
+                        
+            if (!filterOutPortBasedOnPG) {
+                if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
+                        port.getStorageDevice().getId().equals(storageSystemId) &&
+                        port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
+                    if (port.getNetwork() != null) {
+                        String portPercentBusy = (port.getPortPercentBusy() != null) ? 
+                                String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
+                        String networkName = client.networks().get(port.getNetwork().getId()).getName();
+                        String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
+                                port.getPortNetworkId(), portPercentBusy);
+                        options.add(new AssetOption(port.getId(), label));
+                    }
                 }
             }
         }

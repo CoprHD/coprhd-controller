@@ -1083,6 +1083,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private Volume findVirtualVolumeManagedByVipr(VPlexVirtualVolumeInfo info) {
     	
+    	Volume volume = null;
     	if (info != null) {
         	
             s_logger.info("Determining if Virtual Volume {} is managed by ViPR", info.getName());
@@ -1090,19 +1091,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             List<String> clusters = info.getClusters();
             
             //check to see if it is present with one cluster
-            Volume volume = queryVolumeByNativeGuid(volumeNativeGuid);
+            volume = queryVolumeByNativeGuid(volumeNativeGuid);
             if(null == volume) {
             	if(clusters.size() == 2) {
             		String newVolumeNativeGuid = replaceClusterInNativeGuid(clusters,volumeNativeGuid);
             		//check to see if it is present with other cluster
             		volume = queryVolumeByNativeGuid(newVolumeNativeGuid);
-            		if(null!=volume && !volume.getInactive()) {
-            			return volume;
-            		}
                }
             }
     	}
         
+    	if(null!=volume && !volume.getInactive()) {
+			return volume;
+		}
+    	
         return null;
     }
 
@@ -1167,24 +1169,27 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private UnManagedVolume findUnmanagedVolumeKnownToVipr(VPlexVirtualVolumeInfo info) {
     	
+    	UnManagedVolume volume = null;
     	if(null!=info) {
     		s_logger.info("Determining if Unmanaged Volume {} is known to ViPR", info.getName());
     		String volumeNativeGuid = info.getPath();
             List<String> clusters = info.getClusters();
             
             //check to see if it is present with one cluster
-            UnManagedVolume volume = queryUnManagedVolumeByNativeGuid(volumeNativeGuid);
+            volume = queryUnManagedVolumeByNativeGuid(volumeNativeGuid);
             if(null == volume) {
             	if(clusters.size() == 2) {
             		String newVolumeNativeGuid = replaceClusterInNativeGuid(clusters,volumeNativeGuid);
             		//check to see if it is present with other cluster
             		volume = queryUnManagedVolumeByNativeGuid(newVolumeNativeGuid);
-            		if(null!=volume && !volume.getInactive()) {
-            			return volume;
-            		}
+            		
                }
             }
-    	}    	
+    	}  
+    	
+    	if(null!=volume && !volume.getInactive()) {
+			return volume;
+		}
 
         return null;
     }

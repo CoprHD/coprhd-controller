@@ -40,7 +40,6 @@
       </ul>
    #{/if}
 
-
     <div class="pull-left" style="vertical-align: middle; line-height: 20px;" ng-controller="summaryCountCtrl">
       <span class="text-info" style="margin-right:25px">
           <a href="#" ng-click="filterTasks('pending')" class="no-decoration">
@@ -79,9 +78,9 @@
         </a>
       </span>
     </div>
-	<div class="max-tasks-selector" id="taskSelector" >
-	 <div class="description col-sm-2" style="text-align:right;font-size:14px; line-height:30px;"><span>&{'tasks.maxTasks'}</span></div> 
-	    <div class="control col-sm-3" style="width:210px;" >
+	<div class="max-tasks-selector" id="taskSelector" style="margin-left: -170px;margin-right:170px">
+	 <div class="description"><span>&{'tasks.maxTasks'}</span></div> 
+	    <div class="control" style="width:110px;" >
 	    #{field 'maxTasks'}
 	    %{
 	        field.cssClass = 'input-sm'

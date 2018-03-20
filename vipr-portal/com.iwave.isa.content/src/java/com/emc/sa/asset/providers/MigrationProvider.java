@@ -11,6 +11,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -23,9 +24,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @AssetNamespace("vipr")
@@ -79,15 +78,42 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
 
     private boolean filterBCG(ViPRCoreClient client, URI bcgId, String storageType, URI hostId) {
         if (storageType.equals(BlockProvider.EXCLUSIVE_STORAGE)) {
-            List<InitiatorRestRep> hostInitiators = client.initiators().getByHost(hostId);
-            return matchBCGWithHost(client, bcgId, hostInitiators);
+            return matchBCGWithHost(client, bcgId, hostId);
         } else { // Shared
+            return matchBCGWithCluster(client, hostId, bcgId);
         }
-        return false;
     }
 
-    private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, List<InitiatorRestRep> hostInitiators) {
+    private boolean matchBCGWithCluster(ViPRCoreClient client, URI clusterId, URI bcgId) {
+        getLog().info("========== matching cg with cluster " + clusterId);
+        /*  Requirements:
+            1. All initiators in bcg should match to any one of a host of the cluster. If any one is not in cluster, return false.
+            2. All hosts in cluster should have at least one initiator appearing in BCG.
+         */
+        Set<URI> matchedHosts = new HashSet<>();
+        Map<URI, URI> initToHost = new HashMap<>();
+        List<HostRestRep> hosts = client.hosts().getByCluster(clusterId);
+        getLog().info("========== hosts size " + hosts.size());
+        for (HostRestRep host: hosts) {
+            List<InitiatorRestRep> initsByHost = client.initiators().getByHost(host.getId());
+            for (InitiatorRestRep init: initsByHost) {
+                initToHost.put(init.getId(), host.getId());
+            }
+        }
+
+        InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcgId);
+        for (NamedRelatedResourceRep bcgInit: bcgInitiators.getInitiators()) {
+            if (!initToHost.containsKey(bcgInit.getId())) return false;
+            matchedHosts.add(initToHost.get(bcgInit.getId()));
+        }
+        getLog().info("========== matched host size " + matchedHosts.size());
+
+        return matchedHosts.size() == hosts.size();
+    }
+
+    private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, URI hostId) {
         getLog().info("========== matching cg " + bcg);
+        List<InitiatorRestRep> hostInitiators = client.initiators().getByHost(hostId);
         InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
         if (bcgInitiators.getInitiators().isEmpty()) return false;
 

@@ -19,9 +19,11 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
@@ -680,4 +682,29 @@ public class NetworkUtil {
         }
         return null;
     }
+
+    /**
+     * Find all FCZoneReferencethat are referencing the Export Group
+     *
+     * @param dbClient db client
+     * @param exportGroup export Group
+     * @return list of FCZoneReferencethat referring to the Export Group
+     */
+    public static List<FCZoneReference> getFCZoneReferencesFromExportGroup(DbClient dbClient, ExportGroup exportGroup) {
+        List<FCZoneReference> resultFCRef = new ArrayList<FCZoneReference>();
+        List<URI> fcZoneReferenceURIs = dbClient.queryByType(FCZoneReference.class, true);
+        Iterator<FCZoneReference> fcZoneReferenceListIterator = dbClient.queryIterativeObjects(FCZoneReference.class, fcZoneReferenceURIs);
+        while (fcZoneReferenceListIterator.hasNext()) {
+            FCZoneReference fcRef = fcZoneReferenceListIterator.next();
+            if ((fcRef == null) || fcRef.getInactive()) {
+                continue;
+            }
+            if (fcRef.getGroupUri().toString().equals(exportGroup.getId().toString())) {
+                resultFCRef.add(fcRef);
+            }
+
+        }
+        return resultFCRef;
+    }
+
 }

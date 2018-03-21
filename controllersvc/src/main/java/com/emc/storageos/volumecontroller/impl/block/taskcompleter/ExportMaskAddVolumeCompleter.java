@@ -5,6 +5,18 @@
 
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
+import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -16,17 +28,6 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 import com.emc.storageos.workflow.WorkflowService;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext.OPERATION_ADD_VOLUMES_TO_STORAGE_GROUP;
 
 @SuppressWarnings("serial")
 public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
@@ -79,11 +80,21 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 exportMask.setCreatedBySystem(true);
                 ExportMaskUtils.setExportMaskResource(dbClient, exportGroup, exportMask);
                 exportMask.addVolumes(_volumeMap);
-                exportGroup.addExportMask(exportMask.getId());
-                ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                if (getExportGroups() != null && !getExportGroups().isEmpty()) {
+                    List<ExportGroup> egs = dbClient.queryObject(ExportGroup.class, getExportGroups());
+                    for (ExportGroup eg : egs) {
+                        eg.addExportMask(exportMask.getId());
+                        ExportUtils.reconcileHLUs(dbClient, eg, exportMask, _volumeMap);
+                    }
+                    dbClient.updateObject(egs);
+                } else {
+                    exportGroup.addExportMask(exportMask.getId());
+                    ExportUtils.reconcileHLUs(dbClient, exportGroup, exportMask, _volumeMap);
+                    dbClient.updateObject(exportGroup);
+                }
 
                 dbClient.updateObject(exportMask);
-                dbClient.updateObject(exportGroup);
+                updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
                 
                 // In the case of VPLEX backend volumes being successfully masked to the VPLEX,
                 // we store these volumes in the step data to know which volumes need to be forgotten

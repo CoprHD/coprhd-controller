@@ -1390,6 +1390,7 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
         ExportGroup exportGroup = null;
+        boolean success = false;
         try {    	
         	exportGroup = _dbClient
                     .queryObject(ExportGroup.class, exportGroupURI);   	            
@@ -1412,13 +1413,14 @@ public class NetworkDeviceController implements NetworkController {
                     }
                 }
             }
+            success = doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
         } catch (Exception ex) {
             _log.error("Exception zoning Export Masks", ex);
             ServiceError svcError = NetworkDeviceControllerException.errors.zoneExportGroupCreateFailed(
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
+        return success;
     }
 
     /**

@@ -66,7 +66,7 @@ public class Workflow implements Serializable {
     Boolean _suspendOnError = true; // suspend on error (rather than rollback)
     private WorkflowState _workflowState;
     Set<URI> _suspendSteps = new HashSet<URI>(); // Steps that initiate workflow suspend
-    private Boolean _rollingBackFromSuspend = false;  // Set during rollback initiated from suspend, transient
+    private Boolean _rollingBackFromSuspend = false;
     private Boolean _treatSuspendRollbackAsTerminate = false;
     
 
@@ -93,6 +93,7 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_suspendOnError", Boolean.class),
             new ObjectStreamField("_workflowState", WorkflowState.class),
             new ObjectStreamField("_suspendSteps", Set.class),
+            new ObjectStreamField("_rollingBackFromSuspend", Boolean.class),
             new ObjectStreamField("_treatSuspendRollbackAsTerminate", Boolean.class)    
             };
 
@@ -292,7 +293,11 @@ public class Workflow implements Serializable {
                 this.state = newState;
                 this.endTime = new Date();
                 String suspendedMsg = String.format("Message: %s", WorkflowService.SUSPENDED_MSG);
-                this.message = this.message.substring(suspendedMsg.length());
+                if (this.message != null && this.message.startsWith(suspendedMsg)) {
+                	this.message = this.message.substring(suspendedMsg.length());
+                } else {
+                	this.message = message;
+                }
             } else {
                 this.state = newState;
                 this.serviceCode = code;

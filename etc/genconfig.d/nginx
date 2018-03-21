@@ -89,6 +89,13 @@ _keepalived_props() {
 
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"
 
+    for i in ${_GENCONFIG_node_indexes} ; do
+       local var="_GENCONFIG_network_${i}_ipaddr_service"
+       ipaddr=${!var#"["}
+       ipaddr=${ipaddr%"]"}
+       echo "network_${i}_ipaddr_service=${ipaddr}"
+    done
+
     _get_props 'node_id' 'network_vip' 'network_vip6' 'network_prefix_length' 'network_ipaddr6'
 }
 
@@ -106,7 +113,7 @@ _gen_keepalived_conf() {
     fi
     local template="${1%.*}-${mode}-template.${1##*.}"
     local keepalived_props=$(_keepalived_props)
-    IFS="${nl}" ; /etc/gentmpl ${keepalived_props} <"${template}"
+    IFS="${nl}" ; /etc/gentmpl ${_GENCONFIG_FOREACH} ${keepalived_props} <"${template}"
 }
 
 # Keepalived script to hide VIP as a deprecated adddress

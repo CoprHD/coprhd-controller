@@ -8,25 +8,33 @@ package com.emc.storageos.networkcontroller.impl;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.WorkflowException;
 
 public class NetworkZoningParam implements Serializable {
 	private static final long serialVersionUID = 678350596864970920L;
+    private static final Logger _log = LoggerFactory.getLogger(NetworkZoningParam.class);
 	
 	/**
 	 * This is the zoning map obtained from the ExportMask.
@@ -160,6 +168,86 @@ public class NetworkZoningParam implements Serializable {
 		}
 		return zoningParams;
 	}
+
+    /**
+     * Build the zoningMap attribute of zoningParam using FCZoneReference and exportGroup
+     * 
+     * @param zoningParam
+     * @param initsToRemoveOnlyFromZone
+     * @param exportGroup
+     */
+    public static void updateZoningParamUsingFCZoneReference(List<NetworkZoningParam> zoningParam, List<URI> initsToRemoveOnlyFromZone,
+            ExportGroup exportGroup, DbClient dbClient) {
+
+        HashMap<String, Initiator> initiatorMap = new HashMap<String, Initiator>();
+        for (URI initiatorURI : initsToRemoveOnlyFromZone) {
+            Initiator iniObject = dbClient.queryObject(Initiator.class, initiatorURI);
+            String iniString = iniObject.getInitiatorPort().toUpperCase();
+            initiatorMap.put(iniString, iniObject);
+        }
+
+        // Retrieve FCZoneReference zone references that have the same initiator WWN.
+        // These zone should be removed. since the initiator is no longer available.
+
+        List<FCZoneReference> fcRefs = NetworkUtil.getFCZoneReferencesFromExportGroup(dbClient, exportGroup);
+        Set<String> iniConsidered = new HashSet<String>();
+        for (NetworkZoningParam networkZoningParam : zoningParam) {
+            StringSetMap zoneMap = networkZoningParam.getZoningMap();
+            if (zoneMap.isEmpty()) {
+                for (FCZoneReference fcZoneReference : fcRefs) {
+                    String[] initiatorAndPort = getInitiatorAndPortFromPwwnKey(fcZoneReference.getPwwnKey());
+                    if (initiatorAndPort != null) {
+                        String initiator = initiatorAndPort[0];
+                        String port = initiatorAndPort[1];
+                        Initiator iniObject = initiatorMap.get(initiator);
+                        if (iniObject != null) {
+                            StoragePort sp = NetworkUtil.getStoragePort(port, dbClient);
+                            if (sp != null) {
+                                iniConsidered.add(iniObject.getInitiatorPort());
+                                zoneMap.put(iniObject.getId().toString(), sp.getId().toString());
+                            }
+                        }
+                    } else {
+                        _log.warn("Could not obtain initiator and port correctly from the PwwnKey {}", fcZoneReference.getPwwnKey());
+
+                    }
+                }
+                // removed the initiator from map the as this initiator is considered for zone map
+                if (!iniConsidered.isEmpty()) {
+                    initiatorMap.keySet().removeAll(iniConsidered);
+                }
+            }
+        }
+
+    }
+
+    /**
+     * This takes pWwnKey string attribute of FCZoneReference
+     * and return the String array containing initiator and port.
+     * 
+     * @param pWwnKey example:- "1011121310101042_5000144280342802"
+     * @return String Array of size 2 example:- [10:11:12:13:10:10:10:42 , 50:00:14:42:80:34:28:02]
+     *         or null for invalid pWwnKey .
+     */
+    private static String[] getInitiatorAndPortFromPwwnKey(String pWwnKey) {
+        String[] result = null;
+        String[] initiatorAndPort = pWwnKey.split("_");
+        if ((initiatorAndPort.length < 2)
+                || (initiatorAndPort[0].length() != 16)
+                || (initiatorAndPort[1].length() != 16)) {
+
+            _log.warn("Wrong format for PwwnKey {}", pWwnKey);
+
+        } else {
+            result = new String[2];
+            result[0] = WWNUtility.getWWNWithColons(initiatorAndPort[0]);
+            result[1] = WWNUtility.getWWNWithColons(initiatorAndPort[1]);
+
+        }
+
+        return result;
+
+    }
 
 	/**
 	 * Generate a list of NetworkZoningParam objects when removing paths in path adjustment (port rebalance).

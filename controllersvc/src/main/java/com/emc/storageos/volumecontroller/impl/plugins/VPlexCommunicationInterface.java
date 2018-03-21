@@ -1049,9 +1049,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
-     * VPLEX always returns cluster-1 NativeGuid for distributed volumes, for cases where 
-     * dd volumes was created by ViPR on cluster-2 we have to tweak the NativeGuid only so 
-     * we can query the Volume in ViPR DB.
+     * During 'Discover Unmanaged Volumes', VPLEX returns virtual volume info 
+     * with NativeGuid : /clusters/cluster-1/virtual-volumes/<deviceLabel> this condition 
+     * is true for VPLEX local volumes created on cluster-1 & VPLEX Metro volumes(either 
+     * cluster-1 or cluster-2 is winner).
+     * 
+     * Given this scenario, for ViPR to identify whether it already manages the volume 
+     * (VPLEX Metro with cluster-2 as Winner) we need to tweak the NativeGuid, replacing 
+     * cluster-1 with cluster-2.
+     * 
+     * The transformation will be as below:
+     * /clusters/cluster-1/virtual-volumes/<deviceLabel>
+     *             |
+     *             \/
+     * /clusters/cluster-2/virtual-volumes/<deviceLabel>
      * 
      * @param clusters
      * @param volumeNativeGuid

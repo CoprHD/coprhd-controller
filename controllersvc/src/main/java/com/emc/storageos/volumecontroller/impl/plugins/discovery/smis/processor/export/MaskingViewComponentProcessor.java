@@ -108,41 +108,41 @@ public class MaskingViewComponentProcessor extends Processor {
                     // SE_StorageHardwareID.InstanceID="W-+-10000000FFFFFFFF"
                     String initiatorStr = associatedInstancePath.getKey(Constants.INSTANCEID).getValue().toString()
                             .replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
-                    String initiatorNetworkId = initiatorStr.substring(initiatorStr.lastIndexOf(Constants.PLUS) + 1);
-                    logger.info("looking at initiator network id {}", initiatorNetworkId);
-                    if (WWNUtility.isValidNoColonWWN(initiatorNetworkId)) {
-                        initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
-                        logger.debug("wwn normalized to {}", initiatorNetworkId);
-                    } else if (WWNUtility.isValidWWN(initiatorNetworkId)) {
-                        initiatorNetworkId = initiatorNetworkId.toUpperCase();
-                        logger.debug("wwn normalized to {}", initiatorNetworkId);
-                    } else if (initiatorNetworkId.matches(ISCSI_PATTERN)
-                            && (iSCSIUtility.isValidIQNPortName(initiatorNetworkId) || iSCSIUtility
-                                    .isValidEUIPortName(initiatorNetworkId))) {
-                        logger.debug("iSCSI storage port normalized to {}", initiatorNetworkId);
+                    String InitiatorId = initiatorStr.substring(initiatorStr.lastIndexOf(Constants.PLUS) + 1);
+                    logger.info("looking at initiator network id {}", InitiatorId);
+                    if (WWNUtility.isValidNoColonWWN(InitiatorId)) {
+                        InitiatorId = WWNUtility.getWWNWithColons(InitiatorId);
+                        logger.debug("wwn normalized to {}", InitiatorId);
+                    } else if (WWNUtility.isValidWWN(InitiatorId)) {
+                        InitiatorId = InitiatorId.toUpperCase();
+                        logger.debug("wwn normalized to {}", InitiatorId);
+                    } else if (InitiatorId.matches(ISCSI_PATTERN)
+                            && (iSCSIUtility.isValidIQNPortName(InitiatorId) || iSCSIUtility
+                                    .isValidEUIPortName(InitiatorId))) {
+                        logger.debug("iSCSI storage port normalized to {}", InitiatorId);
                     } else {
                         logger.warn("this is not a valid FC or iSCSI network id format, skipping.");
                         continue;
                     }
 
                     // check if a host initiator exists for this id
-                    Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, dbClient);
+                    Initiator knownInitiator = NetworkUtil.getInitiator(InitiatorId, dbClient);
                     if (knownInitiator != null) {
-                        logger.info("Found an initiator {} in ViPR for network id {} not in current Initiator list ",
-                                knownInitiator.getId(), initiatorNetworkId);
+                        logger.info("Found an initiator {} in ViPR for initiator id {}",
+                                knownInitiator.getId(), InitiatorId);
                         if (knownInitiator.checkInternalFlags(Flag.RECOVERPOINT)) {
                         	logger.info("This initiator {} is RecoverPoint based",
                                     knownInitiator.getId());
                         	sgHasUnmanagedInitiator = true;
                         }
-                        else if (NetworkUtil.getStoragePort(initiatorNetworkId, dbClient) != null) {
+                        else if (NetworkUtil.getStoragePort(InitiatorId, dbClient) != null) {
                         	logger.info("This network id {} is associated to Storage Port as well (VPLEX)",
-                        			initiatorNetworkId);
+                        			InitiatorId);
                         	sgHasUnmanagedInitiator = true;                        	
                         }
                         initiators.add(knownInitiator.getId().toString());
                     } else {
-                        logger.info("No hosts in ViPR found configured for network id {}", initiatorNetworkId);
+                        logger.info("No hosts in ViPR found configured for initiator id {}", InitiatorId);
                         sgHasUnmanagedInitiator = true;
                     }
                 } else {

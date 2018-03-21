@@ -70,6 +70,7 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 					}
 				}
 				exportMask.removeFromUserAddedVolumesByURI(boURIs);
+                exportMask.removeVolumes(boURIs);
 				dbClient.updateObject(exportMask);
 				// if its not used anywhere and is system created delete it
 				if (ExportMaskUtils.getExportGroups(dbClient, exportMask.getId()).isEmpty()

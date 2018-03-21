@@ -4071,7 +4071,7 @@ tasks.1000tasks=1000 Tasks
 tasks.2000tasks=2000 Tasks
 tasks.5000tasks=5000 Tasks
 tasks.10000tasks=10000 Tasks
-tasks.0tasks=All Tasks
+tasks.-1tasks=All Tasks
 tasks.nTasks=%d Tasks
 
 taskLogs.time=Time

@@ -97,10 +97,8 @@ public class Tasks extends Controller {
         if (maxTasks == null) {
             maxTasks = 100;
         }
-        if (maxTasks == 0) {
-            maxTasks = -1;
-        }
-        int[] tasks = { 100, 1000, 2000, 5000, 10000, 0 };
+
+        int[] tasks = { 100, 1000, 2000, 5000, 10000, -1 };
         List<StringOption> options = Lists.newArrayList();
         options.add(new StringOption(String.valueOf(maxTasks), MessagesUtils.get("tasks.nTasks", maxTasks)));
         for (int taskCount : tasks) {

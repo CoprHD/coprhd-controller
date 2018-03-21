@@ -743,7 +743,7 @@ class ExportGroup(object):
 
         exportgroup_uri = self.exportgroup_query(name,
                                                  project, tenant, varrayuri)
-	ssobj = StorageSystem(self.__ipAddr, self.__port)
+        ssobj = StorageSystem(self.__ipAddr, self.__port)
         storagesystem_uri = ssobj.query_by_serial_number(storagesystem)
         parms = {}
         parms['storage_system'] = storagesystem_uri
@@ -773,99 +773,99 @@ class ExportGroup(object):
         if(maxpaths):
             parms['path_parameters'] = path_parameters
 
-	if (not dorealloc):
-	   if (hosts):
-   	   	host_uris =[]
-	    	hostobj = Host(self.__ipAddr, self.__port)
-		for host in hosts:
-			host_uri = hostobj.query_by_name(host)
-			host_uris.append(host_uri)
-		parms['hosts'] = host_uris
+        if (not dorealloc):
+           if (hosts):
+                host_uris =[]
+                hostobj = Host(self.__ipAddr, self.__port)
+                for host in hosts:
+                    host_uri = hostobj.query_by_name(host)
+                    host_uris.append(host_uri)
+                parms['hosts'] = host_uris
 
-	   if (useexisting):
-	       parms['use_existing_paths'] = "true"
-	   else:
-	       parms['use_existing_paths'] = "false"
-	   return parms
+           if (useexisting):
+               parms['use_existing_paths'] = "true"
+           else:
+               parms['use_existing_paths'] = "false"
+           return parms
 
-	if (dorealloc):
- 		if (wait):
-		    parms['wait_before_remove_paths'] = "true"
-		else:
-		    parms['wait_before_remove_paths'] = "false"
+        if (dorealloc):
+            if (wait):
+                parms['wait_before_remove_paths'] = "true"
+            else:
+                parms['wait_before_remove_paths'] = "false"
 
-		#Call Preview first to fetch all the paths. 
- 		rep = self.exportgroup_pathadjustment(name, project, tenant,
-                                               storagesystem, varray, 
-                                               minpaths, maxpaths, pathsperinitiator,
-                                               maxinitiatorsperport, storageports, useexisting, hosts, verbose, None, False)
-		adjustedpaths = rep['adjusted_paths']
-	    	adjusted_paths = []
-	    	for path in adjustedpaths:
-			adjusted_path = {}
-			adjusted_path['initiator'] = path['initiator']['id']
-			adjusted_ports = []
-			for port in path['storage_ports']:
-		    		#print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
-		    		adjusted_ports.append(port['id'])
-			adjusted_path['storage_ports'] = adjusted_ports
-			adjusted_paths.append(adjusted_path)   
+            #Call Preview first to fetch all the paths. 
+            rep = self.exportgroup_pathadjustment(name, project, tenant,
+                                                   storagesystem, varray, 
+                                                   minpaths, maxpaths, pathsperinitiator,
+                                                   maxinitiatorsperport, storageports, useexisting, hosts, verbose, None, False)
+            adjustedpaths = rep['adjusted_paths']
+            adjusted_paths = []
+            for path in adjustedpaths:
+                adjusted_path = {}
+                adjusted_path['initiator'] = path['initiator']['id']
+                adjusted_ports = []
+                for port in path['storage_ports']:
+                        #print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+                        adjusted_ports.append(port['id'])
+                adjusted_path['storage_ports'] = adjusted_ports
+                adjusted_paths.append(adjusted_path)   
 
-	    	removedPaths=rep['removed_paths']
-		removed_paths = []
-		for path in removedPaths:
-			removed_path = {}
-			removed_path['initiator'] = path['initiator']['id']
-			removed_ports = []
-			for port in path['storage_ports']:
-			    #print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
-			    removed_ports.append(port['id'])
-			removed_path['storage_ports'] = removed_ports
-			removed_paths.append(removed_path)
+            removedPaths=rep['removed_paths']
+            removed_paths = []
+            for path in removedPaths:
+                removed_path = {}
+                removed_path['initiator'] = path['initiator']['id']
+                removed_ports = []
+                for port in path['storage_ports']:
+                    #print path['initiator']['hostname'], path['initiator']['initiator_port'],port['name']
+                    removed_ports.append(port['id'])
+                removed_path['storage_ports'] = removed_ports
+                removed_paths.append(removed_path)
 
-        	parms['adjusted_paths'] = adjusted_paths
-        	parms['removed_paths'] = removed_paths
-	return parms
+                parms['adjusted_paths'] = adjusted_paths
+                parms['removed_paths'] = removed_paths
+        return parms
 
     def exportgroup_pathadjustment(self, name, project, tenant, storagesystem, varray, 
-				   minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport,
-		 		   storageports, useexistingpaths, hosts, verbose, wait, dorealloc):
+        minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport,
+        storageports, useexistingpaths, hosts, verbose, wait, dorealloc):
 
-	parms = {}
-	varrayuri = None
-	if(varray):
-	    varrayObject = VirtualArray(self.__ipAddr, self.__port)
-	    varrayuri = varrayObject.varray_query(varray)
+        parms = {}
+        varrayuri = None
+        if(varray):
+            varrayObject = VirtualArray(self.__ipAddr, self.__port)
+            varrayuri = varrayObject.varray_query(varray)
 
-	exportgroup_uri = self.exportgroup_query(name,
-						 project, tenant, varrayuri)
+        exportgroup_uri = self.exportgroup_query(name,
+                             project, tenant, varrayuri)
 
-	# PATH_ADJ_OPERATION is a boolean to keep track of what operation is being invoked.
-	# Since path adjustment also invokes preview, we storage this so that we can always display the output of preview and 
-        # display path_adjustment output only when verbose flag is passed in true.
-	if (dorealloc):
-		self.PATH_ADJ_OPERATION = True 
+        # PATH_ADJ_OPERATION is a boolean to keep track of what operation is being invoked.
+        # Since path adjustment also invokes preview, we storage this so that we can always display the output of preview and 
+            # display path_adjustment output only when verbose flag is passed in true.
+        if (dorealloc):
+            self.PATH_ADJ_OPERATION = True 
 
-	parms = self.exportgroup_pathadjustment_parms(name, project, tenant, storagesystem, varray, 
-						      minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport, 
-						      storageports, useexistingpaths, hosts, verbose, wait, dorealloc)
+        parms = self.exportgroup_pathadjustment_parms(name, project, tenant, storagesystem, varray, 
+                                  minpaths, maxpaths, pathsperinitiator, maxinitiatorsperport, 
+                                  storageports, useexistingpaths, hosts, verbose, wait, dorealloc)
 
-	body = json.dumps(parms)
-    
-	if (dorealloc):
-		(s, h) = common.service_json_request(self.__ipAddr,
-						     self.__port, "PUT",
-						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT.format(exportgroup_uri),
-						     body)
+        body = json.dumps(parms)
+        
+        if (dorealloc):
+            (s, h) = common.service_json_request(self.__ipAddr,
+                                 self.__port, "PUT",
+                                 self.URI_EXPORT_GROUP_PATH_ADJUSTMENT.format(exportgroup_uri),
+                                 body)
         else:
             (s, h) = common.service_json_request(self.__ipAddr,
-						     self.__port, "POST",
-						     self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
-						     body)
-    output = common.json_decode(s)
-    return output
+                                 self.__port, "POST",
+                                 self.URI_EXPORT_GROUP_PATH_ADJUSTMENT_PREVIEW.format(exportgroup_uri),
+                                 body)
+        output = common.json_decode(s)
+        return output
 
-def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,
+    def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,
                    serialnumber, type, portgroupname, currentportgroupname, exportmask, verbose, wait):
         parms = {}
         varrayuri = None

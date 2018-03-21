@@ -3973,20 +3973,27 @@ public class ExportGroupService extends TaskResourceService {
         }
         
         String task = UUID.randomUUID().toString();
+        
+        if (affectedMasks.isEmpty()) {
+            _log.info("No export mask to change port group, do nothing");
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.EXPORT_CHANGE_PORT_GROUP);
+            op.setMessage("No port group change is needed for this export group");
+            op.ready();
+            exportGroup.getOpStatus().createTaskStatus(task, op);
+            _dbClient.updateObject(exportGroup);
+            return toTask(exportGroup, task, op);
+        }
+        
         Operation op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.EXPORT_CHANGE_PORT_GROUP);
 
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+        
         // persist the export group to the database
         _dbClient.updateObject(exportGroup);
         auditOp(OperationTypeEnum.EXPORT_CHANGE_PORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
-
-        TaskResourceRep taskRes = toTask(exportGroup, task, op);
-        if (affectedMasks.isEmpty()) {
-            _log.info("No export mask to change port group, do nothing");
-            op.ready();
-            return taskRes;
-        }
         
         BlockExportController exportController = getExportController();
         _log.info(String.format("Submitting change port group %s request.", newPortGroup.getNativeGuid()));

@@ -107,7 +107,10 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
 
         InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcgId);
         for (NamedRelatedResourceRep bcgInit: bcgInitiators.getInitiators()) {
-            if (!initToHost.containsKey(bcgInit.getId())) return false;
+            if (!initToHost.containsKey(bcgInit.getId())) {
+                log.info("BCG {} has an initiator [ {}, {} ] which doesn't belong to any host", bcgId, bcgInit.getId(), bcgInit.getName());
+                return false;
+            }
             matchedHosts.add(initToHost.get(bcgInit.getId()));
         }
 

@@ -3393,7 +3393,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/initiators")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public InitiatorList getInitiatorsByCG(@PathParam("id") URI id) throws DatabaseException {
-        _log.info("==========  get init for cg {}", id);
         // validate input
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
 
@@ -3407,7 +3406,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         InitiatorList initiatorList = new InitiatorList(inits);
-        _log.info("==========  return init {}", initiatorList.getInitiators().size());
         return initiatorList;
     }
 

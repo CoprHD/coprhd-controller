@@ -21,6 +21,8 @@ import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -29,6 +31,8 @@ import java.util.*;
 @Component
 @AssetNamespace("vipr")
 public class MigrationProvider extends BaseAssetOptionsProvider {
+    private static final Logger log = LoggerFactory.getLogger(MigrationProvider.class);
+
     private final static String SRDF_TYPE = "SRDF";
 
     @Asset("allStorageSystems")
@@ -65,14 +69,16 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getConsistencyGroupOptions(AssetOptionsContext ctx, String storageType, URI hostId, URI storageSystemId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
-
+        log.info("Getting storage groups based on storageType {}, host {}, storage system {}", storageType, hostId, storageSystemId);
         final BlockConsistencyGroupList consistencyGrps = client.storageSystems().getConsistencyGroups(storageSystemId);
+        log.info("Total # of storage groups is {}", consistencyGrps.getConsistencyGroupList().size());
         final List <NamedRelatedResourceRep> consistencyGrpList = consistencyGrps.getConsistencyGroupList();
         for(NamedRelatedResourceRep consistencygrp: consistencyGrpList) {
             if (filterBCG(client, consistencygrp.getId(), storageType, hostId)) {
                 options.add(new AssetOption(consistencygrp.getId(), consistencygrp.getName()));
             }
         }
+        log.info("Filtered storage group size is {}", options.size());
         return options;
     }
 
@@ -85,7 +91,6 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     }
 
     private boolean matchBCGWithCluster(ViPRCoreClient client, URI clusterId, URI bcgId) {
-        getLog().info("========== matching cg with cluster " + clusterId);
         /*  Requirements:
             1. All initiators in bcg should match to any one of a host of the cluster. If any one is not in cluster, return false.
             2. All hosts in cluster should have at least one initiator appearing in BCG.
@@ -93,7 +98,6 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
         Set<URI> matchedHosts = new HashSet<>();
         Map<URI, URI> initToHost = new HashMap<>();
         List<HostRestRep> hosts = client.hosts().getByCluster(clusterId);
-        getLog().info("========== hosts size " + hosts.size());
         for (HostRestRep host: hosts) {
             List<InitiatorRestRep> initsByHost = client.initiators().getByHost(host.getId());
             for (InitiatorRestRep init: initsByHost) {
@@ -106,13 +110,11 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
             if (!initToHost.containsKey(bcgInit.getId())) return false;
             matchedHosts.add(initToHost.get(bcgInit.getId()));
         }
-        getLog().info("========== matched host size " + matchedHosts.size());
 
         return matchedHosts.size() == hosts.size();
     }
 
     private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, URI hostId) {
-        getLog().info("========== matching cg " + bcg);
         List<InitiatorRestRep> hostInitiators = client.initiators().getByHost(hostId);
         InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
         if (bcgInitiators.getInitiators().isEmpty()) return false;
@@ -126,7 +128,6 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
             getLog().info("bcg init is  " + bcgInitiator.getId());
             if (!hostInitiatorSet.contains(bcgInitiator.getId())) return false;
         }
-        getLog().info("========== cg " + bcg + " matched. Init # is " + bcgInitiators.getInitiators().size());
         return true;
     }
 

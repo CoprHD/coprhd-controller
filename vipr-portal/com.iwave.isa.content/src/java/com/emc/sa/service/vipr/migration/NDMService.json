@@ -18,27 +18,21 @@
       "type": "assetType.vipr.targetStorageSystems",
       "label": "Target Storage System"
     },
-    StorageGroups: {
+    storageGroups: {
       label: "Storage Groups",
-      type: "table",
-      items: {   
-          storageGroup: {
-            label: "Storage Group",
-            type: "assetType.vipr.storageConsistencyGroup",
-            assetType: "vipr.storageConsistencyGroup"
-          }, 
-          maximumPaths: {
-              label: "Maximum Paths",
-              type: "number",
-              initial_value: 2
-          },
-          targetStoragePorts: {
-              label: "Target Storage Ports",
-              type: "assetType.vipr.targetSystemStoragePorts",
-              select: "many",
-              assetType: "vipr.targetSystemStoragePorts"
-          }    
-      }
-    }
+      select: "many",
+      assetType: "vipr.storageConsistencyGroup"
+    },
+    maximumPaths: {
+      label: "Maximum Paths",
+      type: "number",
+      initial_value: 2
+    },
+    targetStoragePorts: {
+      label: "Target Storage Ports",
+      type: "assetType.vipr.targetSystemStoragePorts",
+      select: "many",
+      assetType: "vipr.targetSystemStoragePorts"
+    }    
   }
 }

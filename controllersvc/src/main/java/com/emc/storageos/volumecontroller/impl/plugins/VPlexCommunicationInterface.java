@@ -1108,7 +1108,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             		String newVolumeNativeGuid = replaceClusterInNativeGuid(clusters,volumeNativeGuid);
             		//check to see if it is present with other cluster
             		volume = queryVolumeByNativeGuid(newVolumeNativeGuid);
-               }
+            	}
             }
     	}
         
@@ -1122,7 +1122,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     /**
      * Queries volume in ViPR DB using volumeNativeID
      * @param volumeNativeGuid
-     * @return
+     * @return a Volume object if a match is found in the ViPR database
      */
 	private Volume queryVolumeByNativeGuid(String volumeNativeGuid) {
 		
@@ -1138,7 +1138,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != volume && !volume.getInactive()) {
                 return volume;
             }
-			
 		}
 		
 		return null;
@@ -1146,9 +1145,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 	
 	
 	/**
-     * Queries volume in ViPR DB using volumeNativeID
+     * Queries an UnManagedVolume in ViPR DB using volumeNativeID
      * @param volumeNativeGuid
-     * @return
+     * @return an UnManagedVolume object if a match is found in the ViPR database
      */
 	private UnManagedVolume queryUnManagedVolumeByNativeGuid(String volumeNativeGuid) {
 		
@@ -1156,7 +1155,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 		URIQueryResultList result = new URIQueryResultList();
         
 		_dbClient.queryByConstraint(AlternateIdConstraint.Factory
-		        .getVolumeNativeIdConstraint(volumeNativeGuid), result);
+				.getUnManagedVolumeByNativeGuidConstraint(volumeNativeGuid), result);
 		if(result.iterator().hasNext()) {
 			
 			UnManagedVolume volume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
@@ -1164,7 +1163,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             if (null != volume && !volume.getInactive()) {
                 return volume;
             }
-			
 		}
 		
 		return null;
@@ -1193,15 +1191,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             		String newVolumeNativeGuid = replaceClusterInNativeGuid(clusters,volumeNativeGuid);
             		//check to see if it is present with other cluster
             		volume = queryUnManagedVolumeByNativeGuid(newVolumeNativeGuid);
-            		
-               }
+                }
             }
     	}  
     	
     	if(null!=volume && !volume.getInactive()) {
 			return volume;
 		}
-
+    	
         return null;
     }
 

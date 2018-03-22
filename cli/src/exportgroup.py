@@ -1453,7 +1453,7 @@ def exportgroup_add_volumes(args):
     try:
         objExGroup = ExportGroup(args.ip, args.port)
         if(args.portgroupname):
-            if(not args.storage_device_name and not serial_number):
+            if(not args.storagesystem and not args.serialnumber):
                 raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName')
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,

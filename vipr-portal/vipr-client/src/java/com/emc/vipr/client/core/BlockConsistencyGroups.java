@@ -638,8 +638,4 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     public MigrationList getConsistencyGroupMigrations(URI consistencyGroupId) {
         return client.get(MigrationList.class, getIdUrl() + "/migrations", consistencyGroupId);
     }
-
-    public InitiatorList getInitiators(URI consistencyGroupId) {
-        return client.get(InitiatorList.class, getIdUrl() + "/initiators", consistencyGroupId);
-    }
 }

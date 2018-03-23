@@ -10,7 +10,9 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.model.host.InitiatorRestRep;
@@ -83,14 +85,21 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
     }
 
     private boolean filterBCG(ViPRCoreClient client, URI bcgId, String storageType, URI hostId) {
+        BlockConsistencyGroupRestRep bcg = client.blockConsistencyGroups().get(bcgId);
+        if ( !bcg.getTypes().contains(BlockConsistencyGroup.Types.MIGRATION.name()) ||
+                BlockConsistencyGroup.MigrationStatus.None.name().equalsIgnoreCase(bcg.getMigrationStatus()) ) {
+            log.info("BCG [ id: {}, type: {}, status: {} ] is filtered out",
+                    bcgId, bcg.getTypes(), bcg.getMigrationStatus());
+            return false;
+        }
         if (storageType.equals(BlockProvider.EXCLUSIVE_STORAGE)) {
-            return matchBCGWithHost(client, bcgId, hostId);
+            return matchBCGWithHost(client, bcg, hostId);
         } else { // Shared
-            return matchBCGWithCluster(client, hostId, bcgId);
+            return matchBCGWithCluster(client, bcg, hostId);
         }
     }
 
-    private boolean matchBCGWithCluster(ViPRCoreClient client, URI clusterId, URI bcgId) {
+    private boolean matchBCGWithCluster(ViPRCoreClient client, BlockConsistencyGroupRestRep bcg, URI clusterId) {
         /*  Requirements:
             1. All initiators in bcg should match to any one of a host of the cluster. If any one is not in cluster, return false.
             2. All hosts in cluster should have at least one initiator appearing in BCG.
@@ -105,10 +114,9 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
             }
         }
 
-        InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcgId);
-        for (NamedRelatedResourceRep bcgInit: bcgInitiators.getInitiators()) {
+        for (NamedRelatedResourceRep bcgInit: bcg.getInitiators()) {
             if (!initToHost.containsKey(bcgInit.getId())) {
-                log.info("BCG {} has an initiator [ {}, {} ] which doesn't belong to any host", bcgId, bcgInit.getId(), bcgInit.getName());
+                log.info("BCG {} has an initiator [ {}, {} ] which doesn't belong to any host", bcg.getId(), bcgInit.getId(), bcgInit.getName());
                 return false;
             }
             matchedHosts.add(initToHost.get(bcgInit.getId()));
@@ -117,17 +125,16 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
         return matchedHosts.size() == hosts.size();
     }
 
-    private boolean matchBCGWithHost(ViPRCoreClient client, URI bcg, URI hostId) {
+    private boolean matchBCGWithHost(ViPRCoreClient client, BlockConsistencyGroupRestRep bcg, URI hostId) {
         List<InitiatorRestRep> hostInitiators = client.initiators().getByHost(hostId);
-        InitiatorList bcgInitiators = client.blockConsistencyGroups().getInitiators(bcg);
-        if (bcgInitiators.getInitiators().isEmpty()) return false;
+        if (bcg.getInitiators().isEmpty()) return false;
 
         Set<URI> hostInitiatorSet = new HashSet<>();
         for (InitiatorRestRep initiator: hostInitiators) {
             getLog().info("host init is  " + initiator.getId());
             hostInitiatorSet.add(initiator.getId());
         }
-        for (NamedRelatedResourceRep bcgInitiator: bcgInitiators.getInitiators()) {
+        for (NamedRelatedResourceRep bcgInitiator: bcg.getInitiators()) {
             getLog().info("bcg init is  " + bcgInitiator.getId());
             if (!hostInitiatorSet.contains(bcgInitiator.getId())) return false;
         }

@@ -21,6 +21,7 @@
     storageGroups: {
       label: "Storage Groups",
       select: "many",
+      type: "assetType.vipr.storageConsistencyGroup",
       assetType: "vipr.storageConsistencyGroup"
     },
     maximumPaths: {

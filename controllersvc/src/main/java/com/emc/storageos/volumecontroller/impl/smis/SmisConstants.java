@@ -433,7 +433,8 @@ public interface SmisConstants {
     static final String CP_COMPUTER_SYSTEM = "ComputerSystem";
     static final String CP_DESTINATION_SYSTEM = "DestinationSystem";
     static final String CP_COLLECTION = "Collection";
-    static final String EMC_STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
+    static final String STORAGE_RELOCATION_SERVICE = "_StorageRelocationService";
+    static final String EMC_STORAGE_RELOCATION_SERVICE = "EMC_StorageRelocationService";
 
     // Compression
     static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";

@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.MigrationStatus;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -49,18 +51,17 @@ public class MaskingViewComponentProcessor extends Processor {
     private static final String MIGRATION_ONLY = "MIGRATION_ONLY";
     private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
         String maskingViewName = null;
         try {
-            @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             dbClient = (DbClient) keyMap.get(Constants.dbClient);
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             URI systemId = profile.getSystemId();
             // Storage group names for book-keeping
-            @SuppressWarnings("unchecked")
             Set<String> storageGroupNames = (Set<String>) keyMap.get(Constants.MIGRATION_STORAGE_GROUPS);
             // Add all the storage groups to a Project named Migration
             Project project = (Project) keyMap.get(MIGRATION_PROJECT);
@@ -71,6 +72,7 @@ public class MaskingViewComponentProcessor extends Processor {
             BlockConsistencyGroup storageGroup = null;
             StringSet initiators = new StringSet();
             boolean sgCreated = false;
+            boolean sgHasUnmanagedInitiator = false;
             while (it.hasNext()) {
                 CIMObjectPath associatedInstancePath = it.next();
                 if (associatedInstancePath.toString().contains(SmisConstants.SE_DEVICE_MASKING_GROUP)) {
@@ -99,13 +101,8 @@ public class MaskingViewComponentProcessor extends Processor {
                         ScopedLabel tagLabel = new ScopedLabel(project.getTenantOrg().getURI().toString(), MIGRATION_ONLY);
                         tagSet.add(tagLabel);
                         storageGroup.setTag(tagSet);
-                    } else {
-                        // clear initiators only for first encounter of storage group during rediscovery
-                        if (!storageGroupNames.contains(instanceID)) {
-                            storageGroup.getInitiators().clear();
-                        }
                     }
-                    storageGroupNames.add(instanceID);
+                	storageGroupNames.add(instanceID);
                 } else if (associatedInstancePath.toString().contains(SmisConstants.CP_SE_STORAGE_HARDWARE_ID)) {
                     // SE_StorageHardwareID.InstanceID="I-+-iqn.1994-05.com.redhat:xxxx9999"
                     // SE_StorageHardwareID.InstanceID="W-+-10000000FFFFFFFF"
@@ -131,25 +128,50 @@ public class MaskingViewComponentProcessor extends Processor {
                     // check if a host initiator exists for this id
                     Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, dbClient);
                     if (knownInitiator != null) {
-                        logger.info("Found an initiator ({}) in ViPR for network id {} ",
+                        logger.info("Found an initiator {} in ViPR for network id {} not in current Initiator list ",
                                 knownInitiator.getId(), initiatorNetworkId);
+                        if (knownInitiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+                        	logger.info("This initiator {} is RecoverPoint based",
+                                    knownInitiator.getId());
+                        	sgHasUnmanagedInitiator = true;
+                        }
+                        else if (NetworkUtil.getStoragePort(initiatorNetworkId, dbClient) != null) {
+                        	logger.info("This network id {} is associated to Storage Port as well (VPLEX)",
+                        			initiatorNetworkId);
+                        	sgHasUnmanagedInitiator = true;                        	
+                        }
                         initiators.add(knownInitiator.getId().toString());
                     } else {
                         logger.info("No hosts in ViPR found configured for network id {}", initiatorNetworkId);
+                        sgHasUnmanagedInitiator = true;
                     }
                 } else {
                     logger.debug("Skipping associator {}", associatedInstancePath.toString());
                 }
             }
 
-            if (!initiators.isEmpty()) {
-                storageGroup.setInitiators(initiators);
+            //If a single unknown initiator is associated with the Storage Group, we should treat it
+            // as a unmanaged Storage Group that is not suitable for Migration..
+            if (storageGroup!= null && sgHasUnmanagedInitiator){
+            	//The reason we are adding is to make sure to remove it from the list as part of StorageGroupBookkeepingProceesor
+    			Set<String> unmanagedStorageGroupNames = (Set<String>) keyMap.get(Constants.UNMANAGED_MIGRATION_STORAGE_GROUPS);           	
+            	unmanagedStorageGroupNames.add(storageGroup.getLabel());
             }
-            if (sgCreated) {
-                dbClient.createObject(storageGroup);
-            } else {
-                dbClient.updateObject(storageGroup);
-            }
+            
+            if(!sgHasUnmanagedInitiator && !initiators.isEmpty() && storageGroup!= null){
+                if (sgCreated){
+                	//Create the Object
+                	storageGroup.setInitiators(initiators);
+               		dbClient.createObject(storageGroup);
+                }
+                // Add initiators to the storageGroupToInitiatorMapping and we will update the object as part of StorageGroupBookkeepingProceesor...
+                Map<String, StringSet> storageGroupToInitiatorMapping = (Map<String, StringSet>) keyMap
+                        .get(Constants.MIGRATION_STORAGE_GROUPS_TO_INITATOR_MAPPING);
+                if (!storageGroupToInitiatorMapping.containsKey(storageGroup.getLabel())) {
+                	storageGroupToInitiatorMapping.put(storageGroup.getLabel(), new StringSet());
+                }
+                storageGroupToInitiatorMapping.get(storageGroup.getLabel()).addAll(initiators);              	
+            }          
         } catch (Exception e) {
             logger.error(
                     String.format("Processing associated member information for Masking View %s failed: ", maskingViewName), e);

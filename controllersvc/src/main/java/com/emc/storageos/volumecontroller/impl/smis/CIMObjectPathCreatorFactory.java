@@ -64,13 +64,13 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     public CIMObjectPath getStorageRelocationSvcPath(StorageSystem storageDevice) {
         CIMProperty[] relocSvcPropKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME,
-                        prefixWithParamName(EMC_STORAGE_RELOCATION_SERVICE)),
+                        prefixWithParamName(STORAGE_RELOCATION_SERVICE)),
                 cimPropertyFactory.string(CP_NAME, EMC_STORAGE_RELOCATION_SERVICE),
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME,
                         prefixWithParamName(STORAGE_SYSTEM)),
                 cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storageDevice))
         };
-        return CimObjectPathCreator.createInstance(prefixWithParamName(EMC_STORAGE_RELOCATION_SERVICE),
+        return CimObjectPathCreator.createInstance(prefixWithParamName(STORAGE_RELOCATION_SERVICE),
                 getCimConnectionFactory().getNamespace(storageDevice), relocSvcPropKeys);
     }
 

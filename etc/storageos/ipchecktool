@@ -42,15 +42,15 @@ _fatal() {
 
 _exit() {
     local code=${1:-1} ; shift
-    set +Ex	
+    set +Ex
     echo "$0: Error: $*" >&2
-    exit ${code}	
+    exit ${code}
 }
 
 _error() {
     local keystroke
     local code=${1:-1} ; shift
-    set +Ex	
+    set +Ex
     echo "$0: Error: $*" >&2
     if [ "$STORAGEOS_BUILD_TYPE" == "oss" ]; then
         echo -e "\n\e[1;31m***\n*** ${*}\n***\n*** Press c to continue boot up, or other keys to edit ${OVFENV_FILE} to correct network settings, and exit the shell. Current node will be rebooted.\n***\e[0m"
@@ -66,7 +66,7 @@ _error() {
             /etc/systool --poweroff 
         fi
         exit ${code}
-    fi		
+    fi
 }
 # Get OVF property with the key provided as $1
 _get_ovf_property() {
@@ -232,22 +232,45 @@ _boot_time_ipv4_vip_dup_test() {
     [ -z "$vip_mac_addr" ] && {
         return 0 # This means no one grabed the vip yet
     } || {
+	# Fetch mac addresses of the nodes within this cluster.
+        mac_array=()
+        for (( n=1; n<=${node_count}; n++ )); do
+            [ "${node_num}" = "${n}" ] && continue
+            local ip=$(_get_ovf_property "network_${n}_ipaddr")
+            local mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+            if [ -n ${mac_addr} ]; then
+                mac_array+=($mac_addr)
+            fi
+        done
         # If vip_mac_addr is not null, it means other nodes grabed the vip, we need to check if it's within the cluster
-        local loopflag=false
-        while true; do
-            for (( n=1; n<=${node_count}; n++ )); do
-                [ "${node_num}" = "${n}" ] && continue
-                local ip=$(_get_ovf_property "network_${n}_ipaddr")
-                local mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)  
-                [ -z "${mac_addr}" ] && {
-                    # This node is down, this node might previously have the vip, so we need to update the vip mac address and do another iteration
-                    loopflag=true
-                    vip_mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
-                    [ -z "${vip_mac_addr}" ] && return 0 || continue # The current node might grab the vip back or the vip belongs to no one at this point of time
+
+        for (( n=1; n<=${node_count}; n++ )); do
+            [ "${node_num}" = "${n}" ] && continue
+            local ip=$(_get_ovf_property "network_${n}_ipaddr")
+            local mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+            [ -z "${mac_addr}" ] && {
+                # This node is down, this node might previously have the vip, so we need to update the vip mac address and do another iteration
+                loopflag=true
+                vip_mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+                [ -z "${vip_mac_addr}" ] && return 0 || {
+                    if [[ ! " ${mac_array[@]} " =~ " ${vip_mac_addr} " ]]; then
+                        # When the program reaches this line, it means the vip is in use out side of this cluster, so fail
+                        return 1
+                    fi
                 }
-                [[ "${vip_mac_addr}" == *"${mac_addr}"* ]] && return # This means another node in the cluster grabbed the vip, means this vip is not used outside of this cluster, use wildcard here because sometimes FF:FF:FF:FF:FF:FF appears in the vipr_mac_addr
-            done
-            [ "${loopflag}" = false ] && break || loopflag=false
+            }
+	    [ ! -z "${vip_mac_addr}" ] && {
+                # iterate through the mac addresses of all nodes of this cluster to verify, if the VIP is taken up by nodes of this cluster only and not by someone else outside of this cluster.
+                while read -r mac_addr_line
+                do
+                    if [[ ! " ${mac_array[@]} " =~ " ${mac_addr_line} " ]]; then
+                        # When the program reaches this line, it means the vip is in use out side of this cluster, so fail
+                        return 1
+                    fi
+                done <<< "$vip_mac_addr"
+                # When the program reaches this line, it means the vip is in use by some node within this cluster - so all is fine.
+                return 0
+            }
         done
         return 1 # When the program reaches this line, it means no nodes grabbed the vip successfully, means the vip is in use out side of the cluster
     }  
@@ -269,22 +292,44 @@ _boot_time_ipv6_vip_dup_test() {
     [ -z "${vip_mac_addr}" ] && {
         return 0 # This means no one grabed the vip yet
     } || {
-        local loopflag=false
-        while true; do
-            for (( n=1; n<=${node_count}; n++ )); do
-                [ "${node_num}" = "${n}" ] && continue
-                local ip=$(_get_ovf_property "network_${n}_ipaddr6")
-                local mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
-                [ -z "${mac_addr}" ] && {
-                    # This node is down, this node might previously have the vip, so we need to update the vip mac address and do another iteration
-                    loopflag=true
-                    vip_mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ipv6_vip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
-                    [ -z "${vip_mac_addr}" ] && return 0 || continue # The current node might grab the vip back or the vip belongs to no one at this point of time
-                }
-                [[ "${vip_mac_addr}" == "${mac_addr}" ]] && return # This means another node in the cluster grabbed the vip, means this vip is not used outside of this cluster
-            done            
-            [ "${loopflag}" = false ] && break || loopflag=false
+        # Fetch mac addresses of the nodes within this cluster.
+        mac_array=()
+        for (( n=1; n<=${node_count}; n++ )); do
+            [ "${node_num}" = "${n}" ] && continue
+            local ip=$(_get_ovf_property "network_${n}_ipaddr6")
+            local mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+            if [ -n ${mac_addr} ]; then
+                mac_array+=($mac_addr)
+            fi
         done
+        for (( n=1; n<=${node_count}; n++ )); do
+            [ "${node_num}" = "${n}" ] && continue
+            local ip=$(_get_ovf_property "network_${n}_ipaddr6")
+            local mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+            [ -z "${mac_addr}" ] && {
+                # This node is down, this node might previously have the vip, so we need to update the vip mac address and do another iteration
+                vip_mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ipv6_vip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+                [ -z "${vip_mac_addr}" ] && return 0 || {
+                    if [[ ! " ${mac_array[@]} " =~ " ${vip_mac_addr} " ]]; then
+                        # When the program reaches this line, it means the vip is in use out side of this cluster, so fail
+                        return 1
+                    fi
+                }
+            }
+            [ ! -z "${vip_mac_addr}" ] && {
+                # iterate through the mac addresses of all nodes of this cluster to verify, if the VIP is taken up by nodes of this cluster only and not by someone else outside of this cluster.
+                while read -r mac_addr_line
+                do
+                    if [[ ! " ${mac_array[@]} " =~ " ${mac_addr_line} " ]]; then
+                        # When the program reaches this line, it means the vip is in use out side of this cluster, so fail
+                        return 1
+                    fi
+                done <<< "$vip_mac_addr"
+                # When the program reaches this line, it means the vip is in use by some node within this cluster - so all is fine.
+                return 0
+            }
+        done
+
         return 1 # When the program reaches this line, it means no nodes grabbed the vip successfully, means the vip is in use out side of the cluster
     }
 }
@@ -316,11 +361,11 @@ PANIC=false
 case ${#} in
     1)  case ${1} in
             --panic|-p) PANIC=true; _boot_time_ips_check; _check_gateway ;;
-	     *)    _usage
-	    esac ;;
+            *)    _usage
+            esac ;;
     2)  case ${1} in
             --ip)        _check_ip ${2} ;;
-	     *)          _usage
+            *)          _usage
         esac ;;
-    *)  _usage  		
+    *)  _usage
 esac

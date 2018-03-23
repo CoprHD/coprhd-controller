@@ -131,6 +131,9 @@ EOF
     network_nic_name=${_GENCONFIG_network_nic_name}
     cat <<EOF
     [ -n "\$(ip -6 addr show to ${network_vip6} 2>/dev/null)" ] && ip addr change ${network_vip6} dev ${network_nic_name} preferred_lft 0
+    # When a node transitions to MASTER state, add and remove the current node's IP so that linux always returns the node's primary address and not the VIP.
+    ip addr del ${_GENCONFIG_network_ipaddr6}/${_GENCONFIG_network_prefix_length} dev ${network_nic_name}
+    ip addr add ${_GENCONFIG_network_ipaddr6}/${_GENCONFIG_network_prefix_length} dev ${network_nic_name}
 fi
 EOF
 }

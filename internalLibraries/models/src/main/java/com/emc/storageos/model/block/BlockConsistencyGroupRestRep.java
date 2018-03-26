@@ -17,6 +17,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
 
@@ -36,6 +37,8 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     private Boolean arrayConsistency;
 
     private String migrationStatus;
+    private List<NamedRelatedResourceRep> initiators;
+
 
     // RecoverPoint fields
     private URI rpProtectionSystem;
@@ -209,4 +212,17 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
         this.migrationStatus = migrationStatus;
     }
 
+    /**
+     * Initiators associated with the consistency group.
+     * @return
+     */
+    @XmlElementWrapper(name = "initiators")
+    @XmlElement(name = "initiator")
+    public List<NamedRelatedResourceRep> getInitiators() {
+        return initiators;
+    }
+
+    public void setInitiators(List<NamedRelatedResourceRep> initiators) {
+        this.initiators = initiators;
+    }
 }

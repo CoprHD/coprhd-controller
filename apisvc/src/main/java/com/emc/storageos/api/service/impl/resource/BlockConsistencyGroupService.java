@@ -3383,35 +3383,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Returns a list of the initiator ids associated with the consistency group.
-     *
-     * @param id the URN of Block Consistency Group
-     * @return A list of initiator ids associated with the consistency group
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/initiators")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public InitiatorList getInitiatorsByCG(@PathParam("id") URI id) throws DatabaseException {
-        _log.info("==========  get init for cg {}", id);
-        // validate input
-        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
-
-        List<NamedRelatedResourceRep> inits = new ArrayList<>();
-        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
-        StringSet initIdSet = cg.getInitiators();
-        if (initIdSet != null) {
-            for (String init: initIdSet) {
-                inits.add(new NamedRelatedResourceRep(URI.create(init), null, ""));
-            }
-        }
-
-        InitiatorList initiatorList = new InitiatorList(inits);
-        _log.info("==========  return init {}", initiatorList.getInitiators().size());
-        return initiatorList;
-    }
-
-    /**
      * Prepares a migration object for the passed consistency group specifying the source
      * and target storage systems for the migration.
      * If migration was already initiated for this consistency group, there will be an

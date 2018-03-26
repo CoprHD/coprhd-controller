@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -640,6 +641,15 @@ public class BlockMapper {
                 first = false;
             }
             to.setVolumes(volumesResourceRep);
+        }
+
+        List<NamedRelatedResourceRep> inits = new ArrayList<>();
+        StringSet initIdSet = from.getInitiators();
+        if (initIdSet != null) {
+            for (String init: initIdSet) {
+                inits.add(new NamedRelatedResourceRep(URI.create(init), null, ""));
+            }
+            to.setInitiators(inits);
         }
 
         return to;

@@ -30,8 +30,6 @@ import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.host.HostRestRep;
-import com.emc.storageos.model.host.InitiatorList;
-import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -638,4 +636,5 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     public MigrationList getConsistencyGroupMigrations(URI consistencyGroupId) {
         return client.get(MigrationList.class, getIdUrl() + "/migrations", consistencyGroupId);
     }
+
 }

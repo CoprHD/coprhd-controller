@@ -58,6 +58,13 @@ public class NDMService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        String[] sgs = storageGroups.split(",");
+        for (String sg: sgs) {
+            executeSingle(sg);
+        }
+    }
+
+    public void executeSingle(String storageGroup) throws Exception {
         // create env
         MigrationEnvironmentParam migrationEnvironmentParam = new MigrationEnvironmentParam(URI.create(sourceStorageSystem), URI.create(targetStorageSystems));
         Task<StorageSystemRestRep> createEnv = execute(new CreateMigrationEnvironment(migrationEnvironmentParam));
@@ -72,15 +79,15 @@ public class NDMService extends ViPRService {
         pathParam.setStoragePorts(targetPortURIs);
         pathParam.setMaxPaths(maxPaths);
         MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);
-        Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroups), migrationZoneCreateParam));
+        Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroup), migrationZoneCreateParam));
         addAffectedResources(createZone);
 
         // create migration
-        Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroups));
+        Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroup));
         addAffectedResource(createMigration);
 
         // rescan host
-        Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroups));
+        Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroup));
         addAffectedResources(rescanHost);
 
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");

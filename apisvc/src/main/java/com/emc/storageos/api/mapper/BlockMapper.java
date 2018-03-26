@@ -649,6 +649,7 @@ public class BlockMapper {
             for (String init: initIdSet) {
                 inits.add(new NamedRelatedResourceRep(URI.create(init), null, ""));
             }
+            to.setInitiators(inits);
         }
 
         return to;

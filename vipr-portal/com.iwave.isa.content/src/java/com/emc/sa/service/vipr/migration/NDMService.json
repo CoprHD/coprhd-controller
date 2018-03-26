@@ -36,7 +36,6 @@
           targetStoragePorts: {
               label: "Target Storage Ports",
               type: "assetType.vipr.targetSystemStoragePorts",
-              select: "many",
               assetType: "vipr.targetSystemStoragePorts"
           }    
       }

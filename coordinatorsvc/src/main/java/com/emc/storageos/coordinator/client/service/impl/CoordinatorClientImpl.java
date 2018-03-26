@@ -149,6 +149,35 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     // ThreadLocal variable to hold zk transaction handler
     private ThreadLocal<CuratorTransaction> zkTransactionHandler = new ThreadLocal<CuratorTransaction>();
     
+    public enum FilterFields {
+
+        svcuser_id_rsa("svcuser_id_rsa"),
+        svcuser_id_ecdsa("svcuser_id_ecdsa"),
+        root_id_ecdsa("root_id_ecdsa"),
+        ssh_host_ecdsa_key("ssh_host_ecdsa_key"),
+        svcuser_id_dsa("svcuser_id_dsa"),
+        ssh_host_rsa_key("ssh_host_rsa_key"),
+        storageos_id_rsa("storageos_id_rsa"),
+        root_id_rsa("root_id_rsa"),
+        storageos_id_dsa("storageos_id_dsa"),
+        root_id_dsa("root_id_dsa"),
+        ssh_host_dsa_key("ssh_host_dsa_key"),
+        storageos_id_ecdsa("storageos_id_ecdsa");
+
+        public String value = "";
+
+        FilterFields(String value)
+        {
+            this.value = value;
+        }
+
+        public String getValue()
+        {
+            return this.value;
+        }
+    }
+
+     
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -1150,7 +1179,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } else {
             final String infoStr = config.getConfig(TARGET_INFO);
             try {
-                log.debug("getPropertyInfo(): properties saved in coordinator=" + Strings.repr(infoStr));
+                log.debug("getPropertyInfo(): properties saved in coordinator=" + filterProp(decodeFromString(infoStr).getProperties()));
                 info.setProperties(mergeProps(defaults, decodeFromString(infoStr).getProperties()));
             } catch (final Exception e) {
                 throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);
@@ -1166,6 +1195,23 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         // add the ovf properties
         info.getProperties().putAll((Map) ovfProperties);
         return info;
+    }
+
+    /**
+     * In the controllersvc debug logs, we are printing CoprHD's private Keys
+     * This would filter out those keys from getting populated in the logs.
+     * 
+     * @param props 
+     *           The property object containing all the properties returned by coordinator.
+     * @return props
+     *           The properties returned by coordinator sans the private keys.
+     * 
+     */
+    private Map<String,String> filterProp(Map<String,String> props) {
+        for (FilterFields field : FilterFields.values()) {
+            props.remove(field.getValue());
+        }       
+        return props;
     }
 
     /**

@@ -44,7 +44,7 @@ public class NDMService extends ViPRService {
     private String targetStorageSystems;
 
     @Param(value = STORAGE_GROUP)
-    private String storageGroups;
+    private List<String> storageGroups;
 
     @Param(value = MAXIMUM_PATHS)
     private Integer maxPaths;
@@ -58,8 +58,7 @@ public class NDMService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        String[] sgs = storageGroups.split(",");
-        for (String sg: sgs) {
+        for (String sg: storageGroups) {
             executeSingle(sg);
         }
     }

@@ -41,7 +41,8 @@ import com.google.common.base.Strings;
  */
 public class VmaxSLOBookkeepingProcessor extends Processor {
     private Logger log = LoggerFactory.getLogger(VmaxSLOBookkeepingProcessor.class);
-
+    public static String DIAMONDSLO = "Diamond";
+    
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
@@ -52,7 +53,7 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         if (isVmax3 && policyNames != null && !policyNames.isEmpty()) {
             try {
                 if(storageSystem.isV3ElmCodeOrMore()) {
-                    updateBlockObjectsWithPolicyBookKeeping(dbClient, policyNames, storageSystem);
+                    updateBlockObjectsWithElmPolicy(dbClient, policyNames, storageSystem);
                 }
                 performPolicyBookKeeping(dbClient, policyNames, storageSystem);
             } catch (IOException e) {
@@ -74,13 +75,85 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
                 Joiner.on(',').join(policyNames)));
         List<AutoTieringPolicy> policiesToUpdate = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
         if (!policiesToUpdate.isEmpty()) {
-            dbClient.updateAndReindexObject(policiesToUpdate);
+            for (AutoTieringPolicy policy : policiesToUpdate) {
+                log.info(String.format("SLO %s no longer exists on array %s, marking associated AutoTieringPolicy %s inactive", policy.getPolicyName(),
+                        storageSystem.getNativeGuid(), policy));
+                policy.setPolicyEnabled(false);
+                policy.getPools().clear();
+                policy.setInactive(true);
+            }
+            dbClient.updateObject(policiesToUpdate);
         }
     }
     
     private List<AutoTieringPolicy> getPoliciesToBeDeleted(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {
         
-        List<AutoTieringPolicy> policiesToDelete = new ArrayList<>();
+        List<AutoTieringPolicy> policiesToDelete = new ArrayList<AutoTieringPolicy>();
+        List<AutoTieringPolicy> policies = getAutoTieingPoliciesFromDB(dbClient, storageSystem); 
+        for (AutoTieringPolicy policyObject : policies) {
+            String policyName = policyObject.getPolicyName();
+            if (!policyNames.contains(policyName)) {
+                log.info(String.format("SLO %s no longer exists on array %s", policyName, storageSystem.getNativeGuid()));
+                policiesToDelete.add(policyObject);
+            } 
+        }
+        return policiesToDelete; 
+    }
+    
+    private AutoTieringPolicy getElmPolicyForOldPolicy(List<AutoTieringPolicy> systemDbPolicies, AutoTieringPolicy oldPolicy) {
+        for (AutoTieringPolicy policy: systemDbPolicies) {
+            // This getting removed also present in DB, 
+            // hence make sure it does not return old policy
+            if(oldPolicy.getId().equals(policy.getId())){
+                continue;
+            }
+            // Get the new policy only for Diamond SLO
+            if(oldPolicy.getVmaxSLO() == null || !oldPolicy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
+                continue;
+            }
+            
+            // Get the new policy only for Diamond SLO
+            if(policy.getVmaxSLO() == null || !policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
+                continue;
+            }
+            // New SLO policy should be enabled
+            if (!policy.getPolicyEnabled()) {
+                continue;
+            }
+            
+            // The new policy should have all pools of existing policy!!
+            if(policy.getPools() != null && policy.getPools().containsAll(oldPolicy.getPools())) {
+                log.info(String.format("SLO policy %s to be replaced with new SLO policy %s", 
+                        oldPolicy.getPolicyName(), policy.getPolicyName()));
+                return policy;
+            }
+        }
+        return null;
+    }
+    
+    private void updateBlockObjectsWithElmPolicy(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {        
+        // Get all policies existing on storage system!!
+        List<AutoTieringPolicy> systemDbPolicies = getAutoTieingPoliciesFromDB(dbClient, storageSystem);
+        List<AutoTieringPolicy> policiesToDelete = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
+        
+        for(AutoTieringPolicy policyToDelete: policiesToDelete){
+            // Find Elm policy w.r.t old policy
+            AutoTieringPolicy elmPolicy = getElmPolicyForOldPolicy(systemDbPolicies, policyToDelete);
+            // Find any Volume or Mirror having reference to old policy
+            if(elmPolicy != null) {
+                // Update the Volumes which are referenced to old policy with new policy
+                modifyVolumePolicyReference(dbClient, policyToDelete, elmPolicy);
+                // Update the BlockMirrors which are referenced to old policy with new policy
+                modifyBlockMirrorPolicyReference(dbClient, policyToDelete, elmPolicy);
+
+            }
+        }
+        
+    }
+    
+    private List<AutoTieringPolicy> getAutoTieingPoliciesFromDB(DbClient dbClient, StorageSystem storageSystem) {
+        
+        List<AutoTieringPolicy> policies = new ArrayList<>();
         URIQueryResultList policiesInDB = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFASTPolicyConstraint(storageSystem.getId()), policiesInDB);
         for (URI policy : policiesInDB) {
@@ -89,70 +162,67 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
             if (policyObject == null || Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
                 continue;
             }
-            String policyName = policyObject.getPolicyName();
-            if (!policyNames.contains(policyName)) {
-                log.info(String.format("SLO %s no longer exists on array %s, marking associated AutoTieringPolicy %s inactive", policyName,
-                        storageSystem.getNativeGuid(), policy));
-                policyObject.setPolicyEnabled(false);
-                policyObject.getPools().clear();
-                policyObject.setInactive(true);
-                policiesToDelete.add(policyObject);
-            }
+            policies.add(policyObject);
         }
-        return policiesToDelete; 
+        return policies;
     }
     
-    private void updateBlockObjectsWithPolicyBookKeeping(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {
-        log.debug(String.format("SLO policyNames found by discovery for array %s:%n%s", storageSystem.getNativeGuid(),
-                Joiner.on(',').join(policyNames)));
-        List<AutoTieringPolicy> policiesToDelete = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
-        
-        for(AutoTieringPolicy policyToDelete: policiesToDelete){
-            // Find any Volume or Mirror having reference to this 
-        }
-        
-    }
     
-    private List<Volume> getVolumesHasPolicy(DbClient dbClient, AutoTieringPolicy policyObject) {
+    private void modifyVolumePolicyReference(DbClient dbClient, AutoTieringPolicy oldPolicy, AutoTieringPolicy newPolicy) {
         // Look for volumes through pools as there is no relation index between Policy and Volume
-        List<Volume> volumesWithPolicy = new ArrayList<Volume>();
-        if (policyObject.getPools() != null) {
-            for (String pool : policyObject.getPools()) {
+        if (oldPolicy.getPools() != null) {
+            for (String pool : oldPolicy.getPools()) {
                 URIQueryResultList volumeList = new URIQueryResultList();
                 dbClient.queryByConstraint(ContainmentConstraint.Factory
                         .getStoragePoolVolumeConstraint(URI.create(pool)), volumeList);
                 Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
                         volumeList, true);
+                List<Volume> modifiedVolumes = new ArrayList<Volume>();
                 while (volumeIterator.hasNext()) {
                     Volume vol = volumeIterator.next();
-                    if(vol != null && !vol.getInactive()){
-                        volumesWithPolicy.add(vol);
+                    if(vol != null && !vol.getInactive() ){
+                        if(vol.getAutoTieringPolicyUri() != null &&  vol.getAutoTieringPolicyUri().equals(oldPolicy.getId())){
+                            log.debug(String.format("Changing volume %s auto tiering policy from %s to %s", vol.getLabel(), 
+                                    vol.getAutoTieringPolicyUri(), newPolicy.getId())); 
+                            vol.setAutoTieringPolicyUri(newPolicy.getId());
+                            modifiedVolumes.add(vol);
+                        }
+                        modifiedVolumes.add(vol);
                     }
+                }
+                if(!modifiedVolumes.isEmpty()) {
+                    dbClient.updateObject(modifiedVolumes);
                 }
             }
         }
-        return volumesWithPolicy;
     }
     
-    private List<BlockMirror> getMirrorsHasPolicy(DbClient dbClient, AutoTieringPolicy policyObject) {
+    private void modifyBlockMirrorPolicyReference(DbClient dbClient, AutoTieringPolicy oldPolicy, AutoTieringPolicy newPolicy) {
         // Look for volumes through pools as there is no relation index between Policy and Volume
-        List<BlockMirror> mirrorsWithPolicy = new ArrayList<BlockMirror>();
-        if (policyObject.getPools() != null) {
-            for (String pool : policyObject.getPools()) {
+        if (oldPolicy.getPools() != null) {
+            for (String pool : oldPolicy.getPools()) {
                 URIQueryResultList mirrorsList = new URIQueryResultList();
                 dbClient.queryByConstraint(ContainmentConstraint.Factory
                         .getStoragePoolBlockMirrorConstraint(URI.create(pool)), mirrorsList);
                 Iterator<BlockMirror> mirrorIterator = dbClient.queryIterativeObjects(BlockMirror.class,
                         mirrorsList, true);
+                List<BlockMirror> modifiedMirrors = new ArrayList<BlockMirror>();
                 while (mirrorIterator.hasNext()) {
                     BlockMirror mirror = mirrorIterator.next();
                     if(mirror != null && !mirror.getInactive()){
-                        mirrorsWithPolicy.add(mirror);
+                        if(mirror.getAutoTieringPolicyUri() != null &&  mirror.getAutoTieringPolicyUri().equals(oldPolicy.getId())){
+                            log.debug(String.format("Changing BlockMirror %s auto tiering policy from %s to %s", mirror.getLabel(), 
+                                    mirror.getAutoTieringPolicyUri(), newPolicy.getId())); 
+                            mirror.setAutoTieringPolicyUri(newPolicy.getId());
+                            modifiedMirrors.add(mirror);
+                        }
                     }
+                }
+                if(!modifiedMirrors.isEmpty()) {
+                    dbClient.updateObject(modifiedMirrors);
                 }
             }
         }
-        return mirrorsWithPolicy;
     }
     
 }

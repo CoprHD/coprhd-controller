@@ -1179,7 +1179,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } else {
             final String infoStr = config.getConfig(TARGET_INFO);
             try {
-                log.debug("getPropertyInfo(): properties saved in coordinator=" + filterProp(decodeFromString(infoStr).getProperties()));
+                Map<String,String> coordinatorProperties = new HashMap<>(decodeFromString(infoStr).getProperties());
+                log.debug("getPropertyInfo(): properties saved in coordinator=" + filterProp(coordinatorProperties));
                 info.setProperties(mergeProps(defaults, decodeFromString(infoStr).getProperties()));
             } catch (final Exception e) {
                 throw CoordinatorException.fatals.unableToDecodeDataFromCoordinator(e);

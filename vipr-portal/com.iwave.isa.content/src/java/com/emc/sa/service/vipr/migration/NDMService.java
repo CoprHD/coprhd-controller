@@ -50,7 +50,7 @@ public class NDMService extends ViPRService {
     private Integer maxPaths;
 
     @Param(value = TARGET_STORAGE_PORT)
-    private String targetStoragePorts;
+    private List<String> targetStoragePorts;
 
     @Override
     public void precheck() throws Exception {
@@ -72,7 +72,7 @@ public class NDMService extends ViPRService {
         // create zone
         ExportPathParameters pathParam = new ExportPathParameters();
         List<URI> targetPortURIs = new ArrayList<>();
-        for (String port: targetStoragePorts.split(",")) {
+        for (String port: targetStoragePorts) {
             targetPortURIs.add(URI.create(port));
         }
         pathParam.setStoragePorts(targetPortURIs);

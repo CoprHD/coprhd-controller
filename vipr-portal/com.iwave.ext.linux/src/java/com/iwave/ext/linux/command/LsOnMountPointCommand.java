@@ -32,7 +32,7 @@ public class LsOnMountPointCommand extends LinuxResultsCommand<List<String>> {
     @Override
     public void parseOutput() {
         results = Lists.newArrayList();
-        log.debug("Ls on Mount Point execution successful. Mount point doesn't exist or doesn't contain data.");
+        log.info("Ls on Mount Point execution successful. Mount point doesn't exist or doesn't contain data.");
     }
     
     

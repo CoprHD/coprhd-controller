@@ -1353,7 +1353,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         final Configuration config = queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(TARGET_INFO) != null) {
             final String infoStr = config.getConfig(TARGET_INFO);
-            log.debug("getTargetInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
 
             final T decodeInfo = info.decodeFromString(infoStr);
             log.debug("getTargetInfo({}): info={}", clazz.getName(), decodeInfo);

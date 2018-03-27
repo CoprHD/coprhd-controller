@@ -2453,7 +2453,7 @@ def volume_create(args):
             args.tenant = ""
         if(args.portgroupname):
             if(not (args.type and (args.storagesystem or args.serialnumber))):
-                raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName. Also give Type of device')
+                raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName. Also give the Type of device')
         res = obj.create(
             args.tenant + "/" + args.project, args.name, size,
             args.varray, args.vpool, None, args.sync,

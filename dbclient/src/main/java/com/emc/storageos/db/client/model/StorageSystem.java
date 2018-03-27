@@ -791,6 +791,7 @@ public class StorageSystem extends DiscoveredSystemObject {
      * @return true if the storage system is V3 and All Flash Array Otherwise return false
      */
     public boolean isV3AllFlashArray() {
-        return (checkIfVmax3() && getModel() != null && (getModel().contains("F") || getModel().contains("PowerMax")));
+        return (checkIfVmax3() && getModel() != null
+                && (getModel().contains("F") || getModel().contains("PowerMax") || getModel().toLowerCase().contains("pmax")));
     }
 }

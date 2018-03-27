@@ -520,6 +520,33 @@ public class FilePolicyServiceUtils {
     }
 
     /**
+     * Method to check if the vpool has already been used by any policy to be assigned at higher level
+     * 
+     * @param dbClient
+     * @param vpoolURI
+     * @return
+     */
+    public static boolean vPoolHasReplicationPolicyAtProjectLevel(DbClient dbClient, URI vpoolURI) {
+
+        List<URI> filePolicyList = dbClient.queryByType(FilePolicy.class, true);
+        for (URI filePolicy : filePolicyList) {
+            FilePolicy policyObj = dbClient.queryObject(FilePolicy.class, filePolicy);
+            if (policyObj.getAssignedResources() != null) {
+                if (policyObj.getApplyAt().equalsIgnoreCase(FilePolicyApplyLevel.project.name())
+                        && (policyObj.getFilePolicyVpool() != null)) {
+                    if (policyObj.getFilePolicyVpool().equals(vpoolURI)) {
+                        _log.info("Replication policy {} found for vpool {} and project {}", policyObj.getLabel(), vpoolURI.toString(),
+                                policyObj.getAssignedResources());
+                        return true;
+                    }
+
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Verifies the file system assigned policies in combination with virtual pool/project support replication capability
      * 
      * 
@@ -620,7 +647,8 @@ public class FilePolicyServiceUtils {
                 if (policy.getFilePolicyType().equalsIgnoreCase(FilePolicyType.file_snapshot.name())) {
                     if (policy.getScheduleFrequency().equalsIgnoreCase(newPolicy.getScheduleFrequency())
                             && policy.getScheduleRepeat().longValue() == newPolicy.getScheduleRepeat().longValue()) {
-                        _log.info("Snapshot policy found for fs {} with similar schedule ", fs.getLabel());
+                        _log.info("Existing snapshot policy {} found on fs {} with similar schedule ", policy.getFilePolicyName(),
+                                fs.getLabel());
                         return true;
                     }
                 }

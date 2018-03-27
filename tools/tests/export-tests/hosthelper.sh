@@ -21,29 +21,44 @@ verify_mount_point() {
     MOUNT_POINT=$2
     MOUNT_POINT_SIZE=$3
     VOLUME_WWN=$4
+    VERIFY_SIZE=$5
 
+    DIFF=$((100 * 1024))
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
     
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -host ${OS_TYPE} -method get_mount_point -params ${MOUNT_POINT},${VOLUME_WWN} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -host ${OS_TYPE} -method get_mount_point -params "${MOUNT_POINT},${VOLUME_WWN}" > ${TMPFILE1} 2> ${TMPFILE2}
     if [ $? -ne 0 ]
     then
-    	if [ "$2" = "gone" ]
-	then
-	    echo "PASSED: Verified mount point ${MOUNT_POINT} doesn't exist."
-	    exit 0;
+        if [ "$6" = "gone" ]
+        then
+	        echo "PASSED: Verified mount point ${MOUNT_POINT} doesn't exist."
+	        exit 0;
     	fi
     	echo -e "\e[91mERROR\e[0m::expected mount point - ${MOUNT_POINT} doesn't exist.";
     	exit 1;
     
     else 
-    	if [ "$2" = "gone" ]
+        if [ "$6" = "gone" ]
 	then
-	    echo -e "\e[91mERROR\e[0m: Expected MOUNT_POINT to be gone, but it was found";
-	    exit 1;
-    	fi
-        echo "PASSED: MOunt point '$2' exists";
-        exit 0;
+	       echo -e "\e[91mERROR\e[0m: Expected mount point ${MOUNT_POINT} to be gone, but it was found";
+	       exit 1;
+        fi
+        if [ "$VERIFY_SIZE" = true -a "$OS_TYPE" = "hpux" ]; then
+            result=$(awk 'NF{s=$0}END{print s}' ${TMPFILE1})
+            actualFilesystemSize=$(echo $result | cut -d " " -f 2)
+            expectedFilesystemSize=$(($MOUNT_POINT_SIZE*1024*1024))
+            if [ $actualFilesystemSize -gt $(($expectedFilesystemSize - $DIFF)) -a $actualFilesystemSize -lt $(($expectedFilesystemSize + $DIFF)) ]; then
+               echo "SUCCESS: Mount point '$2' exists and is the correct size of '$actualFilesystemSize'"
+               exit 0;
+            else
+               echo "FAILURE: Mount point '$2' exists but the filesystem size is '$actualFilesystemSize', which is not the expected size of '$expectedFilesystemSize'"
+               exit 1;
+            fi
+        else
+           echo "PASSED: MOunt point '$2' exists";
+           exit 0;
+        fi
     fi
     
 }

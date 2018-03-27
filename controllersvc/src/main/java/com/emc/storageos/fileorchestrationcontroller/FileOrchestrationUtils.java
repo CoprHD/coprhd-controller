@@ -64,6 +64,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 public final class FileOrchestrationUtils {
     private static final Logger _log = LoggerFactory.getLogger(FileOrchestrationUtils.class);
 
+    private static final String SLASH = "/";
+    private static final String UNDERSCORE = "_";
+
     private FileOrchestrationUtils() {
 
     }
@@ -793,48 +796,18 @@ public final class FileOrchestrationUtils {
      * @return the generated policy name
      */
     public static String generateNameForSnapshotIQPolicy(String clusterName, FilePolicy filePolicy,
-            FileShare fileShare, FileDeviceInputOutput args) {
+            FileShare fileShare, FileDeviceInputOutput args, String policyPath) {
 
         String devPolicyName = null;
         String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
-        VirtualNAS vNAS = args.getvNAS();
 
         String clusterNameWithoutSpecialCharacters = stripSpecialCharacters(clusterName);
-
-        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        switch (applyLevel) {
-            case vpool:
-                if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s", clusterNameWithoutSpecialCharacters,
-                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(), policyName);
-                } else {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s", clusterNameWithoutSpecialCharacters,
-                            args.getVPoolNameWithNoSpecialCharacters(), policyName);
-                }
-                break;
-            case project:
-                if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", clusterNameWithoutSpecialCharacters,
-                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), policyName);
-                } else {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s", clusterNameWithoutSpecialCharacters,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(), policyName);
-                }
-                break;
-            case file_system:
-                String fileShareName = stripSpecialCharacters(fileShare.getName());
-                if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s_%6$s", clusterNameWithoutSpecialCharacters,
-                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
-                } else {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s", clusterNameWithoutSpecialCharacters,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(),
-                            fileShareName, policyName);
-                }
-                break;
-        }
+        String pathWithNoSlash = policyPath.replaceAll(SLASH, UNDERSCORE);
+        // Removed the vpool and project attributes from policy name
+        // added path instead, path provides unique value, even for multiple paths for vpool/project!!
+        devPolicyName = String.format("%1$s_%2$s_%3$s", clusterNameWithoutSpecialCharacters,
+                pathWithNoSlash, policyName);
+        _log.info("Generated snapshot policy name is {} ", devPolicyName);
         return devPolicyName;
     }
 
@@ -848,49 +821,19 @@ public final class FileOrchestrationUtils {
      * @return the generated policy name
      */
     public static String generateNameForSyncIQPolicy(String sourceFilerName, String targetFilerName, FilePolicy filePolicy,
-            FileShare fileShare, FileDeviceInputOutput args) {
+            FileShare fileShare, FileDeviceInputOutput args, String path) {
 
         String devPolicyName = null;
         String policyName = stripSpecialCharacters(filePolicy.getFilePolicyName());
-        VirtualNAS vNAS = args.getvNAS();
 
         String sourceClusterName = stripSpecialCharacters(sourceFilerName);
         String targetClusterName = stripSpecialCharacters(targetFilerName);
-
-        FilePolicyApplyLevel applyLevel = FilePolicyApplyLevel.valueOf(filePolicy.getApplyAt());
-        switch (applyLevel) {
-            case vpool:
-                if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s", sourceClusterName, targetClusterName,
-                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(), policyName);
-                } else {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s", sourceClusterName, targetClusterName,
-                            args.getVPoolNameWithNoSpecialCharacters(), policyName);
-                }
-                break;
-            case project:
-                if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6$s", sourceClusterName, targetClusterName,
-                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), policyName);
-                } else {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s", sourceClusterName, targetClusterName,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(), policyName);
-                }
-                break;
-            case file_system:
-                String fileShareName = stripSpecialCharacters(fileShare.getName());
-                if (vNAS != null) {
-                    devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s_%5$s_%6$s_%7$s", sourceClusterName, targetClusterName,
-                            args.getVNASNameWithNoSpecialCharacters(), args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), fileShareName, policyName);
-                } else {
-                    devPolicyName = String.format("%1$s_%2$s_%3$s_%4$s_%5$s_%6$s", sourceClusterName, targetClusterName,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getProjectNameWithNoSpecialCharacters(),
-                            fileShareName, policyName);
-                }
-                break;
-        }
+        String pathWithNoSlash = path.replaceAll(SLASH, UNDERSCORE);
+        // Removed the vpool and project attributes from policy name
+        // added path instead, path provides unique value, even for multiple paths for vpool/project!!
+        devPolicyName = String.format("%1$s_to_%2$s_%3$s_%4$s", sourceClusterName, targetClusterName,
+                pathWithNoSlash, policyName);
+        _log.info("Generated replication policy name is {} ", devPolicyName);
         return devPolicyName;
     }
 

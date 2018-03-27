@@ -372,6 +372,11 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             else {
                 initEMCDiscoveryKeyMap(accessProfile);
+                if (Type.vmax.name().equals(accessProfile.getSystemType())) {
+                    // discover port group
+                    _keyMap.put(Constants.PORTGROUP, CimObjectPathCreator.createInstance(
+                            Constants.SE_TARGETMASKINGGROUP, accessProfile.getInteropNamespace()));
+                }
             }
 
             executor.setKeyMap(_keyMap);

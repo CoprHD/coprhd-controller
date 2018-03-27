@@ -2326,6 +2326,9 @@ public interface BadRequestExceptions {
     public BadRequestException invalidConfigType(final String configType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidConfigValueType(final String configType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidScopeFomart(final String scope);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -3311,7 +3314,16 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteVpoolAssignedFilePolicy(final String vpoolName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicy(final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateVpoolNameAssignedFilePolicyAtHigherLevel(final String vpoolName, String policyName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteProjectAssignedFilePolicy(final String projectName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotUpdateProjectNameAssignedFilePolicy(final String projectName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteApplicationSnapshotExportExists(final String applicationName, final String copySetName);
@@ -3378,4 +3390,61 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException activeMigrationsRunning(String compute, String migrationURIs);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupInvalid(String portGroupURI);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupValidForVMAXOnly();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cgPortGroupNotMatch(final String portGroup, final String consistencyGroup);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException internalPortGroup(final String portGroup);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupSettingIsOff();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotOverridePortGroupBecauseExistingExports(final String newPortgroup);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotSpecified();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException cannotExportVolumesFromDifferentSystems(final String portGroup);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotInVarray(final String port, final String portGroup, final String varray);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupPortGroupNoOverlap(final String newPortGroup);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupNotSupportedforHostIOLimit(final String volume);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException exportPathAdjustementNoPathParameters();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupInvalidPortGroup(final String portGroup);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupExistingVolumes(final String exportMask, final String volumes);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupExistingInitiators(final String exportMask, final String initiators);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException pathAdjustmentSelectedPortsNotInPortGroup(final String selectedPorts, final String portGroupMembers);
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupSameNewPortGroup(final String portGroup);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException noValidExportMaskInExportGroup(String exportGroup);
+        
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changePortGroupInvalidExportMask(final String exportmask);
 }

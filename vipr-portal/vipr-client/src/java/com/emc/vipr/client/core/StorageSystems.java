@@ -14,6 +14,8 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupList;
 import com.emc.storageos.model.block.MigrationList;
 import com.emc.storageos.model.ports.StoragePortList;
+import com.emc.storageos.model.portgroup.StoragePortGroupList;
+import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.smis.StorageSystemSMISCreateParam;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
@@ -331,4 +333,48 @@ public class StorageSystems extends AbstractCoreBulkResources<StorageSystemRestR
         return client.get(MigrationList.class, baseUrl + "/{id}/migrations", storageSystemId);
     }
 
+    
+    /**
+     * Gets the list of storage port group from a storage system
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @return the list of storage port groups.
+     */
+    public List<NamedRelatedResourceRep> getStoragePortGroups(URI storageSystemId) {
+        StoragePortGroupList portGroups = client.get(StoragePortGroupList.class, baseUrl + "/{id}/storage-port-groups", storageSystemId);
+       return defaultList(portGroups.getPortGroups());
+    }
+    
+    /**
+     * Gets the list of storage port group from a storage system
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @param exportId
+     *            the ID of the export group
+     * @return the list of storage port groups.
+     */
+    public List<NamedRelatedResourceRep> getStoragePortGroups(URI storageSystemId, URI exportId) {
+        UriBuilder builder = client.uriBuilder(baseUrl + "/{id}/storage-port-groups");
+        if (exportId != null && !exportId.equals("")) {
+            builder = builder.queryParam("export_group", exportId);
+        }
+        StoragePortGroupList portGroups = client.getURI(StoragePortGroupList.class, builder.build(storageSystemId));
+        return defaultList(portGroups.getPortGroups());
+    }
+
+    /**
+     * Gets the storage port group from a storage system
+     *
+     * @param storageSystemId
+     *            the ID of the storage system.
+     * @param portGroupId
+     *            the Id of the port group
+     * @return the storage port group.
+     */
+    public StoragePortGroupRestRep getStoragePortGroup(URI storageSystemId, URI portGroupId) {
+        return client.get(StoragePortGroupRestRep.class, baseUrl + "/{id}/storage-port-groups/{portGroupId}",
+                storageSystemId, portGroupId);
+    }
 }

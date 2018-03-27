@@ -384,6 +384,7 @@
     
     <bean id ="multipleMaskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MultipleMaskPerHostIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
     
     <bean id ="unexportedVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.UnexportedVolumeIngestOrchestrator">

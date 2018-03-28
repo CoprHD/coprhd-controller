@@ -126,5 +126,5 @@ public interface StorageSystemValidatorFactory {
      * @param ctx - ExportMaskValidationContext
      * @return - Validator
      */
-    Validator ExportPathAdjustment(ExportMaskValidationContext ctx);
+    Validator exportPathAdjustment(ExportMaskValidationContext ctx);
 }

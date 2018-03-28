@@ -181,7 +181,7 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
-        return getSystemValidator(ctx.getStorage()).ExportPathAdjustment(ctx);
+    public Validator exportPathAdjustment(ExportMaskValidationContext ctx) {
+        return getSystemValidator(ctx.getStorage()).exportPathAdjustment(ctx);
     }
 }

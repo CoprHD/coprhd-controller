@@ -83,7 +83,7 @@ public class VmaxSystemValidatorFactory extends AbstractSMISValidatorFactory {
     }
 
     @Override
-    public Validator ExportPathAdjustment(ExportMaskValidationContext ctx) {
+    public Validator exportPathAdjustment(ExportMaskValidationContext ctx) {
         ValidatorLogger sharedLogger = createValidatorLogger(ctx.getExportMask().forDisplay(), ctx.getStorage().forDisplay());
         AbstractSMISValidator initiators = createExportMaskInitiatorValidator(ctx);
         AbstractSMISValidator portGroup = createExportMaskPortGroupValidator(ctx);

@@ -20,6 +20,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1890,7 +1892,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             allExportMaskURIs.addAll(entry.getValue());
         }
 
-        if (volumes == null && exportGroup.getVolumes() != null) {
+        if (CollectionUtils.isEmpty(volumes) && MapUtils.isNotEmpty(exportGroup.getVolumes())) {
             volumes = Collections2.transform(exportGroup.getVolumes().keySet(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI);
         }

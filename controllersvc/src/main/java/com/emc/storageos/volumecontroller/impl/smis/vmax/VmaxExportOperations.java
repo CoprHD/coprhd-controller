@@ -5376,11 +5376,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     ctx.setPortGroup(portGroup);
                     Collection<StoragePort> ports = _dbClient.queryObject(StoragePort.class, storagePorts);
                     ctx.setStoragePorts(ports);
+                } else {
+                    _log.warn(String.format("The port group %s in the export mask %s is mutable", portGroup.getLabel(),
+                            exportMask.getNativeId()));
                 }
             } else {
                 _log.warn(String.format("The exportMask does not have port group set %s", exportMask.getNativeId()));
             }
-            validator.ExportPathAdjustment(ctx).validate();
+            validator.exportPathAdjustment(ctx).validate();
             List<URI> ports = addStoragePorts(storage, storagePorts, exportMask);
             if (ports != null && !ports.isEmpty()) {
                 ExportMaskAddPathsCompleter completer = (ExportMaskAddPathsCompleter) taskCompleter;
@@ -5608,7 +5611,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             Collection<URI> volumes = null;
             StringMap volumeMap = oldMask.getVolumes();
             if (volumeMap == null || volumeMap.isEmpty()) {
-                _log.warn("No volumes in the export mask.");
+                _log.warn("No volumes in the export mask: {}", oldMask.getId());
             } else {
                 volumes = StringSetUtil.stringSetToUriList(volumeMap.keySet());
             }

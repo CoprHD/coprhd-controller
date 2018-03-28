@@ -3427,7 +3427,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             portGroup.getStoragePorts().replace(portSet);
             _dbClient.updateObject(portGroup);
         } catch (Exception e) {
-            _log.error("Exception while refresh port group members: ", e);
+            _log.error("Exception while refresh port group : {}  members: ", portGroupURI, e);
         }
     }
 }

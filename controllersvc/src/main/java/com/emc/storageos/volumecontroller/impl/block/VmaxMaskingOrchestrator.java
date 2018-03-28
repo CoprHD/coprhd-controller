@@ -2634,7 +2634,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         URI storageURI = storage.getId();
 
         List<Initiator> initiators = null;
-        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+        if (!CollectionUtils.isEmpty(initiatorURIs)) {
             initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         } else {
             _log.error("Internal Error: Need to add the initiatorURIs to the call that assembles this step.");
@@ -2659,7 +2659,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info(String.format("port group is %s", portGroup.getLabel()));
             pgPorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
             if (!CollectionUtils.isEmpty(pgPorts)) {
-                pathParams.setStoragePorts(StringSetUtil.uriListToStringSet(pgPorts));
+                pathParams.getStoragePorts().replace(StringSetUtil.uriListToStringSet(pgPorts));
             } else {
                 _log.error(String.format("The port group %s does not have any port members", portGroup));
                 throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());

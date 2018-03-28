@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Dell EMC Corporation
+ * Copyright (c) 2018 Dell EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
@@ -48,12 +48,12 @@ public class ExportMaskPortGroupValidator extends AbstractSMISValidator {
      */
     @Override
     public boolean validate() throws Exception {
-        log.info("Validating export mask port group");
-
         getLogger().setLog(log);
         if (storagePortGroup == null || CollectionUtils.isEmpty(storagePorts)) {
             return true;
         }
+
+        log.info("Validating export mask port group {}", storagePortGroup.getId());
         Collection<String> expectedPorts = Collections2.transform(storagePorts, fctnStoragePortToNetworkId());
         Set<String> expectedSet = Sets.newHashSet(expectedPorts);
         Set<String> hardware = getPortGroupMembers();
@@ -82,7 +82,7 @@ public class ExportMaskPortGroupValidator extends AbstractSMISValidator {
         CIMInstance instance = getHelper().getInstance(storage, portGroupPath, false, false, null);
         WBEMClient client = getHelper().getConnection(storage).getCimClient();
         List<String> storagePorts = getHelper().getStoragePortsFromLunMaskingInstance(client, instance);
-        log.info("port group members : {}", Joiner.on(',').join(storagePorts));
+        log.info("port group : {} members : {}", storagePortGroup.getLabel(), Joiner.on(',').join(storagePorts));
         return Sets.newHashSet(storagePorts);
     }
 }

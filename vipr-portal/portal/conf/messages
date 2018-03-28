@@ -4065,6 +4065,15 @@ tasks.orderId=Order
 tasks.viewOrder=View Order
 tasks.warningMessages=Warning Messages
 
+tasks.maxTasks=Number of tasks to display
+tasks.100tasks=100 Tasks
+tasks.1000tasks=1000 Tasks
+tasks.2000tasks=2000 Tasks
+tasks.5000tasks=5000 Tasks
+tasks.10000tasks=10000 Tasks
+tasks.-1tasks=All Tasks
+tasks.nTasks=%d Tasks
+
 taskLogs.time=Time
 taskLogs.severity=Level
 taskLogs.service=Service

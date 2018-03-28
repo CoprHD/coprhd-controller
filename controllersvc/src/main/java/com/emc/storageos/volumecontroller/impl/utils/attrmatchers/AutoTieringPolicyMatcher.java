@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -30,7 +31,11 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 
 /**
  * FastPolicyAttrMatcher is responsible to match all the pools matching FAST policy name
@@ -40,6 +45,7 @@ import com.google.common.base.Joiner;
 public class AutoTieringPolicyMatcher extends AttributeMatcher {
 
     private static final Logger _logger = LoggerFactory.getLogger(AutoTieringPolicyMatcher.class);
+    public static String DIAMONDSLO = "Diamond";
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
@@ -69,6 +75,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             filteredPoolList = getAutoTieringPoolsOnVnx(pools);
         } else if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
             fastPolicyPools = getAutoTieringPoolsOnVMAX(autoTieringPolicyName, attributeMap);
+            fastPolicyPools.addAll(getAutoTieringStoragePoolOnVMAXElm(autoTieringPolicyName, attributeMap, pools ));
             Iterator<StoragePool> poolIterator = pools.iterator();
             while (poolIterator.hasNext()) {
                 StoragePool pool = poolIterator.next();
@@ -191,6 +198,46 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         return fastPolicyPools;
     }
 
+ 
+    private Set<String> getAutoTieringStoragePoolOnVMAXElm(String policyName, Map<String, Object> attributeMap, List<StoragePool> pools ) {
+        Set<String> fastPolicyPools = new HashSet<String>();
+        
+        // 
+        if(!policyName.contains(DIAMONDSLO)) {
+            return fastPolicyPools;
+        }
+        
+        // Group storage pools for storage system
+        ListMultimap<URI, StoragePool> storageToPoolMap = ArrayListMultimap.create();
+        for (StoragePool pool : pools) {
+            storageToPoolMap.put(pool.getStorageDevice(), pool);
+        }
+        
+        for (URI storage: storageToPoolMap.keySet()) {
+            StorageSystem system =  _objectCache.queryObject(StorageSystem.class, storage);
+            if(system != null && !system.getInactive()) {
+                if(!system.deviceIsType(Type.vmax) || !system.isV3ElmCodeOrMore()) {
+                    continue;
+                }
+            }
+
+            List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAutoTieingPoliciesFromDB(_objectCache.getDbClient(), system);
+            for (AutoTieringPolicy policy: systemDbPolicies) {
+                if(policy.getVmaxSLO() != null && policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
+                    if (isValidAutoTieringPolicy(policy)
+                            && isAutoTieringEnabledOnStorageSystem(policy.getStorageSystem())
+                            && doesGivenProvisionTypeMatchFastPolicy(
+                                    attributeMap.get(Attributes.provisioning_type.toString()).toString(), policy)) {
+                        if (null != policy.getPools()) {
+                            fastPolicyPools.addAll(policy.getPools());
+                        }
+                    }
+                }
+            }
+        }
+        
+        return fastPolicyPools;
+    }
     /**
      * return Pools, whose associated StorageSystem is Fast Enabled.
      * 

@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ObjectNamespace;
@@ -56,6 +57,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -999,5 +1001,21 @@ public class DiscoveryUtils {
         }
 
         return objectPaths;
+    }
+    
+    public static  List<AutoTieringPolicy> getAutoTieingPoliciesFromDB(DbClient dbClient, StorageSystem storageSystem) {
+
+        List<AutoTieringPolicy> policies = new ArrayList<>();
+        URIQueryResultList policiesInDB = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFASTPolicyConstraint(storageSystem.getId()), policiesInDB);
+        for (URI policy : policiesInDB) {
+            AutoTieringPolicy policyObject = dbClient.queryObject(AutoTieringPolicy.class, policy);
+            // Process only SLO based AutoTieringPolicies here.
+            if (policyObject == null || Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
+                continue;
+            }
+            policies.add(policyObject);
+        }
+        return policies;
     }
 }

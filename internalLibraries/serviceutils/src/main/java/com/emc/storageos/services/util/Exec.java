@@ -254,7 +254,6 @@ public class Exec {
                     p.exitValue(), stdOutput.toString(), stdError.toString(),
                     (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL, maskFilter);
 
-            _log.error("exec(): " + result);
             return result;
         } catch (Exception e) {
             Result result = new Result(cmd, timeout,

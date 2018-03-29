@@ -58,40 +58,36 @@ public class NDMService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        for (String sg: storageGroups) {
-            executeSingle(sg);
-        }
-    }
-
-    public void executeSingle(String storageGroup) throws Exception {
         // create env
         MigrationEnvironmentParam migrationEnvironmentParam = new MigrationEnvironmentParam(URI.create(sourceStorageSystem), URI.create(targetStorageSystems));
         Task<StorageSystemRestRep> createEnv = execute(new CreateMigrationEnvironment(migrationEnvironmentParam));
         addAffectedResource(createEnv);
 
-        // create zone
-        ExportPathParameters pathParam = new ExportPathParameters();
-        List<URI> targetPortURIs = new ArrayList<>();
-        for (String port: targetStoragePorts) {
-            targetPortURIs.add(URI.create(port));
-        }
-        pathParam.setStoragePorts(targetPortURIs);
-        pathParam.setMaxPaths(maxPaths);
-        MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);
-        Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroup), migrationZoneCreateParam));
-        addAffectedResources(createZone);
+        for (String storageGroup: storageGroups) {
+            // create zones for each sg
+            ExportPathParameters pathParam = new ExportPathParameters();
+            List<URI> targetPortURIs = new ArrayList<>();
+            for (String port : targetStoragePorts) {
+                targetPortURIs.add(URI.create(port));
+            }
+            pathParam.setStoragePorts(targetPortURIs);
+            pathParam.setMaxPaths(maxPaths);
+            MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);
+            Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroup), migrationZoneCreateParam));
+            addAffectedResources(createZone);
 
-        // create migration
-        Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroup));
-        addAffectedResource(createMigration);
+            // create migration
+            Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroup));
+            addAffectedResource(createMigration);
+        }
 
         // rescan host
-        Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroup));
-        addAffectedResources(rescanHost);
+        if (!storageGroups.isEmpty()) {
+            Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroups.get(0)));
+            addAffectedResources(rescanHost);
+        }
 
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");
-
-        // Don't do cutover in catalog service as it might take very long time.
     }
 }
 

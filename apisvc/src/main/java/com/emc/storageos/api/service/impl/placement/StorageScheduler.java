@@ -628,11 +628,9 @@ public class StorageScheduler implements Scheduler {
                 boolean filterBasedOnPersonality = (capabilities.getPersonality() == null)
                         || RPHelper.SOURCE.equals(capabilities.getPersonality());
                 if (setSystemMatcher && filterBasedOnPersonality) {
-                    if (capabilities.getPersonality() != null) {
-                        Set<String> storageSystemSet = new HashSet<String>();
-                        storageSystemSet.add(pgSystemURI.toString());
-                        provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
-                    }
+                    Set<String> storageSystemSet = new HashSet<String>();
+                    storageSystemSet.add(pgSystemURI.toString());
+                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
                 }
             } else {
                 // port group could be only specified for native vmax

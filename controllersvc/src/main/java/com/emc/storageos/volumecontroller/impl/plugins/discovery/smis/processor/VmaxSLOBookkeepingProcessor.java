@@ -31,6 +31,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.google.common.base.Strings;
 
 /**
@@ -73,6 +74,7 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
     private void performPolicyBookKeeping(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {
         log.debug(String.format("SLO policyNames found by discovery for array %s:%n%s", storageSystem.getNativeGuid(),
                 Joiner.on(',').join(policyNames)));
+        // Identify policies to be deleted from ViPR!!
         List<AutoTieringPolicy> policiesToUpdate = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
         if (!policiesToUpdate.isEmpty()) {
             for (AutoTieringPolicy policy : policiesToUpdate) {
@@ -86,10 +88,22 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         }
     }
     
+    /**
+     * This function gets the all existing AutoTiering policies from ViPR and
+     * compares with Policies which are discovered in current discovery cycle
+     * 
+     * Return list of policies which are not present on array between last discovery cycles.
+     * 
+     * @param dbClient
+     * @param policyNames
+     * @param storageSystem
+     * @return
+     * @throws IOException
+     */
     private List<AutoTieringPolicy> getPoliciesToBeDeleted(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {
         
         List<AutoTieringPolicy> policiesToDelete = new ArrayList<AutoTieringPolicy>();
-        List<AutoTieringPolicy> policies = getAutoTieingPoliciesFromDB(dbClient, storageSystem); 
+        List<AutoTieringPolicy> policies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem); 
         for (AutoTieringPolicy policyObject : policies) {
             String policyName = policyObject.getPolicyName();
             if (!policyNames.contains(policyName)) {
@@ -99,7 +113,13 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         }
         return policiesToDelete; 
     }
-    
+    /**
+     * Gets corresponding new Elm policy for a given Cypress Diamond SLO policy
+     * 
+     * @param systemDbPolicies
+     * @param oldPolicy
+     * @return
+     */
     private AutoTieringPolicy getElmPolicyForOldPolicy(List<AutoTieringPolicy> systemDbPolicies, AutoTieringPolicy oldPolicy) {
         for (AutoTieringPolicy policy: systemDbPolicies) {
             // This getting removed also present in DB, 
@@ -131,9 +151,24 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         return null;
     }
     
+    /**
+     * VMAX3 AFA Policies have WL along with SLO "Diamond"
+     * VMAX3 Elm Policies have no WL
+     * All Diamond + WL in Cypress are equal to Diamond in Elm
+     * 
+     * When array gets upgraded from Cypress to Elm, 
+     * old policies with Diamond + WL will be deleted from ViPR.
+     * 
+     * Existing resources (volumes and mirrors) are with old SLO policy must be mapped to corresponding new policy in Elm
+     * 
+     * @param dbClient
+     * @param policyNames
+     * @param storageSystem
+     * @throws IOException
+     */
     private void updateBlockObjectsWithElmPolicy(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {        
         // Get all policies existing on storage system!!
-        List<AutoTieringPolicy> systemDbPolicies = getAutoTieingPoliciesFromDB(dbClient, storageSystem);
+        List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
         List<AutoTieringPolicy> policiesToDelete = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
         
         for(AutoTieringPolicy policyToDelete: policiesToDelete){
@@ -151,23 +186,13 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         
     }
     
-    private List<AutoTieringPolicy> getAutoTieingPoliciesFromDB(DbClient dbClient, StorageSystem storageSystem) {
-        
-        List<AutoTieringPolicy> policies = new ArrayList<>();
-        URIQueryResultList policiesInDB = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFASTPolicyConstraint(storageSystem.getId()), policiesInDB);
-        for (URI policy : policiesInDB) {
-            AutoTieringPolicy policyObject = dbClient.queryObject(AutoTieringPolicy.class, policy);
-            // Process only SLO based AutoTieringPolicies here.
-            if (policyObject == null || Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
-                continue;
-            }
-            policies.add(policyObject);
-        }
-        return policies;
-    }
-    
-    
+    /**
+     * Existing Volumes with old SLO policy must be mapped to corresponding new policy
+     * 
+     * @param dbClient
+     * @param oldPolicy
+     * @param newPolicy
+     */
     private void modifyVolumePolicyReference(DbClient dbClient, AutoTieringPolicy oldPolicy, AutoTieringPolicy newPolicy) {
         // Look for volumes through pools as there is no relation index between Policy and Volume
         if (oldPolicy.getPools() != null) {
@@ -197,6 +222,13 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         }
     }
     
+    /**
+     * Existing BlockMirrors with old SLO policy must be mapped to corresponding new policy
+     * 
+     * @param dbClient
+     * @param oldPolicy
+     * @param newPolicy
+     */
     private void modifyBlockMirrorPolicyReference(DbClient dbClient, AutoTieringPolicy oldPolicy, AutoTieringPolicy newPolicy) {
         // Look for volumes through pools as there is no relation index between Policy and Volume
         if (oldPolicy.getPools() != null) {

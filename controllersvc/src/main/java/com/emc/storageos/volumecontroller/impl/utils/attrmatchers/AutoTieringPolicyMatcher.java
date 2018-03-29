@@ -75,7 +75,8 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
             filteredPoolList = getAutoTieringPoolsOnVnx(pools);
         } else if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
             fastPolicyPools = getAutoTieringPoolsOnVMAX(autoTieringPolicyName, attributeMap);
-            fastPolicyPools.addAll(getAutoTieringStoragePoolOnVMAXElm(autoTieringPolicyName, attributeMap, pools ));
+            // Add pools from Elm storage system, if vPool defined with Diamond SLO
+            fastPolicyPools.addAll(getElmAdditionalStoragePools(autoTieringPolicyName, attributeMap, pools ));
             Iterator<StoragePool> poolIterator = pools.iterator();
             while (poolIterator.hasNext()) {
                 StoragePool pool = poolIterator.next();
@@ -199,10 +200,22 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
     }
 
  
-    private Set<String> getAutoTieringStoragePoolOnVMAXElm(String policyName, Map<String, Object> attributeMap, List<StoragePool> pools ) {
+    /**
+     * 
+     * Get all storage pools from associated with Diamond policy on Elm array.
+     * 
+     * VMAX3 AFA Policies have WL along with SLO "Diamond"
+     * VMAX3 Elm Policies have no WL
+     * All Diamond + WL in Cypress are equal to Diamond in Elm
+     * 
+     * Hence, storage pools from Elm are eligible for vPool with Policy Diamond + WL (None or Any other).
+     * 
+     * 
+     */
+    private Set<String> getElmAdditionalStoragePools(String policyName, Map<String, Object> attributeMap, List<StoragePool> pools ) {
         Set<String> fastPolicyPools = new HashSet<String>();
-        
-        // 
+        // vPool is defined with Diamond + none or Daimond + WL
+        // Elm storage pools should be eligible to this vPool
         if(!policyName.contains(DIAMONDSLO)) {
             return fastPolicyPools;
         }
@@ -212,16 +225,21 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         for (StoragePool pool : pools) {
             storageToPoolMap.put(pool.getStorageDevice(), pool);
         }
-        
+        boolean uniquePolicyNames = (boolean) attributeMap.get(Attributes.unique_policy_names.toString());
         for (URI storage: storageToPoolMap.keySet()) {
             StorageSystem system =  _objectCache.queryObject(StorageSystem.class, storage);
             if(system != null && !system.getInactive()) {
                 if(!system.deviceIsType(Type.vmax) || !system.isV3ElmCodeOrMore()) {
                     continue;
                 }
+                // Do not look for pools from other storage system,
+                // if vPool has not defined for unique policies
+                if(!uniquePolicyNames && !policyName.contains(system.getSerialNumber())) {
+                    continue;
+                }
             }
-
-            List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAutoTieingPoliciesFromDB(_objectCache.getDbClient(), system);
+            // Get SLO policies from Elm array
+            List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(_objectCache.getDbClient(), system);
             for (AutoTieringPolicy policy: systemDbPolicies) {
                 if(policy.getVmaxSLO() != null && policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
                     if (isValidAutoTieringPolicy(policy)

@@ -110,7 +110,7 @@ public class SupportRequest extends Controller {
             }
         }
         
-        public void stripXSS() {
+        private void stripXSS() {
         	//Strip XSS string
         	email = SecurityUtils.stripXSS(email);
         	start = Long.parseLong(SecurityUtils.stripXSS(Long.toString(start)));

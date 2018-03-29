@@ -179,10 +179,6 @@ public class LinuxMountUtils {
         LsOnMountPointCommand command = new LsOnMountPointCommand(mountPoint);
         _log.info("Ls on Mount Point command:" + command.getResolvedCommandLine());
         cli.executeCommand(command);
-        List<String> mountPointContents = command.getResults();
-        if (!mountPointContents.isEmpty()) {
-            throw new IllegalStateException("Mount point contains files or folders: " + mountPoint);
-        }
     }
 
     private void checkManualMounts(String mountPoint) throws InternalException {

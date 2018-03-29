@@ -948,18 +948,18 @@ class Volume(object):
         if(portgroupname):
             storage_system = StorageSystem(self.__ipAddr, self.__port)
             
-        storage_system_uri = None
+            storage_system_uri = None
         
-        if(serial_number):
-            storage_system_uri \
-                = storage_system.query_by_serial_number_and_type(
-                        serial_number, storage_device_type)
-        elif(storage_device_name):
-            storage_system_uri = storage_system.query_by_name_and_type(
-                        storage_device_name, storage_device_type)
-        portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
-        pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
-        request['port_group'] = pguri
+            if(serial_number):
+                storage_system_uri \
+                    = storage_system.query_by_serial_number_and_type(
+                            serial_number, storage_device_type)
+            elif(storage_device_name):
+                storage_system_uri = storage_system.query_by_name_and_type(
+                            storage_device_name, storage_device_type)
+            portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
+            pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+            request['port_group'] = pguri
         
         body = json.dumps(request)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -2451,6 +2451,9 @@ def volume_create(args):
     try:
         if(not args.tenant):
             args.tenant = ""
+        if(args.portgroupname):
+            if(not (args.type and (args.serialnumber or args.storagesystem))):
+                raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName. Also give the Type of device')
         res = obj.create(
             args.tenant + "/" + args.project, args.name, size,
             args.varray, args.vpool, None, args.sync,

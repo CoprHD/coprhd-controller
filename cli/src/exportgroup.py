@@ -1452,6 +1452,9 @@ def exportgroup_add_volumes(args):
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
+        if(args.portgroupname):
+            if(not (args.type and (args.storagesystem or args.serialnumber))):
+                raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName. Also give the Type of device')
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,
             args.maxpaths,

@@ -1155,10 +1155,17 @@ class Bourne:
             raise Exception("Unexpected HTTP status: expected %d, actual %d" % (status_code, response.status_code))
 
         error = self.__json_decode(response.text)
+        print error
         if (error["code"] != service_code):
-            raise Exception("Unexpected ServiceCode: expected %d, actual %d" % (service_code, error["code"]))
-        if (error["details"] != message):
-            raise Exception("Unexpected ServiceCode detail: expected %s, actual %s" % (message, error["details"]))
+            raise Exception("Unexpected ServiceCode: Expected: %d. Actual: %d." % (service_code, error["code"]))
+        actualMessage = None
+        if ("details" in error):
+            actualMessage = error["details"]
+        elif ("description" in error):
+            actualMessage = error["description"]
+            
+        if(actualMessage != message):
+            raise Exception("Unexpected ServiceCode detail: Expected: %s. Actual: %s." % (message, actualMessage))
 
     def api_sync(self, id, op, showfn, ignore_error=False):
         obj = showfn(id)

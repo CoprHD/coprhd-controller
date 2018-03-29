@@ -48,7 +48,7 @@ Usage()
 cd $(dirname $0)
 
 # Extra debug output
-DUTEST_DEBUG=${DUTEST_DEBUG:-1}
+DUTEST_DEBUG=${DUTEST_DEBUG:-0}
 
 # Global test repo location
 GLOBAL_RESULTS_IP=10.247.101.46

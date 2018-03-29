@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -624,10 +625,14 @@ public class StorageScheduler implements Scheduler {
                         }
                     }
                 }
-                if (setSystemMatcher) {
-                    Set<String> storageSystemSet = new HashSet<String>();
-                    storageSystemSet.add(pgSystemURI.toString());
-                    provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+                boolean filterBasedOnPersonality = (capabilities.getPersonality() == null)
+                        || RPHelper.SOURCE.equals(capabilities.getPersonality());
+                if (setSystemMatcher && filterBasedOnPersonality) {
+                    if (capabilities.getPersonality() != null) {
+                        Set<String> storageSystemSet = new HashSet<String>();
+                        storageSystemSet.add(pgSystemURI.toString());
+                        provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+                    }
                 }
             } else {
                 // port group could be only specified for native vmax

@@ -669,6 +669,7 @@ public class RecoverPointScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, String personality) {
 
         List<StoragePool> candidateStoragePools = new ArrayList<StoragePool>();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, personality);
 
         _log.info(String.format("Fetching candidate pools for %s - %s volumes of size %s GB %n",
                 capabilities.getResourceCount(), personality, SizeUtil.translateSize(capabilities.getSize(), SizeUtil.SIZE_GB)));

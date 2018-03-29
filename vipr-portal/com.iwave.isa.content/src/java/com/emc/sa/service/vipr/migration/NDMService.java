@@ -63,16 +63,17 @@ public class NDMService extends ViPRService {
         Task<StorageSystemRestRep> createEnv = execute(new CreateMigrationEnvironment(migrationEnvironmentParam));
         addAffectedResource(createEnv);
 
+        ExportPathParameters pathParam = new ExportPathParameters();
+        List<URI> targetPortURIs = new ArrayList<>();
+        for (String port : targetStoragePorts) {
+            targetPortURIs.add(URI.create(port));
+        }
+        pathParam.setStoragePorts(targetPortURIs);
+        pathParam.setMaxPaths(maxPaths);
+        MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);
+
         for (String storageGroup: storageGroups) {
             // create zones for each sg
-            ExportPathParameters pathParam = new ExportPathParameters();
-            List<URI> targetPortURIs = new ArrayList<>();
-            for (String port : targetStoragePorts) {
-                targetPortURIs.add(URI.create(port));
-            }
-            pathParam.setStoragePorts(targetPortURIs);
-            pathParam.setMaxPaths(maxPaths);
-            MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);
             Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroup), migrationZoneCreateParam));
             addAffectedResources(createZone);
 

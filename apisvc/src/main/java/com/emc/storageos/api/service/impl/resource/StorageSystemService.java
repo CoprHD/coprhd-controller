@@ -2269,8 +2269,8 @@ public class StorageSystemService extends TaskResourceService {
             StoragePort sport = _dbClient.queryObject(StoragePort.class, port);
             ArgValidator.checkEntityNotNull(sport, port, isIdEmbeddedInURL(port));
 
-            String sportRegistrationStatus = sport.getRegistrationStatus().toString().toUpperCase();
-            if (!sportRegistrationStatus.equals("REGISTERED")) {
+            if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+                    sport.getRegistrationStatus())) {
                 throw APIException.badRequests.operationNotSupportedForDeregisteredPorts(
                         OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), sport.getPortName());
             }

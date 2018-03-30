@@ -2258,26 +2258,22 @@ public class StorageSystemService extends TaskResourceService {
         // Only support for VMAX
         if (!DiscoveredDataObject.Type.vmax.name().equals(system.getSystemType())) {
             APIException.badRequests.operationNotSupportedForSystemType(
-                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), "IsthisWorking");
+                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
         }
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         String portGroupName = param.getName();
-        
-        System.out.println("CheckingIfPrintStatementIsWorking");
         
         List<URI> ports = param.getStoragePorts();
         for (URI port : ports) {
             ArgValidator.checkFieldUriType(port, StoragePort.class, "portURI");
             StoragePort sport = _dbClient.queryObject(StoragePort.class, port);
-            String sportRegistrationStatus = sport.getRegistrationStatus().toString().toUpperCase();
-            
-            System.out.println(sportRegistrationStatus);
-            
-            if (!sportRegistrationStatus.equals("REGISTERED")) {
-                APIException.badRequests.operationNotSupportedForSystemType(
-                        OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
-            }
             ArgValidator.checkEntityNotNull(sport, port, isIdEmbeddedInURL(port));
+
+            String sportRegistrationStatus = sport.getRegistrationStatus().toString().toUpperCase();
+            if (!sportRegistrationStatus.equals("REGISTERED")) {
+                throw APIException.badRequests.operationNotSupportedForDeregisteredPorts(
+                        OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), sport.getPortName());
+            }
         }
         checkForDuplicatePortGroupName(portGroupName, id);
         StoragePortGroup portGroup = new StoragePortGroup();

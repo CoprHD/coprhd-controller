@@ -2472,6 +2472,9 @@ public interface BadRequestExceptions {
     public BadRequestException operationNotSupportedForSystemType(final String operation, final String storageSystemType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationNotSupportedForDeregisteredPorts(final String operation, final String port);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException userGroupExistsAlready(final String name);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

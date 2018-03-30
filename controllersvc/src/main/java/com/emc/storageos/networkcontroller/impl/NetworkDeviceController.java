@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -2602,6 +2603,7 @@ public class NetworkDeviceController implements NetworkController {
         Map<URI, Integer> exportMaskVolumes = StringMapUtil.stringMapToVolumeMap(exportMask.getVolumes());
         List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(exportMask.getId(), _dbClient);
 
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
         // start with removing references
         List<FCZoneReference> temp = null;
         List<FCZoneReference> refs = new ArrayList<FCZoneReference>();
@@ -2614,15 +2616,20 @@ public class NetworkDeviceController implements NetworkController {
                 for (ExportGroup exportGroup : exportGroups) {
                     if (exportGroup.getId().equals(ref.getGroupUri()) &&
                             exportGroup.hasBlockObject(ref.getVolumeUri()) &&
-                            exportMaskVolumes.containsKey(ref.getVolumeUri())
-                            /*
-                             * Delete the zone reference if it is not created by Vipr. Vipr created zone
-                             * on switch and its db reference should be deleted by MaskingOrchestrator exportGroupRemoveInitiators function.
-                             */
-                            && ref.getExistingZone()) {
-                        _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
-                                new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
-                        refs.add(ref);
+                            exportMaskVolumes.containsKey(ref.getVolumeUri()) /*
+                                                                               * &&
+                                                                               * ref.getExistingZone()
+                                                                               */) {
+                        // check if refresh FCZoneReference is called for vmax exportGroupRemoveInitiators operation
+                        if (isRemoveInitiatorForVmax(system)) {
+
+                            _log.info("FCZoneReference {} for volume {} and exportGroup {} will not be deleted",
+                                    new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
+                        } else {
+                            _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
+                                    new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
+                            refs.add(ref);
+                        }
                     }
                 }
             }
@@ -2676,6 +2683,42 @@ public class NetworkDeviceController implements NetworkController {
             }
         }
         _dbClient.createObject(refs);
+    }
+
+    /**
+     * Check the call is for exportGroup remove Initiators for vmax/vmax3
+     * 
+     * @param system
+     * @return
+     */
+    private boolean isRemoveInitiatorForVmax(StorageSystem system) {
+        if (system.getSystemType().contains("vmax") && getMyCallHierarchy(7).equals("exportGroupRemoveInitiators")) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * Get the name of parent Hierarchy methods.
+     * 
+     * @param level depth for Hierarchy, 1 for getMyCallHierarchy method ,2 for where it get called from and so on.
+     * @return empty string if can not be found
+     */
+    private String getMyCallHierarchy(int level) {
+        try {
+            StackTraceElement[] element = Thread.currentThread().getStackTrace();
+            if (level > 0 && element.length > level) {
+                String methodname = element[level].getMethodName();
+                _log.info("{} level parent method name is {} ", level, methodname);
+                return methodname;
+            }
+        } catch (Exception e) {
+            _log.error("Error during finding method call Hierarchy for level {}", level, e);
+        }
+        return "";
+
     }
 
     /**

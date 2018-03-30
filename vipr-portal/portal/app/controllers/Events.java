@@ -22,6 +22,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventDetailsRestRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -226,8 +227,11 @@ public class Events extends Controller {
 
     public static void approveEvents(@As(",") String[] ids, String confirm) {
         try {
-            if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
-                throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, confirm));
+        	//Strip XSS string
+        	String verifyMsg = SecurityUtils.stripXSS(confirm);
+        	
+            if (!StringUtils.equalsIgnoreCase(verifyMsg, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(APPROVE_CONFIRM_FAILED, verifyMsg));
             }
             for (String eventId : ids) {
                 getViprClient().events().approve(uri(eventId));
@@ -242,8 +246,11 @@ public class Events extends Controller {
 
     public static void declineEvents(@As(",") String[] ids, String confirm) {
         try {
-            if (!StringUtils.equalsIgnoreCase(confirm, CONFIRM_TEXT)) {
-                throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, confirm));
+        	//Strip XSS string
+        	String verifyMsg = SecurityUtils.stripXSS(confirm);
+        	
+            if (!StringUtils.equalsIgnoreCase(verifyMsg, CONFIRM_TEXT)) {
+                throw new Exception(MessagesUtils.get(DECLINE_CONFIRM_FAILED, verifyMsg));
             }
             for (String eventId : ids) {
                 getViprClient().events().decline(uri(eventId));

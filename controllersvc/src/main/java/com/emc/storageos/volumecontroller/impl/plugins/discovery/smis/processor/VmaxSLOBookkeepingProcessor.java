@@ -99,7 +99,12 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
                         // Update the BlockMirrors which are referenced to old policy with new policy
                         modifyBlockMirrorPolicyReference(dbClient, policy, elmPolicy);
 
+                    } else {
+                        log.warn(String.format("Policy %s is removed from the array. If there are volumes " +
+                                "referring to it – this will likely cause problems in future ",
+                                policy.getPolicyName()));
                     }
+
                 }
 
                 log.info(String.format("SLO %s no longer exists on array %s, marking associated AutoTieringPolicy %s inactive", policy.getPolicyName(),
@@ -145,17 +150,19 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
      * @return
      */
     private AutoTieringPolicy getElmPolicyForOldPolicy(List<AutoTieringPolicy> systemDbPolicies, AutoTieringPolicy oldPolicy) {
+
+        // Get the new policy only for Diamond SLO
+        if(oldPolicy.getVmaxSLO() == null || !oldPolicy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
+            return null;
+        }
+
         for (AutoTieringPolicy policy: systemDbPolicies) {
             // This getting removed also present in DB, 
             // hence make sure it does not return old policy
             if(oldPolicy.getId().equals(policy.getId())){
                 continue;
             }
-            // Get the new policy only for Diamond SLO
-            if(oldPolicy.getVmaxSLO() == null || !oldPolicy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
-                continue;
-            }
-            
+
             // Get the new policy only for Diamond SLO
             if(policy.getVmaxSLO() == null || !policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
                 continue;
@@ -164,7 +171,7 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
             if (!policy.getPolicyEnabled()) {
                 continue;
             }
-            
+
             // The new policy should have all pools of existing policy!!
             if(policy.getPools() != null && policy.getPools().containsAll(oldPolicy.getPools())) {
                 log.info(String.format("SLO policy %s to be replaced with new SLO policy %s", 
@@ -201,7 +208,6 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
                             vol.setAutoTieringPolicyUri(newPolicy.getId());
                             modifiedVolumes.add(vol);
                         }
-                        modifiedVolumes.add(vol);
                     }
                 }
                 if(!modifiedVolumes.isEmpty()) {

@@ -42,7 +42,9 @@ import com.google.common.base.Strings;
  */
 public class VmaxSLOBookkeepingProcessor extends Processor {
     private Logger log = LoggerFactory.getLogger(VmaxSLOBookkeepingProcessor.class);
-    public static String DIAMONDSLO = "Diamond";
+    private static String DIAMONDSLO = "Diamond";
+    private static Long MAX_BATCH_SIZE = 100L;
+    
     
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
@@ -53,9 +55,6 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         boolean isVmax3 = storageSystem.checkIfVmax3();
         if (isVmax3 && policyNames != null && !policyNames.isEmpty()) {
             try {
-                if(storageSystem.isV3ElmCodeOrMore()) {
-                    updateBlockObjectsWithElmPolicy(dbClient, policyNames, storageSystem);
-                }
                 performPolicyBookKeeping(dbClient, policyNames, storageSystem);
             } catch (IOException e) {
                 log.error("Exception caught while trying to run bookkeeping on VMAX3 SLO AutoTieringPolicies", e);
@@ -74,17 +73,42 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
     private void performPolicyBookKeeping(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {
         log.debug(String.format("SLO policyNames found by discovery for array %s:%n%s", storageSystem.getNativeGuid(),
                 Joiner.on(',').join(policyNames)));
+        // Get all policies existing on storage system!!
+        List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
         // Identify policies to be deleted from ViPR!!
         List<AutoTieringPolicy> policiesToUpdate = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
+        
         if (!policiesToUpdate.isEmpty()) {
             for (AutoTieringPolicy policy : policiesToUpdate) {
+                // VMAX3 AFA Policies have WL along with SLO "Diamond"
+                // VMAX3 Elm Policies have no WL
+                // All Diamond + WL in Cypress are equal to Diamond in Elm
+                // When array gets upgraded from Cypress to Elm, 
+                // old policies with Diamond + WL will be deleted from ViPR.
+                // Existing resources (volumes and mirrors) are with old SLO policy must be 
+                // mapped to corresponding new policy in Elm
+                if(storageSystem.isV3ElmCodeOrMore()) {
+                    log.info(String.format("SLO %s no longer exists on array %s, finding corresponding policy...", policy.getPolicyName(),
+                            storageSystem.getNativeGuid()));
+                    // Find Elm policy w.r.t old policy
+                    AutoTieringPolicy elmPolicy = getElmPolicyForOldPolicy(systemDbPolicies, policy);
+                    // Find any Volume or Mirror having reference to old policy
+                    if(elmPolicy != null) {
+                        // Update the Volumes which are referenced to old policy with new policy
+                        modifyVolumePolicyReference(dbClient, policy, elmPolicy);
+                        // Update the BlockMirrors which are referenced to old policy with new policy
+                        modifyBlockMirrorPolicyReference(dbClient, policy, elmPolicy);
+
+                    }
+                }
+
                 log.info(String.format("SLO %s no longer exists on array %s, marking associated AutoTieringPolicy %s inactive", policy.getPolicyName(),
                         storageSystem.getNativeGuid(), policy));
                 policy.setPolicyEnabled(false);
                 policy.getPools().clear();
                 policy.setInactive(true);
+                dbClient.updateObject(policy);
             }
-            dbClient.updateObject(policiesToUpdate);
         }
     }
     
@@ -149,41 +173,6 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
             }
         }
         return null;
-    }
-    
-    /**
-     * VMAX3 AFA Policies have WL along with SLO "Diamond"
-     * VMAX3 Elm Policies have no WL
-     * All Diamond + WL in Cypress are equal to Diamond in Elm
-     * 
-     * When array gets upgraded from Cypress to Elm, 
-     * old policies with Diamond + WL will be deleted from ViPR.
-     * 
-     * Existing resources (volumes and mirrors) are with old SLO policy must be mapped to corresponding new policy in Elm
-     * 
-     * @param dbClient
-     * @param policyNames
-     * @param storageSystem
-     * @throws IOException
-     */
-    private void updateBlockObjectsWithElmPolicy(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {        
-        // Get all policies existing on storage system!!
-        List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
-        List<AutoTieringPolicy> policiesToDelete = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
-        
-        for(AutoTieringPolicy policyToDelete: policiesToDelete){
-            // Find Elm policy w.r.t old policy
-            AutoTieringPolicy elmPolicy = getElmPolicyForOldPolicy(systemDbPolicies, policyToDelete);
-            // Find any Volume or Mirror having reference to old policy
-            if(elmPolicy != null) {
-                // Update the Volumes which are referenced to old policy with new policy
-                modifyVolumePolicyReference(dbClient, policyToDelete, elmPolicy);
-                // Update the BlockMirrors which are referenced to old policy with new policy
-                modifyBlockMirrorPolicyReference(dbClient, policyToDelete, elmPolicy);
-
-            }
-        }
-        
     }
     
     /**

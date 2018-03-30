@@ -228,16 +228,18 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         boolean uniquePolicyNames = (boolean) attributeMap.get(Attributes.unique_policy_names.toString());
         for (URI storage: storageToPoolMap.keySet()) {
             StorageSystem system =  _objectCache.queryObject(StorageSystem.class, storage);
-            if(system != null && !system.getInactive()) {
-                if(!system.deviceIsType(Type.vmax) || !system.isV3ElmCodeOrMore()) {
-                    continue;
-                }
-                // Do not look for pools from other storage system,
-                // if vPool has not defined for unique policies
-                if(!uniquePolicyNames && !policyName.contains(system.getSerialNumber())) {
-                    continue;
-                }
+            if(system == null || system.getInactive()) {
+                continue;
             }
+            if(!system.deviceIsType(Type.vmax) || !system.isV3ElmCodeOrMore()) {
+                continue;
+            }
+            // Do not look for pools from other storage system,
+            // if vPool has not defined for unique policies
+            if(!uniquePolicyNames && !policyName.contains(system.getSerialNumber())) {
+                continue;
+            }
+
             // Get SLO policies from Elm array
             List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(_objectCache.getDbClient(), system);
             for (AutoTieringPolicy policy: systemDbPolicies) {

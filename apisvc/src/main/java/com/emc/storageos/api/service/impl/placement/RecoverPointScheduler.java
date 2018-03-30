@@ -676,7 +676,7 @@ public class RecoverPointScheduler implements Scheduler {
          * Need to remove PORT_GROUP entry from capabilities for RP target volume,
          * so that ViPR picks RP target storage pools from right storage system.
          */
-        if (RPHelper.TARGET.equals(personality)) {
+        if (RPHelper.TARGET.equals(personality) || RPHelper.JOURNAL.equals(personality)) {
             capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.PORT_GROUP);
         }
 

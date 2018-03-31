@@ -76,7 +76,7 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
         // Get all policies existing on storage system!!
         List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
         // Identify policies to be deleted from ViPR!!
-        List<AutoTieringPolicy> policiesToUpdate = getPoliciesToBeDeleted(dbClient, policyNames, storageSystem);
+        List<AutoTieringPolicy> policiesToUpdate = getPoliciesToBeDeleted(dbClient, policyNames, systemDbPolicies, storageSystem);
         
         if (!policiesToUpdate.isEmpty()) {
             for (AutoTieringPolicy policy : policiesToUpdate) {
@@ -129,11 +129,11 @@ public class VmaxSLOBookkeepingProcessor extends Processor {
      * @return
      * @throws IOException
      */
-    private List<AutoTieringPolicy> getPoliciesToBeDeleted(DbClient dbClient, Set<String> policyNames, StorageSystem storageSystem) throws IOException {
+    private List<AutoTieringPolicy> getPoliciesToBeDeleted(DbClient dbClient, Set<String> policyNames, List<AutoTieringPolicy> allPolicies, 
+            StorageSystem storageSystem) throws IOException {
         
-        List<AutoTieringPolicy> policiesToDelete = new ArrayList<AutoTieringPolicy>();
-        List<AutoTieringPolicy> policies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem); 
-        for (AutoTieringPolicy policyObject : policies) {
+        List<AutoTieringPolicy> policiesToDelete = new ArrayList<AutoTieringPolicy>(); 
+        for (AutoTieringPolicy policyObject : allPolicies) {
             String policyName = policyObject.getPolicyName();
             if (!policyNames.contains(policyName)) {
                 log.info(String.format("SLO %s no longer exists on array %s", policyName, storageSystem.getNativeGuid()));

@@ -6064,7 +6064,7 @@ public class SmisCommandHelper implements SmisConstants {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageDevice);
             if(storageSystem != null && !storageSystem.getInactive()) {
                 if(storageSystem.isV3ElmCodeOrMore()) {
-                    workload = Constants.NONE;
+                    workload = Constants.NONE.toUpperCase();
                 }
             }
             

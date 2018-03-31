@@ -1014,29 +1014,4 @@ public class DiscoveryUtils {
 
         return objectPaths;
     }
-    
-    /**
-     * Get all VMAX SLO policies from VIPR DB for given storage system
-     *
-     * @param dbClient 
-     * @param storageSystem 
-     * 
-     * @return list of AutoTieringPolicy
-     */
-    
-    public static  List<AutoTieringPolicy> getAllVMAXSloPolicies(DbClient dbClient, StorageSystem storageSystem) {
-
-        List<AutoTieringPolicy> policies = new ArrayList<>();
-        URIQueryResultList policiesInDB = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFASTPolicyConstraint(storageSystem.getId()), policiesInDB);
-        for (URI policy : policiesInDB) {
-            AutoTieringPolicy policyObject = dbClient.queryObject(AutoTieringPolicy.class, policy);
-            // Process only SLO based AutoTieringPolicies here.
-            if (policyObject == null || Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
-                continue;
-            }
-            policies.add(policyObject);
-        }
-        return policies;
-    }
 }

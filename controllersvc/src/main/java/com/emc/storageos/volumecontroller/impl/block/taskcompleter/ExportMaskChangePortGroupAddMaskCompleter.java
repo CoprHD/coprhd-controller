@@ -39,7 +39,11 @@ public class ExportMaskChangePortGroupAddMaskCompleter extends ExportTaskComplet
                 }
                 dbClient.updateObject(egs);
                 updatePortGroupVolumeCount(exportMask.getPortGroup(), dbClient);
-            } 
+            } else {
+                _log.error(String.format(
+                        "Export mask returned empty. Failed updating status for change port group add mask - Id: %s, OpId: %s",
+                        getId().toString(), getOpId()));
+            }
         } catch (Exception e) {
             _log.error(String.format(
                     "Failed updating status for change port group add mask - Id: %s, OpId: %s",

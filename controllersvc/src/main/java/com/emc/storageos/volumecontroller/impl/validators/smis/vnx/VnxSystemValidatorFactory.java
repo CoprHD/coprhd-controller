@@ -4,14 +4,15 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vnx;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.volumecontroller.impl.validators.contexts.ExportMaskValidationContext;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskInitiatorsValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.common.ExportMaskVolumesValidator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class VnxSystemValidatorFactory extends AbstractSMISValidatorFactory {
 
@@ -36,4 +37,8 @@ public class VnxSystemValidatorFactory extends AbstractSMISValidatorFactory {
         return truthyValidator;
     }
 
+    @Override
+    public AbstractSMISValidator createExportMaskPortGroupValidator(ExportMaskValidationContext ctx) {
+        return truthyValidator;
+    }
 }

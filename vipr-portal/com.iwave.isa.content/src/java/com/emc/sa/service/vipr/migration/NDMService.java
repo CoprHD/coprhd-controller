@@ -88,6 +88,12 @@ public class NDMService extends ViPRService {
             addAffectedResources(rescanHost);
         }
 
+        // refresh storage groups
+        for (String storageGroup: storageGroups) {
+            Task<BlockConsistencyGroupRestRep> refreshMigration = execute(new RefreshMigration(storageGroup));
+            addAffectedResource(refreshMigration);
+        }
+
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");
     }
 }

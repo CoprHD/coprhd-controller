@@ -60,6 +60,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -554,7 +555,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                         if (!refreshedMasks.containsKey(mask.getId())) {
                             // refresh the export mask always
+                            // set the flag before refreshing exportmask, refer COP-34971
+                            // will use this flag in NetworkDeviceController refreshFCZoneReferences method
+                            mask.addInternalFlags(Flag.EXPORT_GROUP_REMOVE_INITIATOR_REQUEST);
                             mask = device.refreshExportMask(storage, mask);
+                            mask.clearInternalFlags(Flag.EXPORT_GROUP_REMOVE_INITIATOR_REQUEST);
+                            // make sure we clear the flag and persist it for safer side
+                            _dbClient.updateObject(mask);
                             refreshedMasks.put(mask.getId(), mask);
                         }
 

@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -45,6 +46,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -2614,15 +2616,20 @@ public class NetworkDeviceController implements NetworkController {
                 for (ExportGroup exportGroup : exportGroups) {
                     if (exportGroup.getId().equals(ref.getGroupUri()) &&
                             exportGroup.hasBlockObject(ref.getVolumeUri()) &&
-                            exportMaskVolumes.containsKey(ref.getVolumeUri())
-                            /*
-                             * Delete the zone reference if it is not created by Vipr. Vipr created zone
-                             * on switch and its db reference should be deleted by MaskingOrchestrator exportGroupRemoveInitiators function.
-                             */
-                            && ref.getExistingZone()) {
-                        _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
-                                new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
-                        refs.add(ref);
+                            exportMaskVolumes.containsKey(ref.getVolumeUri()) /*
+                                                                               * &&
+                                                                               * ref.getExistingZone()
+                                                                               */) {
+                        // check if refresh FCZoneReference is called for vmax exportGroupRemoveInitiators operation
+                        if (isRemoveInitiatorForVmax(exportMask)) {
+
+                            _log.info("FCZoneReference {} for volume {} and exportGroup {} will not be deleted",
+                                    new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
+                        } else {
+                            _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
+                                    new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
+                            refs.add(ref);
+                        }
                     }
                 }
             }
@@ -2676,6 +2683,20 @@ public class NetworkDeviceController implements NetworkController {
             }
         }
         _dbClient.createObject(refs);
+    }
+
+    /**
+     * Check the call is for exportGroup remove Initiators for vmax/vmax3
+     * 
+     * @param system
+     * @return
+     */
+    private boolean isRemoveInitiatorForVmax(ExportMask exportMask) {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
+        if (system.getSystemType().contains("vmax") && exportMask.checkInternalFlags(Flag.EXPORT_GROUP_REMOVE_INITIATOR_REQUEST)) {
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -669,7 +669,7 @@ public class RecoverPointScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, String personality) {
 
         List<StoragePool> candidateStoragePools = new ArrayList<StoragePool>();
-
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, personality);
         /*
          * The port group provided is belongs to RP source storage system.
          * If port group set in capabilities, ViPR looks storage pools from given PG's storage system only

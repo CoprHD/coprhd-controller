@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -634,13 +635,27 @@ public class StorageScheduler implements Scheduler {
                 // port group could be only specified for native vmax
                 throw APIException.badRequests.portGroupValidForVMAXOnly();
             }
-        } else {                        
+        } else {
             // PG was not supplied. This is normally OK unless the VMAX PG feature in enabled and the vpool is not for VPLEX. 
             String value = _customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
                     Type.vmax.name(), null);
             if (Boolean.TRUE.toString().equalsIgnoreCase(value) && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
-                limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
+                String personality = capabilities.getPersonality();
+                /*
+                 * Execution hits this block for the provisioning target volumes.
+                 * In a volume create and export operation, since we don't want target storage pool filtered by source PG,
+                 * the PG urn will be removed in respective StorageSchedulers: SRDFScheduler and RPScheduler.
+                 * So we want to limit the filtering when provisioning is for source volumes.
+                 * 
+                 * Note that personality won't be supplied for stand alone volumes (volumes without data protection).
+                 * So we need to consider that case as well.
+                 */
+                boolean filterStoragePoolsByPersonalityIfProvided = (personality == null || (RPHelper.SOURCE.equals(personality)
+                        || VirtualPoolCapabilityValuesWrapper.SRDF_SOURCE.equalsIgnoreCase(personality)));
+                if (filterStoragePoolsByPersonalityIfProvided) {
+                    // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
+                    limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
+                }
             }            
         }
 

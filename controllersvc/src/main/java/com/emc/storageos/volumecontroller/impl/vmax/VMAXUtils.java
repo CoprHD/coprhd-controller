@@ -137,9 +137,9 @@ public class VMAXUtils {
     public static void updatePercentageDone(URI migrationURI, DbClient dbClient, MigrationStorageGroupResponse sgResponse) {
         if (!NullColumnValueGetter.isNullURI(migrationURI) && sgResponse != null) {
             Migration migration = dbClient.queryObject(Migration.class, migrationURI);
-            int percent = 0;
-            if (sgResponse.getTotalCapacity() != 0) { // To avoid divide by zero error
-                percent = (int) ((sgResponse.getTotalCapacity() - sgResponse.getRemainingCapacity()) / sgResponse.getTotalCapacity()) * 100;
+            double percent = 0.0;
+            if (sgResponse.getTotalCapacity() != 0.0) { // To avoid divide by zero error
+                percent = ((sgResponse.getTotalCapacity() - sgResponse.getRemainingCapacity()) / sgResponse.getTotalCapacity()) * 100.0;
             }
             logger.info("Percent done :{}%", percent);
             migration.setPercentDone(String.valueOf(percent));

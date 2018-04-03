@@ -369,8 +369,7 @@ public class NetworkDeviceController implements NetworkController {
             Set<String> storagePortsUsed = new HashSet<String>();
             for (Collection<URI> portsURI : generatedIniToStoragePort.values()) {
                 for(URI portURI : portsURI) {
-                    StoragePort storagePortUsed = _dbClient.queryObject(StoragePort.class, portURI);
-                    storagePortsUsed.add(storagePortUsed.getPortNetworkId());
+                    storagePortsUsed.add(portURI.toString());
                 }
             }
 

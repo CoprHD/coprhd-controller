@@ -202,31 +202,25 @@ public class VMAXMigrationOperations extends VMAXOperations implements Migration
             MigrationStorageGroupResponse sgResponse = apiClient.getMigrationStorageGroup(sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName);
             String migrationStatus = sgResponse.getState();
 
-            AsyncJob asyncJob = apiClient.readyTgtMigration(sourceSystem.getSerialNumber(), sgName);
-            VMAXMigrationJob vmaxMigrationJob = new VMAXMigrationJob(migrationURI, sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
-                           asyncJob.getJobId(), restProvider.getId(), taskCompleter, "readyTgtMigration");
-                    ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
-
-//TODO: Bharath - remove this
-//            if (!MigrationStatus.isAlreadyCutoverIntiated(migrationStatus)) {
-//                AsyncJob asyncJob = apiClient.cutoverMigration(sourceSystem.getSerialNumber(), sgName);
-//                VMAXMigrationJob vmaxMigrationJob = new VMAXMigrationJob(migrationURI, sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
-//                        asyncJob.getJobId(), restProvider.getId(), taskCompleter, "cutoverMigration");
-//                ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
-//            } else {
-//                logger.info(
-//                        "Cutover step is already executed for this Storage Group {}. Hence no need to execute cutover operation one more time.",
-//                        sgName);
-//                ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
-//                taskCompleter.ready(dbClient);
-//            }
+          if (!MigrationStatus.isAlreadyCutoverIntiated(migrationStatus)) {
+                AsyncJob asyncJob = apiClient.readyTgtMigration(sourceSystem.getSerialNumber(), sgName);
+                VMAXMigrationJob vmaxMigrationJob = new VMAXMigrationJob(migrationURI, sourceSystem.getSerialNumber(), targetSystem.getSerialNumber(), sgName,
+                        asyncJob.getJobId(), restProvider.getId(), taskCompleter, "readyTgtMigration");
+                ControllerServiceImpl.enqueueJob(new QueueJob(vmaxMigrationJob));
+            } else {
+                logger.info(
+                        "ReadyTgt step is already executed for this Storage Group {}. Hence no need to execute ReadyTgt operation one more time.",
+                        sgName);
+                ((MigrationOperationTaskCompleter) taskCompleter).setMigrationStatus(migrationStatus);
+                taskCompleter.ready(dbClient);
+            }
 
         } catch (Exception e) {
-            logger.error(VMAXMigrationConstants.CUTOVER_MIGRATION + " failed", e);
-            ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXMigrationConstants.CUTOVER_MIGRATION, e);
+            logger.error(VMAXMigrationConstants.READY_TGT_MIGRATION + " failed", e);
+            ServiceError error = DeviceControllerErrors.vmax.methodFailed(VMAXMigrationConstants.READY_TGT_MIGRATION, e);
             taskCompleter.error(dbClient, error);
         }
-        logger.info(VMAXMigrationConstants.CUTOVER_MIGRATION + " finished");
+        logger.info(VMAXMigrationConstants.READY_TGT_MIGRATION + " finished");
     }
 
     @Override

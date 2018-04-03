@@ -96,5 +96,4 @@ public interface VMAXConstants {
         String storageGroupVolumesUri = isVMAX3 ? SLO_STORAGEGROUP_VOLUMES_URI : STORAGEGROUP_VOLUMES_URI;
         return URI.create(String.format(storageGroupVolumesUri, sourceArraySerialNumber, storageGroupName));
     }
-
 }

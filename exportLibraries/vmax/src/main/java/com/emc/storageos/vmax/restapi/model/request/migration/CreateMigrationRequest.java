@@ -23,6 +23,10 @@ public class CreateMigrationRequest {
     @JsonProperty(value = "srpId")
     private String srpId;
 
+    @SerializedName("preCopy")
+    @JsonProperty(value = "preCopy")
+    private Boolean preCopy;
+
     @SerializedName("executionOption")
     @JsonProperty(value = "executionOption")
     private String executionOption;
@@ -55,6 +59,10 @@ public class CreateMigrationRequest {
     public String toString() {
         return new Gson().toJson(this).toString();
     }
+
+    public Boolean getPreCopy() { return preCopy; }
+
+    public void setPreCopy(Boolean preCopy) { this.preCopy = preCopy; }
 
     public String getExecutionOption() {
         return executionOption;

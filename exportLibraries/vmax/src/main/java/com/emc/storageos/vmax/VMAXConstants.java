@@ -18,7 +18,7 @@ public interface VMAXConstants {
     String VIPR_APPLICATION_TYPE = "viprc";
 
     public static enum MigrationActionTypes {
-        Recover, Cutover, Sync, Commit
+        Recover, Cutover, Sync, Commit, ReadyTgt
     }
 
     static final String UNIVMAX_BASE_URI = "/univmax/restapi";
@@ -41,6 +41,9 @@ public interface VMAXConstants {
     static final String UNIVMAX_PROVISIONING_BASE_URI = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION + "/provisioning/symmetrix";
     static final String STORAGEGROUP_VOLUMES_URI = UNIVMAX_PROVISIONING_BASE_URI + "/%1$s/volume?storageGroupId=%2$s";
 
+    static final String UNIVMAX_SLOPROVISIONING_BASE_URI = UNIVMAX_BASE_URI + "/" + UNIVMAX_VERSION + "/sloprovisioning/symmetrix";
+    static final String SLO_STORAGEGROUP_VOLUMES_URI = UNIVMAX_SLOPROVISIONING_BASE_URI + "/%1$s/volume?storageGroupId=%2$s";
+
     public static URI getValidateEnvironmentURI(String sourceArraySerialNumber, String targetArraySerialNumber) {
         return URI.create(String.format(VALIDATE_ENVIRONMENT_URI, sourceArraySerialNumber, targetArraySerialNumber));
     }
@@ -53,7 +56,7 @@ public interface VMAXConstants {
         return URI.create(String.format(GET_MIGRATION_ENVIRONMENT_URI, sourceArraySerialNumber));
     }
 
-    public static URI createMigrationEnvornmentURI(String sourceArraySerialNumber) {
+    public static URI createMigrationEnvironmentURI(String sourceArraySerialNumber) {
         return URI.create(String.format(CREATE_MIGRATION_ENVIRONMENT_URI, sourceArraySerialNumber));
     }
 
@@ -89,8 +92,9 @@ public interface VMAXConstants {
         return URI.create(String.format(GET_ASYNC_JOB, jobId));
     }
 
-    public static URI storageGroupVolumesURI(String sourceArraySerialNumber, String storageGroupName) {
-        return URI.create(String.format(STORAGEGROUP_VOLUMES_URI, sourceArraySerialNumber, storageGroupName));
+    public static URI storageGroupVolumesURI(String sourceArraySerialNumber, String storageGroupName, Boolean isVMAX3) {
+        String storageGroupVolumesUri = isVMAX3 ? SLO_STORAGEGROUP_VOLUMES_URI : STORAGEGROUP_VOLUMES_URI;
+        return URI.create(String.format(storageGroupVolumesUri, sourceArraySerialNumber, storageGroupName));
     }
 
 }

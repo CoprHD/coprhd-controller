@@ -65,6 +65,18 @@ public interface MigrationOperations {
             throws ControllerException;
 
     /**
+     * Ready Target the migration process.
+     *
+     * @param sourceSystem the source system
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskCompleter the task completer
+     * @throws ControllerException the controller exception
+     */
+    public void readyTgtMigration(StorageSystem sourceSystem, URI cgURI, URI migrationURI, TaskCompleter taskCompleter)
+            throws ControllerException;
+
+    /**
      * Commit the migration process.
      *
      * @param sourceSystem the source system

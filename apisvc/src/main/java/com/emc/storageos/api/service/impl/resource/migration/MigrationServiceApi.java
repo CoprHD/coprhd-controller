@@ -33,6 +33,11 @@ public interface MigrationServiceApi {
     public void migrationCutover(URI cgURI, URI migrationURI, String taskId);
 
     /**
+     * Ready Target the migration process
+     */
+    public void migrationReadyTgt(URI cgURI, URI migrationURI, String taskId);
+
+    /**
      * Commit the migration process
      */
     public void migrationCommit(URI cgURI, URI migrationURI, String taskId);

@@ -53,6 +53,18 @@ public interface MigrationController extends Controller {
      */
     public void migrationCutover(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
 
+
+    /**
+     * Ready Target the migration process
+     *
+     * @param sourceSystemURI the source system uri
+     * @param cgURI the cg uri
+     * @param migrationURI the migration uri
+     * @param taskId the task id
+     * @throws ControllerException the controller exception
+     */
+    public void migrationReadyTgt(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException;
+
     /**
      * Commit the migration process
      *

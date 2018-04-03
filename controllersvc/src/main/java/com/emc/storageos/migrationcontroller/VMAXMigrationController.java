@@ -145,6 +145,28 @@ public class VMAXMigrationController implements MigrationController {
     }
 
     @Override
+    public void migrationReadyTgt(URI sourceSystem, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        logger.info("START ready tgt migration");
+
+        Workflow workflow = workflowService.getNewWorkflow(this, MIGRATION_CUTOVER_WF_NAME, false, taskId);
+        TaskCompleter taskCompleter = new MigrationWorkflowCompleter(BlockConsistencyGroup.class, cgURI, taskId);
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystem);
+        try {
+            workflow.createStep("readyTgtMigrationStep", "Ready Target migration for consistency group",
+                    null, sourceSystem, storage.getSystemType(), this.getClass(),
+                    readyTgtMigrationMethod(sourceSystem, cgURI, migrationURI), rollbackMethodNullMethod(), null);
+
+            String successMessage = format("Ready Target migration for consistency group %s completed successfully", cgURI);
+            workflow.executePlan(taskCompleter, successMessage);
+        } catch (Exception e) {
+            String errorMsg = format("Failed to Ready Target migration for consistency group %s", cgURI);
+            logger.error(errorMsg, e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+    @Override
     public void migrationCommit(URI sourceSystem, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
         logger.info("START commit migration");
 
@@ -381,6 +403,22 @@ public class VMAXMigrationController implements MigrationController {
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
             TaskCompleter completer = new MigrationOperationTaskCompleter(cgURI, migrationURI, opId);
             getVmaxStorageDevice().doCutoverMigration(storage, cgURI, migrationURI, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
+    private Workflow.Method readyTgtMigrationMethod(URI sourceSystemURI, URI cgURI, URI migrationURI) {
+        return new Workflow.Method("readyTgtMigration", sourceSystemURI, cgURI, migrationURI);
+    }
+
+    public void readyTgtMigration(URI sourceSystemURI, URI cgURI, URI migrationURI, String opId) throws ControllerException {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storage = dbClient.queryObject(StorageSystem.class, sourceSystemURI);
+            TaskCompleter completer = new MigrationOperationTaskCompleter(cgURI, migrationURI, opId);
+            getVmaxStorageDevice().doReadyTgtMigration(storage, cgURI, migrationURI, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);

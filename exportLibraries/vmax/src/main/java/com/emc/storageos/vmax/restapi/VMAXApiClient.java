@@ -318,7 +318,7 @@ public class VMAXApiClient extends StandardRestClient {
         log.info("Started Create Migration environment call between {} and {}", sourceArraySerialNumber, targetArraySerialNumber);
         CreateMigrationEnvironmentRequest createMigrationEnvironmentRequest = new CreateMigrationEnvironmentRequest();
         createMigrationEnvironmentRequest.setOtherArrayId(targetArraySerialNumber);
-        ClientResponse clientResponse = post(VMAXConstants.createMigrationEnvornmentURI(sourceArraySerialNumber),
+        ClientResponse clientResponse = post(VMAXConstants.createMigrationEnvironmentURI(sourceArraySerialNumber),
                 getJsonForEntity(createMigrationEnvironmentRequest));
         CreateMigrationEnvironmentResponse response = getResponseObject(CreateMigrationEnvironmentResponse.class, clientResponse);
         log.info("Response -> {}", response);
@@ -396,7 +396,7 @@ public class VMAXApiClient extends StandardRestClient {
      * @throws Exception
      */
     public AsyncJob createMigration(String sourceArraySerialNumber, String targetArraySerialNumber, String storageGroupName,
-            boolean noCompression, String srpId) throws Exception {
+            boolean noCompression, String srpId, Boolean preCopy) throws Exception {
         log.info("Create migration for the storage group {} on source array {} to target array {}", storageGroupName,
                 sourceArraySerialNumber, targetArraySerialNumber);
         CreateMigrationRequest request = new CreateMigrationRequest();
@@ -406,6 +406,7 @@ public class VMAXApiClient extends StandardRestClient {
             request.setNoCompression(noCompression);
         }
         request.setSrpId(srpId);
+        request.setPreCopy(preCopy);
         log.info("Request -> {}", request);
         ClientResponse response = post(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
                 getJsonForEntity(request));
@@ -509,6 +510,26 @@ public class VMAXApiClient extends StandardRestClient {
     }
 
     /**
+     * Ready Target Migration for the given SG
+     *
+     * @param sourceArraySerialNumber Source Array Serial Number
+     * @param storageGroupName Storage Group Name
+     * @return {@link AsyncJob}
+     * @throws Exception
+     */
+    public AsyncJob readyTgtMigration(String sourceArraySerialNumber, String storageGroupName) throws Exception {
+        log.info("Commit migration for the SG {} for the array {}", storageGroupName, sourceArraySerialNumber);
+        MigrationRequest request = new MigrationRequest();
+        request.setAction(VMAXConstants.MigrationActionTypes.ReadyTgt.name());
+        request.setExecutionOption(VMAXConstants.ASYNCHRONOUS_API_CALL);
+        ClientResponse response = put(VMAXConstants.migrationStorageGroupURI(sourceArraySerialNumber, storageGroupName),
+                getJsonForEntity(request));
+        AsyncJob asyncJob = getResponseObject(AsyncJob.class, response);
+        log.info("Successfully initiated commit migration");
+        return asyncJob;
+    }
+
+    /**
      * Delete Migration for the given SG
      * 
      * @param sourceArraySerialNumber Source Array Serial Number
@@ -591,10 +612,10 @@ public class VMAXApiClient extends StandardRestClient {
      * @return {@link StorageGroupVolumeListResponse}
      * @throws Exception
      */
-    public StorageGroupVolumeListResponse getStorageGroupVolumes(String sourceArraySerialNumber, String storageGroupName)
+    public StorageGroupVolumeListResponse getStorageGroupVolumes(String sourceArraySerialNumber, String storageGroupName, Boolean isVMAX3)
             throws Exception {
         log.info("Get volumes for storage group {} from array {}", storageGroupName, sourceArraySerialNumber);
-        ClientResponse clientResponse = get(VMAXConstants.storageGroupVolumesURI(sourceArraySerialNumber, storageGroupName));
+        ClientResponse clientResponse = get(VMAXConstants.storageGroupVolumesURI(sourceArraySerialNumber, storageGroupName, isVMAX3));
         StorageGroupVolumeListResponse storageGroupVolumesResponse = getResponseObject(StorageGroupVolumeListResponse.class,
                 clientResponse);
         log.info("Response -> {}", storageGroupVolumesResponse);

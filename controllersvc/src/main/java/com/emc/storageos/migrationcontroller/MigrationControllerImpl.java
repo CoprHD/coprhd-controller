@@ -78,6 +78,11 @@ public class MigrationControllerImpl extends AbstractDiscoveredSystemController 
     }
 
     @Override
+    public void migrationReadyTgt(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
+        blockRMI("migrationReadyTgt", sourceSystemURI, cgURI, migrationURI, taskId);
+    }
+
+    @Override
     public void migrationCommit(URI sourceSystemURI, URI cgURI, URI migrationURI, String taskId) throws ControllerException {
         blockRMI("migrationCommit", sourceSystemURI, cgURI, migrationURI, taskId);
     }

@@ -2873,14 +2873,64 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
+
+        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, cg.getStorageController());
+
+        ResourceOperationTypeEnum taskType =  ResourceOperationTypeEnum.MIGRATION_CUTOVER;
         MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
-        migrationApiImpl.migrationCutover(id, migration.getId(), taskId);
+
+        if (sourceStorageSystem.checkIfVmax3()) {
+           taskType = ResourceOperationTypeEnum.MIGRATION_READYTGT;
+           migrationApiImpl.migrationReadyTgt(id, migration.getId(), taskId);
+        } else {
+            migrationApiImpl.migrationCutover(id, migration.getId(), taskId);
+        }
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);
         // Create a task for the CG and set the initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
-                ResourceOperationTypeEnum.MIGRATION_CUTOVER);
+                taskType);
+
+        TaskResourceRep task = toTask(cg, taskId, op);
+        return task;
+    }
+
+
+    /**
+     * Ready Target the Migration of a Storage Group.
+     *
+     * This is only applicable for V3-V3 arrays.
+     *
+     * @prereq Storage group on the target side is created. Host zoning and rescan is done.
+     * @param id the URN of Block Consistency Group
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migration/readytgt")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrationReadyTgt(@PathParam("id") URI id) {
+        // validate input
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, ID_FIELD);
+
+        BlockConsistencyGroup cg = (BlockConsistencyGroup) queryResource(id);
+        validateBlockConsistencyGroupForMigration(cg);
+
+        // get Migration object associated with consistency group
+        Migration migration = getMigrationForConsistencyGroup(cg);
+
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
+        MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
+        migrationApiImpl.migrationReadyTgt(id, migration.getId(), taskId);
+
+        migration.setJobStatus(JobStatus.IN_PROGRESS.name());
+        _dbClient.updateObject(migration);
+        // Create a task for the CG and set the initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, taskId,
+                ResourceOperationTypeEnum.MIGRATION_READYTGT);
 
         TaskResourceRep task = toTask(cg, taskId, op);
         return task;

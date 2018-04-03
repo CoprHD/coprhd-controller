@@ -78,6 +78,25 @@ public class MigrationServiceApiImpl extends AbstractMigrationServiceApiImpl {
     }
 
     @Override
+    public void migrationReadyTgt(URI cgURI, URI migrationURI, String taskId) {
+        String storageGroupName = null;
+        try {
+            storageGroupName = cgURI.toString();
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            storageGroupName = cg.getStorageGroupName();
+            StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, cg.getStorageController());
+
+            MigrationController controller = getController(MigrationController.class, MigrationController.MIGRATION);
+            controller.migrationReadyTgt(sourceSystem.getId(), cgURI, migrationURI, taskId);
+        } catch (ControllerException e) {
+            String errorMsg = format("Failed to ready target migration for storage group %s", storageGroupName);
+            logger.error(errorMsg, e);
+            dbClient.error(BlockConsistencyGroup.class, cgURI, taskId, e);
+        }
+    }
+
+
+    @Override
     public void migrationCommit(URI cgURI, URI migrationURI, String taskId) {
         String storageGroupName = null;
         try {

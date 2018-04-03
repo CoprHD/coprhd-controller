@@ -359,6 +359,7 @@ public enum ResourceOperationTypeEnum {
     MIGRATION_CREATE_ENV("MIGRATION CREATE ENVIRONMENT", "create migration environment"),
     MIGRATION_CREATE_MIGRATION("MIGRATION CREATE", "create migration"),
     MIGRATION_CUTOVER("MIGRATION CUTOVER", "cutover migration"),
+    MIGRATION_READYTGT("MIGRATION READYTGT", "readyTgt migration"),
     MIGRATION_COMMIT("MIGRATION COMMIT", "commit migration"),
     MIGRATION_CANCEL("MIGRATION CANCEL", "cancel migration"),
     MIGRATION_REFRESH("MIGRATION REFRESH", "refresh migration status"),

@@ -9,9 +9,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.migration.tasks.*;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
-import com.emc.storageos.model.block.MigrationCreateParam;
 import com.emc.storageos.model.block.MigrationEnvironmentParam;
 import com.emc.storageos.model.block.MigrationZoneCreateParam;
 import com.emc.storageos.model.block.export.ExportPathParameters;
@@ -24,13 +22,10 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.emc.sa.service.ServiceParams.*;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
-import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 @Service("NDM")
 public class NDMService extends ViPRService {
@@ -49,13 +44,13 @@ public class NDMService extends ViPRService {
     private String targetStorageSystems;
 
     @Param(value = STORAGE_GROUP)
-    private String storageGroup;
+    private List<String> storageGroups;
 
     @Param(value = MAXIMUM_PATHS)
     private Integer maxPaths;
 
     @Param(value = TARGET_STORAGE_PORT)
-    private String targetStoragePorts;
+    private List<String> targetStoragePorts;
 
     @Override
     public void precheck() throws Exception {
@@ -68,28 +63,32 @@ public class NDMService extends ViPRService {
         Task<StorageSystemRestRep> createEnv = execute(new CreateMigrationEnvironment(migrationEnvironmentParam));
         addAffectedResource(createEnv);
 
-        // create zone
         ExportPathParameters pathParam = new ExportPathParameters();
         List<URI> targetPortURIs = new ArrayList<>();
-        for (String port: targetStoragePorts.split(",")) {
+        for (String port : targetStoragePorts) {
             targetPortURIs.add(URI.create(port));
         }
         pathParam.setStoragePorts(targetPortURIs);
         pathParam.setMaxPaths(maxPaths);
         MigrationZoneCreateParam migrationZoneCreateParam = new MigrationZoneCreateParam(URI.create(targetStorageSystems), URI.create(host), pathParam);
-        Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroup), migrationZoneCreateParam));
-        addAffectedResources(createZone);
 
-        // create migration
-        Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroup));
-        addAffectedResource(createMigration);
+        for (String storageGroup: storageGroups) {
+            // create zones for each sg
+            Tasks<BlockConsistencyGroupRestRep> createZone = execute(new CreateZonesForMigration(URI.create(storageGroup), migrationZoneCreateParam));
+            addAffectedResources(createZone);
+
+            // create migration
+            Task<BlockConsistencyGroupRestRep> createMigration = execute(new CreateMigration(targetStorageSystems, storageGroup));
+            addAffectedResource(createMigration);
+        }
 
         // rescan host
-        Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroup));
-        addAffectedResources(rescanHost);
+        if (!storageGroups.isEmpty()) {
+            Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroups.get(0)));
+            addAffectedResources(rescanHost);
+        }
 
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");
-
-        // Don't do cutover in catalog service as it might take very long time.
     }
 }
+

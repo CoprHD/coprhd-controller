@@ -2620,7 +2620,7 @@ public class NetworkDeviceController implements NetworkController {
                                                                                * &&
                                                                                * ref.getExistingZone()
                                                                                */) {
-                        // check if refresh FCZoneReference is called for vmax exportGroupRemoveInitiators operation
+                        // COP-34971 check if refresh FCZoneReference is called for vmax exportGroupRemoveInitiators operation
                         if (isRemoveInitiatorForVmax(exportMask)) {
 
                             _log.info("FCZoneReference {} for volume {} and exportGroup {} will not be deleted",
@@ -2694,6 +2694,9 @@ public class NetworkDeviceController implements NetworkController {
     private boolean isRemoveInitiatorForVmax(ExportMask exportMask) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
         if (system.getSystemType().contains("vmax") && exportMask.checkInternalFlags(Flag.EXPORT_GROUP_REMOVE_INITIATOR_REQUEST)) {
+            _log.info("exportMask {} for vmax has internalFlags set to {}",
+                    new Object[] { exportMask.getLabel(), exportMask.getInternalFlags() });
+
             return true;
         }
         return false;

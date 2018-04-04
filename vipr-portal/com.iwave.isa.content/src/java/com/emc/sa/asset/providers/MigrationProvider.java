@@ -86,12 +86,6 @@ public class MigrationProvider extends BaseAssetOptionsProvider {
 
     private boolean filterBCG(ViPRCoreClient client, URI bcgId, String storageType, URI hostId) {
         BlockConsistencyGroupRestRep bcg = client.blockConsistencyGroups().get(bcgId);
-        if ( !bcg.getTypes().contains(BlockConsistencyGroup.Types.MIGRATION.name()) ||
-                !BlockConsistencyGroup.MigrationStatus.None.name().equalsIgnoreCase(bcg.getMigrationStatus()) ) {
-            log.info("BCG [ id: {}, type: {}, status: {} ] is filtered out",
-                    bcgId, bcg.getTypes(), bcg.getMigrationStatus());
-            return false;
-        }
         if (storageType.equals(BlockProvider.EXCLUSIVE_STORAGE)) {
             return matchBCGWithHost(client, bcg, hostId);
         } else { // Shared

@@ -2128,15 +2128,27 @@ public class StorageSystemService extends TaskResourceService {
                 consistencyGroupURIs);
         BlockConsistencyGroupList cgList = new BlockConsistencyGroupList();
         Iterator<URI> cgIter = consistencyGroupURIs.iterator();
+
+        _log.info("Total # of ConsistencyGroups on {} : {}" , system.getLabel(), consistencyGroupURIs.size());
         while (cgIter.hasNext()) {
             URI cgURI = cgIter.next();
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             if (cg != null && !cg.getInactive() && cg.getTypes().contains(Types.MIGRATION.name())) {
+
+                //If the source storage is VMAX, then return back only those SGs that
+                //have migrationStatus set to NONE.
+                if (system.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) &&
+                        !cg.getMigrationStatus().equals(BlockConsistencyGroup.MigrationStatus.None.name())) {
+                    continue;
+                }
+
                 // add only Storage groups that are discovered for Migration purpose
                 String cgName = cg.getStorageGroupName();
                 cgList.getConsistencyGroupList().add(toNamedRelatedResource(cg, cgName));
             }
         }
+
+        _log.info("Total # of Migratable CGs on {} : {}", system.getLabel(), cgList.getConsistencyGroupList().size());
         return cgList;
     }
 

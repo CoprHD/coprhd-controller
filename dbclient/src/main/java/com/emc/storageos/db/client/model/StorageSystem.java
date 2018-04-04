@@ -779,4 +779,13 @@ public class StorageSystem extends DiscoveredSystemObject {
         return (checkIfVmax3() && getModel() != null
                 && (getModel().contains("F") || getModel().contains("PowerMax") || getModel().toLowerCase().contains("pmax")));
     }
+    
+    public boolean isV3ElmCodeOrMore() {
+        boolean check = false;
+        if (deviceIsType(Type.vmax) && !Strings.isNullOrEmpty(_firmwareVersion)) {
+            String fwMajorVersion = _firmwareVersion.split("\\.")[0];
+            check = (Integer.parseInt(fwMajorVersion) >= 5978);
+        }
+        return check;
+    }
 }

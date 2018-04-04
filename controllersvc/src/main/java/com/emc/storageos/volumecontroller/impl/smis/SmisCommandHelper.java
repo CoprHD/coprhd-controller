@@ -5905,7 +5905,7 @@ public class SmisCommandHelper implements SmisConstants {
             if (compression != null) {
                 compressionEnabled = compression;
             }
-            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri(), compressionEnabled);
+            policyName = getPolicyByBlockObject(mirror.getPool(), autoTierPolicyName, mirror.getAutoTieringPolicyUri(), mirror.getStorageController(), compressionEnabled);
         }
 
         if (volume != null) {
@@ -5914,7 +5914,7 @@ public class SmisCommandHelper implements SmisConstants {
             if (compression != null) {
                 compressionEnabled = compression;
             }
-            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri(), compressionEnabled);
+            policyName = getPolicyByBlockObject(volume.getPool(), autoTierPolicyName, volume.getAutoTieringPolicyUri(), volume.getStorageController(),  compressionEnabled);
         }
         return policyName.toString();
     }
@@ -6044,7 +6044,8 @@ public class SmisCommandHelper implements SmisConstants {
      * @param compressionEnabled - If the compression is enabled at the Virtual pool level, we must honor it.
      * @return
      */
-    private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI, Boolean compressionEnabled) {
+    private StringBuffer getPolicyByBlockObject(URI pool, String autoTierPolicyName, URI policyURI, 
+            URI storageDevice, Boolean compressionEnabled) {
         StoragePool storagePool = _dbClient.queryObject(StoragePool.class, pool);
         StringBuffer policyName = new StringBuffer();
         if ((null != autoTierPolicyName && Constants.NONE.equalsIgnoreCase(autoTierPolicyName))
@@ -6059,8 +6060,16 @@ public class SmisCommandHelper implements SmisConstants {
             
         } else {
             AutoTieringPolicy autoTierPolicy = _dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+            String workload = autoTierPolicy.getVmaxWorkload().toUpperCase();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageDevice);
+            if(storageSystem != null && !storageSystem.getInactive()) {
+                if(storageSystem.isV3ElmCodeOrMore()) {
+                    workload = Constants.NONE.toUpperCase();
+                }
+            }
+            
             policyName = policyName.append(autoTierPolicy.getVmaxSLO()).append(Constants._plusDelimiter)
-                    .append(autoTierPolicy.getVmaxWorkload().toUpperCase()).append(Constants._plusDelimiter)
+                    .append(workload).append(Constants._plusDelimiter)
                     .append(storagePool.getPoolName());
         }
         return policyName;

@@ -129,6 +129,12 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("pool");
             return new ContainmentConstraintImpl(pool, Volume.class, field);
         }
+        
+        public static ContainmentConstraint getStoragePoolBlockMirrorConstraint(URI pool) {
+            DataObjectType doType = TypeMap.getDoType(BlockMirror.class);
+            ColumnField field = doType.getColumnField("pool");
+            return new ContainmentConstraintImpl(pool, BlockMirror.class, field);
+        }
 
         public static ContainmentConstraint getVirtualArrayVolumeConstraint(URI varray) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);

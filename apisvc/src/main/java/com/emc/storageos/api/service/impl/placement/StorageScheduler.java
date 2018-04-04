@@ -77,6 +77,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
@@ -94,6 +95,8 @@ import com.google.common.collect.Lists;
 public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
     private static final String SCHEDULER_NAME = "block";
+    private static final String DIAMONDSLO = "Diamond";
+    
     // factor to adjust weight of array depending on export type
     // for host export, shared arrays (host has shared volumes on those arrays) will have less weight
     // for cluster export, exclusive arrays (those have only exclusive volumes to the hosts in the cluster), will have less weight
@@ -1783,7 +1786,30 @@ public class StorageScheduler implements Scheduler {
 
         return volume;
     }
+    
+    /*
+     * In Elm, there is no workload in SLO policy,
+     * old policy with Diamond + any workload is tread as Diamod + None
+     */
+    private static URI getElmDiamondPolicy(URI storage, String oldPolicyName, DbClient dbClient) {
+        // Look for only Diamond SLO
+        if(!oldPolicyName.contains(DIAMONDSLO)){
+            return null;
+        }
+        StorageSystem   storageSystem = dbClient.queryObject(StorageSystem.class, storage);
+        if(storageSystem != null && !storageSystem.getInactive() && storageSystem.isV3ElmCodeOrMore()) {
+            // Get all policies existing on storage system!!
+            List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
+            for (AutoTieringPolicy policy: systemDbPolicies) {
+                // Get the Elm Diamond SLO policy 
+                if(policy.getVmaxSLO() != null && policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
+                    return policy.getId();
+                }
+            }
+        }
 
+        return null;
+    }
     /**
      * Get the AutoTierPolicy URI for a given StoragePool and auto tier policy name.
      *
@@ -1798,6 +1824,8 @@ public class StorageScheduler implements Scheduler {
         if (pool == null || policyName == null || dbClient == null) {
             return null;
         }
+        StoragePool poolObj = dbClient.queryObject(StoragePool.class, pool);
+        
         URIQueryResultList result = new URIQueryResultList();
         // check if pool fast policy name is not
         dbClient.queryByConstraint(
@@ -1813,10 +1841,17 @@ public class StorageScheduler implements Scheduler {
             // pool's storage system
             // Note that the pool can be null when the function is called while
             // preparing a VPLEX volume, which does not have a storage pool.
-            StoragePool poolObj = dbClient.queryObject(StoragePool.class, pool);
             if ((poolObj != null) &&
                     (policy.getStorageSystem().toString().equalsIgnoreCase(poolObj.getStorageDevice().toString()))) {
                 return policy.getId();
+            }
+        }
+        // Verify the policy on Elm array, 
+        // Diamond + WL should treat as Diamond + None
+        if (poolObj != null && !poolObj.getInactive()) {
+            URI elmPolicy = getElmDiamondPolicy(poolObj.getStorageDevice(), policyName, dbClient);
+            if ( elmPolicy != null) {
+                return elmPolicy;
             }
         }
         return null;

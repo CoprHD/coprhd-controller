@@ -31,6 +31,8 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ObjectNamespace;
@@ -56,6 +58,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -66,6 +69,7 @@ public class DiscoveryUtils {
     public static final String UNMANAGED_VOLUME = "UnManagedVolume";
     public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
     private static final String TRUE = "true";
+    private static final String DIAMONDSLO = "Diamond";
 
     /**
      * get Matched Virtual Pools For Pool.
@@ -318,6 +322,16 @@ public class DiscoveryUtils {
                 }
                 if (autoTierPolicyId.equalsIgnoreCase(policyIdfromVPool)) {
                     policyMatching = true;
+                }
+                // For Elm storage system, 
+                // Unmanaged volume/mirrors with Diamond policy should be able to 
+                // ingest to vpool with policy Diamond + WL policy 
+                if(system.deviceIsType(Type.vmax) && system.isV3ElmCodeOrMore()) {
+                    if(policyIdfromVPool.contains(DIAMONDSLO) && autoTierPolicyId.contains(DIAMONDSLO)) {
+                        policyMatching = true;
+                        _log.debug("Unmanaged volume with policy {} is mapped to vpool {} with policy {}", autoTierPolicyId,
+                                vPool.getLabel(), policyIdfromVPool);
+                    }
                 }
             }
         } else if ((policyIdfromVPool == null) || (policyIdfromVPool.equalsIgnoreCase("none"))) {
@@ -999,5 +1013,30 @@ public class DiscoveryUtils {
         }
 
         return objectPaths;
+    }
+    
+    /**
+     * Get all VMAX SLO policies from VIPR DB for given storage system
+     *
+     * @param dbClient 
+     * @param storageSystem 
+     * 
+     * @return list of AutoTieringPolicy
+     */
+    
+    public static  List<AutoTieringPolicy> getAllVMAXSloPolicies(DbClient dbClient, StorageSystem storageSystem) {
+
+        List<AutoTieringPolicy> policies = new ArrayList<>();
+        URIQueryResultList policiesInDB = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceFASTPolicyConstraint(storageSystem.getId()), policiesInDB);
+        for (URI policy : policiesInDB) {
+            AutoTieringPolicy policyObject = dbClient.queryObject(AutoTieringPolicy.class, policy);
+            // Process only SLO based AutoTieringPolicies here.
+            if (policyObject == null || Strings.isNullOrEmpty(policyObject.getVmaxSLO())) {
+                continue;
+            }
+            policies.add(policyObject);
+        }
+        return policies;
     }
 }

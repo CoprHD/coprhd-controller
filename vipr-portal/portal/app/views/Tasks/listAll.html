@@ -78,7 +78,20 @@
         </a>
       </span>
     </div>
-
+	<div class="max-tasks-selector" id="taskSelector" style="margin-left: -170px;margin-right:170px">
+	 <div class="description"><span>&{'tasks.maxTasks'}</span></div> 
+	    <div class="control" style="width:110px;" >
+	    #{field 'maxTasks'}
+	    %{
+	        field.cssClass = 'input-sm'
+	        field.options = maxTasksOptions
+	        field.disableSearch = true
+	        }%
+	        #{Form.selectOne field:field/}
+	    #{/field}
+	    </div>
+		
+	</div>
     %{
      options = [
          'fnServerParams': 'loadServerParams'
@@ -110,7 +123,7 @@
   <script type="text/javascript">
     var tenantId = '${tenantId}';
 
-    table.tasks.dataTable.setMaxRows(1000, function(data) {
+    table.tasks.dataTable.setMaxRows(-1, function(data) {
         var oldestTime = -1;
         var oldestIndex = -1;
 
@@ -133,8 +146,16 @@
     
     function loadServerParams(aoData) {
       aoData.push({"name": "systemTasks", "value" : ${systemTasks}});
+      aoData.push({"name": "maxTasks", "value": "${maxTasks}"});
     }    
     
+    $(document).ready(function () {
+        $('#maxTasks').on('change', function () {
+            var maxTasks = $(this).val();
+            var url = #{jsAction @Tasks.listAll(':systemTasks')/}({"systemTasks": "${systemTasks}"}) + "&maxTasks=" + maxTasks;
+            window.location.href = url;
+            });
+        });
   </script>    
 
 #{/set}      

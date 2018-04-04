@@ -110,4 +110,14 @@ public class HDSSystemValidatorFactory implements StorageSystemValidatorFactory 
     public void setClientFactory(HDSApiFactory clientFactory) {
         this.clientFactory = clientFactory;
     }
+
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+
+    @Override
+    public Validator exportPathAdjustment(ExportMaskValidationContext ctx) {
+        return null;
+    }
 }

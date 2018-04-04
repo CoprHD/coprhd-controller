@@ -49,6 +49,7 @@ public class ExportChangePortGroupCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             String eventMessage = null;
+            log.info("Change port group completer:" + status.name());
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             Operation operation = new Operation();
             switch (status) {

@@ -2262,11 +2262,18 @@ public class StorageSystemService extends TaskResourceService {
         }
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         String portGroupName = param.getName();
+        
         List<URI> ports = param.getStoragePorts();
         for (URI port : ports) {
             ArgValidator.checkFieldUriType(port, StoragePort.class, "portURI");
             StoragePort sport = _dbClient.queryObject(StoragePort.class, port);
             ArgValidator.checkEntityNotNull(sport, port, isIdEmbeddedInURL(port));
+
+            if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
+                    sport.getRegistrationStatus())) {
+                throw APIException.badRequests.operationNotSupportedForDeregisteredPorts(
+                        OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), sport.getPortName());
+            }
         }
         checkForDuplicatePortGroupName(portGroupName, id);
         StoragePortGroup portGroup = new StoragePortGroup();

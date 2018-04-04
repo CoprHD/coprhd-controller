@@ -1049,6 +1049,43 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
+     * During 'Discover Unmanaged Volumes', VPLEX returns virtual volume info 
+     * with NativeGuid : /clusters/cluster-1/virtual-volumes/<deviceLabel> this condition 
+     * is true for VPLEX local volumes created on cluster-1 & VPLEX Metro volumes(either 
+     * cluster-1 or cluster-2 is winner).
+     * 
+     * Given this scenario, for ViPR to identify whether it already manages the volume 
+     * (VPLEX Metro with cluster-2 as Winner) we need to tweak the NativeGuid, replacing 
+     * cluster-1 with cluster-2.
+     * 
+     * The transformation will be as below:
+     * /clusters/cluster-1/virtual-volumes/<deviceLabel>
+     *             |
+     *             \/
+     * /clusters/cluster-2/virtual-volumes/<deviceLabel>
+     * 
+     * @param clusters
+     * @param volumeNativeGuid
+     * @return String volumeNativeGuid
+     */
+    private String replaceClusterInNativeGuid(List<String> clusters, String volumeNativeGuid) {
+    	
+    	String c1 = clusters.get(0);
+		String c2 = clusters.get(1);
+		
+		String newNativeVolumeGuid = null;
+		
+		if(volumeNativeGuid.contains(c1)) {
+			newNativeVolumeGuid = volumeNativeGuid.replaceFirst(c1, c2);
+			s_logger.info("Updated volumeNativeGuid  : {}" ,newNativeVolumeGuid);
+		} else {
+			newNativeVolumeGuid = volumeNativeGuid.replaceFirst(c2, c1);
+			s_logger.info("Updated volumeNativeGuid  : {}" ,newNativeVolumeGuid);
+	    }
+		return newNativeVolumeGuid;
+    }
+    
+    /**
      * Determines if the given VPLEX volume information represents a
      * virtual volume that is already managed by ViPR.
      *
@@ -1056,25 +1093,80 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @return a Volume object if a match is found in the ViPR database
      */
     private Volume findVirtualVolumeManagedByVipr(VPlexVirtualVolumeInfo info) {
-        if (info != null) {
+    	
+    	Volume volume = null;
+    	if (info != null) {
+        	
             s_logger.info("Determining if Virtual Volume {} is managed by ViPR", info.getName());
             String volumeNativeGuid = info.getPath();
-            s_logger.info("...checking ViPR's Volume table for volume native guid {}", volumeNativeGuid);
-
-            URIQueryResultList result = new URIQueryResultList();
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getVolumeNativeIdConstraint(volumeNativeGuid), result);
-            if (result.iterator().hasNext()) {
-                Volume volume = _dbClient.queryObject(Volume.class, result.iterator().next());
-                // only return active volumes
-                if (null != volume && !volume.getInactive()) {
-                    return volume;
-                }
+            List<String> clusters = info.getClusters();
+            
+            //check to see if it is present with one cluster
+            volume = queryVolumeByNativeGuid(volumeNativeGuid);
+            if(null == volume) {
+            	if(clusters.size() == 2) {
+            		String newVolumeNativeGuid = replaceClusterInNativeGuid(clusters,volumeNativeGuid);
+            		//check to see if it is present with other cluster
+            		volume = queryVolumeByNativeGuid(newVolumeNativeGuid);
+            	}
             }
-        }
-
+    	}
+        
+    	if(null!=volume && !volume.getInactive()) {
+			return volume;
+		}
+    	
         return null;
     }
+
+    /**
+     * Queries volume in ViPR DB using volumeNativeID
+     * @param volumeNativeGuid
+     * @return a Volume object if a match is found in the ViPR database
+     */
+	private Volume queryVolumeByNativeGuid(String volumeNativeGuid) {
+		
+		s_logger.info("...checking ViPR's Volume table for volume native guid {}", volumeNativeGuid);
+		URIQueryResultList result = new URIQueryResultList();
+        
+		_dbClient.queryByConstraint(AlternateIdConstraint.Factory
+		        .getVolumeNativeIdConstraint(volumeNativeGuid), result);
+		if(result.iterator().hasNext()) {
+			
+			Volume volume = _dbClient.queryObject(Volume.class, result.iterator().next());
+            // only return active volumes
+            if (null != volume && !volume.getInactive()) {
+                return volume;
+            }
+		}
+		
+		return null;
+	}
+	
+	
+	/**
+     * Queries an UnManagedVolume in ViPR DB using volumeNativeID
+     * @param volumeNativeGuid
+     * @return an UnManagedVolume object if a match is found in the ViPR database
+     */
+	private UnManagedVolume queryUnManagedVolumeByNativeGuid(String volumeNativeGuid) {
+		
+		s_logger.info("...checking ViPR's UnManagedVolume table for volume native guid {}", volumeNativeGuid);
+		URIQueryResultList result = new URIQueryResultList();
+        
+		_dbClient.queryByConstraint(AlternateIdConstraint.Factory
+				.getUnManagedVolumeByNativeGuidConstraint(volumeNativeGuid), result);
+		if(result.iterator().hasNext()) {
+			
+			UnManagedVolume volume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
+            // only return active volumes
+            if (null != volume && !volume.getInactive()) {
+                return volume;
+            }
+		}
+		
+		return null;
+	}
 
     /**
      * Determines if the given VPLEX volume information represents an
@@ -1085,21 +1177,28 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @return an UnManagedVolume object if found, otherwise null
      */
     private UnManagedVolume findUnmanagedVolumeKnownToVipr(VPlexVirtualVolumeInfo info) {
-
-        s_logger.info("Determining if Unmanaged Volume {} is known to ViPR", info.getName());
-        String volumeNativeGuid = info.getPath();
-        s_logger.info("...checking ViPR's UnManagedVolume table for volume native guid {}", volumeNativeGuid);
-
-        URIQueryResultList result = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeInfoNativeIdConstraint(volumeNativeGuid), result);
-        if (result.iterator().hasNext()) {
-            UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class, result.iterator().next());
-            if (null != unManagedVolume && !unManagedVolume.getInactive()) {
-                return unManagedVolume;
+    	
+    	UnManagedVolume volume = null;
+    	if(null!=info) {
+    		s_logger.info("Determining if Unmanaged Volume {} is known to ViPR", info.getName());
+    		String volumeNativeGuid = info.getPath();
+            List<String> clusters = info.getClusters();
+            
+            //check to see if it is present with one cluster
+            volume = queryUnManagedVolumeByNativeGuid(volumeNativeGuid);
+            if(null == volume) {
+            	if(clusters.size() == 2) {
+            		String newVolumeNativeGuid = replaceClusterInNativeGuid(clusters,volumeNativeGuid);
+            		//check to see if it is present with other cluster
+            		volume = queryUnManagedVolumeByNativeGuid(newVolumeNativeGuid);
+                }
             }
-        }
-
+    	}  
+    	
+    	if(null!=volume && !volume.getInactive()) {
+			return volume;
+		}
+    	
         return null;
     }
 

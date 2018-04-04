@@ -256,7 +256,7 @@ def cos_create_invalid_type():
         scheme = 'http://'
         port   = '8080'
 
-    return cos_errorhandling_create(404, 2000, "null for uri: %s%s:%s/invalidType/vpools" % (scheme, str(args.ip), port), "invalidType")
+    return cos_errorhandling_create(404, 2000, "Unable to find entity in request URL", "invalidType")
 
 def cos_create_notfound_neighborhood():
     neighborhood_uri = 'urn:storageos:VirtualArray:11111111-1111-1111-1111-111111111111:vdc1'

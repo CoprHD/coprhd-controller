@@ -293,7 +293,11 @@ public class Workflow implements Serializable {
                 this.state = newState;
                 this.endTime = new Date();
                 String suspendedMsg = String.format("Message: %s", WorkflowService.SUSPENDED_MSG);
-                this.message = this.message.substring(suspendedMsg.length());
+                if (this.message != null && this.message.startsWith(suspendedMsg)) {
+                	this.message = this.message.substring(suspendedMsg.length());
+                } else {
+                	this.message = message;
+                }
             } else {
                 this.state = newState;
                 this.serviceCode = code;

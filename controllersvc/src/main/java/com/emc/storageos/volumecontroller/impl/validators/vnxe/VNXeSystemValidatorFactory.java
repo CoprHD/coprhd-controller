@@ -135,4 +135,14 @@ public class VNXeSystemValidatorFactory implements StorageSystemValidatorFactory
     public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
         return null;
     }
+
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+
+    @Override
+    public Validator exportPathAdjustment(ExportMaskValidationContext ctx) {
+        return null;
+    }
 }

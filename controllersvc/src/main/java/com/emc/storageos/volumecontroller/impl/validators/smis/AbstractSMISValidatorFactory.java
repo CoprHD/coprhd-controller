@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -131,6 +130,15 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     }
 
     /**
+     * Allow subclasses to provide a Validator for export mask port group.
+     *
+     * @param ctx ExportMaskValidationContext
+     * @return AbstractSMISValidator
+     */
+    public abstract AbstractSMISValidator createExportMaskPortGroupValidator(ExportMaskValidationContext ctx);
+
+
+    /**
      * Allow subclasses to return a {@link ValidatorLogger}
      *
      * @return  ValidatorLogger
@@ -229,7 +237,7 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
      * @param logger        ValidatorLogger
      * @param validators    List of AbstractSMISValidator instances
      */
-    private void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
+    protected void configureValidators(ValidatorLogger logger, AbstractSMISValidator... validators) {
         EMCRefreshSystemInvoker emcRefreshSystem = new OneTimeEMCRefreshSystem(helper);
 
         for (AbstractSMISValidator validator : validators) {
@@ -264,6 +272,16 @@ public abstract class AbstractSMISValidatorFactory implements StorageSystemValid
     @Override
     public Validator addInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Validator changePortGroupAddPaths(ExportMaskValidationContext ctx) {
+        return null;
+    }
+
+    @Override
+    public Validator exportPathAdjustment(ExportMaskValidationContext ctx) {
         return null;
     }
 

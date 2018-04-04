@@ -176,6 +176,7 @@ public interface MaskingOrchestrator {
      * @param waitForApproval - If need to suspend before remove paths
      * @param token - Operation token for completer
      */
-    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, boolean waitForApproval, String token);
+    public void changePortGroup(URI storageSystem, URI exportGroup, URI portGroupURI, List<URI> exportMaskURIs, boolean waitForApproval,
+            String token);
     
 }

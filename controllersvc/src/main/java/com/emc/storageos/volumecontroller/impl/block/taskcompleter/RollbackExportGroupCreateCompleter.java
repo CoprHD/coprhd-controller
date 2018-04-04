@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
 
@@ -46,10 +47,16 @@ public class RollbackExportGroupCreateCompleter extends ExportTaskCompleter {
             }
 
             if (exportMask != null) {
+			    URI pgURI = exportMask.getPortGroup();
+				// clean up export group
                 exportGroup.removeExportMask(exportMask.getId());
-                // What if this mask is being referenced by another EG?
-                dbClient.markForDeletion(exportMask);
-                dbClient.updateObject(exportGroup);
+				dbClient.updateObject(exportGroup);
+				// if its not used anywhere and is system created delete it
+				if (ExportMaskUtils.getExportGroups(dbClient, exportMask.getId()).isEmpty()
+                        && exportMask.getCreatedBySystem()) {
+					dbClient.markForDeletion(exportMask);
+				}
+                updatePortGroupVolumeCount(pgURI, dbClient);
             }
             _log.info(String.format("Done RollbackExportGroupCreate - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

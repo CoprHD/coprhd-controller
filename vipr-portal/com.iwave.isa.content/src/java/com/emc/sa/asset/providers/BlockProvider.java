@@ -91,6 +91,7 @@ import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRep;
 import com.emc.storageos.model.portgroup.StoragePortGroupRestRepList;
+import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
@@ -227,6 +228,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
    
     private static final String VMAX_PORT_GROUP_ENABLED = "VMAXUsePortGroupEnabled/value";
     private static final String VMAX = "vmax";
+    
+    private static final String EMPTY_STRING = "";
     
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -375,7 +378,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"host", "project"} )
     public List<AssetOption> getExportVolumePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
 
     @Asset("exportVolumePortGroups")
@@ -429,7 +432,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"aixHost", "project"} )
     public List<AssetOption> getExportVolumeForAixPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumePortGroups")
@@ -441,7 +444,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"windowsHost", "project"} )
     public List<AssetOption> getExportVolumeForWindowsPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumePortGroups")
@@ -453,7 +456,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"hpuxHost", "project"} )
     public List<AssetOption> getExportVolumeForHPPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumePortGroups")
@@ -465,13 +468,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportVolumePortGroups")
     @AssetDependencies( {"linuxHost", "project"} )
     public List<AssetOption> getExportVolumeForLinuxPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportDatastorePortGroups")
     @AssetDependencies( {"esxHost", "project"} )
     public List<AssetOption> getExportDatastorePortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportVolumePortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportVolumePortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
 
     @Asset("exportDatastorePortGroups")
@@ -535,7 +538,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportSnapshotForHostPortGroups")
     @AssetDependencies( {"host", "project"} )
     public List<AssetOption> getExportSnapshotForHostPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId) {
-        return getExportSnapshotForHostPortGroups(ctx, new String(""), hostOrClusterId, projectId);
+    	return getExportSnapshotForHostPortGroups(ctx, EMPTY_STRING, hostOrClusterId, projectId);
     }
     
     @Asset("exportVolumeForComputePortGroups")
@@ -595,7 +598,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("exportContinousCopyForHostPortGroups")
     @AssetDependencies( {"volumeWithContinuousCopies", "host", "project"} )
     public List<AssetOption> getExportContinousCopyForHostPortGroups(AssetOptionsContext ctx, URI volumeId, URI hostOrClusterId, URI projectId) {
-        return getExportContinousCopyForHostPortGroups(ctx, volumeId, new String(""), hostOrClusterId, projectId);
+    	return getExportContinousCopyForHostPortGroups(ctx, volumeId, EMPTY_STRING, hostOrClusterId, projectId);
     }
 
     @Asset("exportContinousCopyForHostPortGroups")
@@ -646,9 +649,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String portMetric = (group.getPortMetric() != null) ? String.valueOf(Math.round(group.getPortMetric() * 100 / 100)) + "%" : "N/A";
             String volumeCount = (group.getVolumeCount() != null) ? String.valueOf(group.getVolumeCount()) : "N/A";
             String nGuid = group.getNativeGuid();
-            String nativeGuid = "";
+            String nativeGuid = EMPTY_STRING;
             try {
-                nativeGuid = nGuid.substring(0, 3) + nGuid.substring(nGuid.length()-4, nGuid.length());
+            	// Remove the PG name from the native GUID.
+                // Ex: 
+                // From -> SYMMETRIX+000196801518+lglw7136_pg
+                // To -> SYMMETRIX+000196801518
+                nativeGuid = nGuid.substring(0, nGuid.lastIndexOf("+", nGuid.length()));
             } catch (Exception e) {
                 nativeGuid = nGuid;
                 warn("Issue encountered parsing native guid %s, exception: %s", nativeGuid, e.getMessage());
@@ -1175,25 +1182,64 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         return options;
     }
-    
+
     @Asset("exportPathPorts")
-    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem" })
-    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId) {
+    @AssetDependencies({ "exportPathVirtualArray", "exportPathStorageSystem", "exportPathExport" })
+    public List<AssetOption> getExportPathPorts(AssetOptionsContext ctx, URI vArrayId, URI storageSystemId,
+            URI exportId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
+
+        // Get all the PGs for the varray/storage system/EG combo then check to
+        // see if there are any non-mutable PGs;
+        // if there are the storage ports displayed to the user would be limited
+        // to just those ones.
+        StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(vArrayId, exportId,
+                storageSystemId, null, null, false);
+
+        // Keep a list of ports from the non-mutable PGs. This could remain
+        // empty if there are no PGs or none that are non-mutable.
+        List<URI> nonMutablePGPortURIs = new ArrayList<URI>();
+
+        if (portGroupsRestRep != null) {
+            // Drill down to get the PG and the storage ports
+            List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
+            if (!CollectionUtils.isEmpty(portGroups)) {
+                for (StoragePortGroupRestRep pg : portGroups) {
+                    // Check to see if the PG is non-mutable
+                    if (!pg.getMutable()) {
+                        // Keep track of these storage ports, they will be used
+                        // to filter out
+                        // other storage ports.
+                        StoragePortList pgPortsList = pg.getStoragePorts();
+                        List<NamedRelatedResourceRep> pgPorts = pgPortsList.getPorts();
+                        for (NamedRelatedResourceRep pgPort : pgPorts) {
+                            nonMutablePGPortURIs.add(pgPort.getId());
+                        }
+                    }
+                }
+            }
+        }
         
         List<StoragePortRestRep> ports = client.storagePorts().getByVirtualArray(vArrayId);
-        
+                
         for (StoragePortRestRep port : ports) {
-            if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
-                    port.getStorageDevice().getId().equals(storageSystemId) &&
-                    port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
-                if (port.getNetwork() != null) {
-                    String portPercentBusy = (port.getPortPercentBusy() != null) ? String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
-                    String networkName = client.networks().get(port.getNetwork().getId()).getName();
-                    String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
-                            port.getPortNetworkId(), portPercentBusy);
-                    options.add(new AssetOption(port.getId(), label));
+        	// Check to see if this port needs to be filtered out.
+            boolean filterOutPortBasedOnPG = (!nonMutablePGPortURIs.isEmpty()) ? 
+                    !nonMutablePGPortURIs.contains(port.getId()) : false;
+                        
+            if (!filterOutPortBasedOnPG) {
+                if (port.getPortType().equals(StoragePort.PortType.frontend.toString()) && 
+                        port.getStorageDevice().getId().equals(storageSystemId) &&
+                        port.getOperationalStatus().equals(StoragePort.OperationalStatus.OK.toString())) {
+                    if (port.getNetwork() != null) {
+                        String portPercentBusy = (port.getPortPercentBusy() != null) ? 
+                                String.valueOf(Math.round(port.getPortPercentBusy() * 100 / 100)) + "%" : "N/A";
+                        String networkName = client.networks().get(port.getNetwork().getId()).getName();
+                        String label = getMessage("exportPathAdjustment.ports", port.getPortName(), networkName, 
+                                port.getPortNetworkId(), portPercentBusy);
+                        options.add(new AssetOption(port.getId(), label));
+                    }
                 }
             }
         }
@@ -1209,7 +1255,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
         return getPreviewStorageSystem(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-                useExisting, storageSystemId, new String(""));
+        		 useExisting, storageSystemId, EMPTY_STRING);
     }
 
     @Asset("exportPathPreviewStorageSystem")
@@ -1233,7 +1279,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
         return getResultingPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-                useExisting, storageSystemId, new String(""));
+        		useExisting, storageSystemId, EMPTY_STRING);
     }
     
     @Asset("exportPathResultingPaths")
@@ -1257,7 +1303,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
 
         return getRemovedPaths(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator,
-                useExisting, storageSystemId, new String(""));
+        		useExisting, storageSystemId, EMPTY_STRING);
     }
     
     @Asset("exportPathRemovedPaths")
@@ -1305,7 +1351,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             key.put(initiator.getId(), portURIs);
             
             String label = getMessage(message, initiator.getHostName(), initiator.getName(), portList);
-            String keyString = new String("");
+            String keyString = EMPTY_STRING;
             try {
                 keyString = CatalogSerializationUtils.serializeToString(key);
             } catch (Exception ex) {
@@ -1325,7 +1371,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             Integer minPaths, Integer maxPaths, Integer pathsPerInitiator, String useExisting, URI storageSystemId) {
         
         return getAffectedExports(ctx, hostOrClusterId, vArrayId, exportId, minPaths, maxPaths, pathsPerInitiator, 
-                useExisting, storageSystemId, new String(""));
+        		useExisting, storageSystemId, EMPTY_STRING);
     }
     
     @Asset("exportPathAffectedExports")
@@ -4181,13 +4227,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     if (isCorrectOperation) {
                         available.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
                     } else {
-                        wrongOperation.add(new AssetOption("",
+                    	wrongOperation.add(new AssetOption(EMPTY_STRING,
                                 getMessage("block.virtualPool.vpoolChangeOperation", vpoolChange.getName(),
                                         getAllowedChangeOperationNames(vpoolChange.getAllowedChangeOperations()))));
                     }
                 }
             } else {
-                notAllowed.add(new AssetOption("",
+            	notAllowed.add(new AssetOption(EMPTY_STRING,
                         getMessage("block.virtualPool.vpoolChangeReason", vpoolChange.getName(), vpoolChange.getNotAllowedReason())));
             }
         }

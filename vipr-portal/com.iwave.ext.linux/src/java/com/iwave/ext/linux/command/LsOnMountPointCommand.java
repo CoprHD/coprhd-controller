@@ -9,15 +9,18 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import com.google.common.collect.Lists;
+import com.iwave.ext.command.CommandException;
 
 public class LsOnMountPointCommand extends LinuxResultsCommand<List<String>> {
 
+	private String mountPoint;
+	
     public LsOnMountPointCommand(String mountPoint) {
+    	this.mountPoint = mountPoint;
         StringBuffer commandBuffer = new StringBuffer();
-        commandBuffer.append("cd ");
+        commandBuffer.append("[ ! \"$(ls -A ");
         commandBuffer.append(mountPoint);
-        commandBuffer.append(";ls");
-
+        commandBuffer.append(")\" ]");
         setCommand(commandBuffer.toString());
     }
 
@@ -28,22 +31,13 @@ public class LsOnMountPointCommand extends LinuxResultsCommand<List<String>> {
 
     @Override
     public void parseOutput() {
-
         results = Lists.newArrayList();
-
-        if (getOutput() != null && getOutput().getStdout() != null) {
-            String[] lines = getOutput().getStdout().split("\n");
-            for (String line : lines) {
-                String s = StringUtils.substringBefore(line, "#");
-                if (StringUtils.isNotBlank(s)) {
-
-                    if (s.contains("No such file or directory")) {
-                        break;
-                    } else if (!s.equals("lost+found")) {
-                        results.add(s);
-                    }
-                }
-            }
-        }
+        log.info("Ls on Mount Point execution successful. Mount point doesn't exist or doesn't contain data.");
+    }
+    
+    
+    protected void processError() throws CommandException {
+        String errorMessage = "Mount point contains files or directories: " + mountPoint;
+        throw new CommandException(errorMessage, getOutput());
     }
 }

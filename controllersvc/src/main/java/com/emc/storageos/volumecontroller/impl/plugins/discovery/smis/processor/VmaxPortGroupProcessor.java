@@ -80,6 +80,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         String portName = CIMPropertyFactory.getPropertyValue(cimInstance,
                                 Constants._Name);
                         String fixedName = Initiator.toPortNetworkId(portName);
+                        log.debug("Storage Port: {}", fixedName);
                         storagePorts.add(fixedName);
                     }
                     if (!storagePorts.isEmpty()) {
@@ -107,7 +108,12 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         List<URI> storagePortURIs = new ArrayList<URI>();
                         storagePortURIs.addAll(transform(ExportUtils.storagePortNamesToURIs(dbClient, storagePorts),
                                 CommonTransformerFunctions.FCTN_STRING_TO_URI));
-                        portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(storagePortURIs));
+                        if (!portGroup.getStoragePorts().isEmpty()) {
+                            portGroup.getStoragePorts().replace(StringSetUtil.uriListToStringSet(storagePortURIs));
+                        } else {
+                            portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(storagePortURIs));
+                        }
+
                         dbClient.updateObject(portGroup);
                     } else {
                         // no storage ports in the port group, remove it

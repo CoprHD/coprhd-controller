@@ -82,6 +82,7 @@ public class NDMService extends ViPRService {
             addAffectedResource(createMigration);
         }
 
+
         // rescan host
         if (!storageGroups.isEmpty()) {
             Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroups.get(0)));

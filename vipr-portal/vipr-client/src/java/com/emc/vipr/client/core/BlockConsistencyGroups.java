@@ -499,6 +499,20 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     }
 
     /**
+     * Ready tgt the consistency group migration
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/migration/readytgt</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BlockConsistencyGroupRestRep> migrationReadyTgt(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/migration/readytgt";
+        return postTask(url, consistencyGroupId);
+    }
+
+    /**
      * Commit the consistency group migration
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/migration/commit</tt>

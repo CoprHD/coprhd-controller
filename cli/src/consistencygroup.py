@@ -70,6 +70,7 @@ class ConsistencyGroup(object):
     URI_CONSISTENCY_GROUPS_MIGRATION = URI_CONSISTENCY_GROUPS_INSTANCE + "/migration"
     URI_CONSISTENCY_GROUPS_MIGRATION_CREATE = URI_CONSISTENCY_GROUPS_MIGRATION + "/create"
     URI_CONSISTENCY_GROUPS_MIGRATION_CUTOVER = URI_CONSISTENCY_GROUPS_MIGRATION + "/cutover"
+    URI_CONSISTENCY_GROUPS_MIGRATION_READYTGT = URI_CONSISTENCY_GROUPS_MIGRATION + "/ready-tgt"
     URI_CONSISTENCY_GROUPS_MIGRATION_COMMIT = URI_CONSISTENCY_GROUPS_MIGRATION + "/commit"
     URI_CONSISTENCY_GROUPS_MIGRATION_CANCEL = URI_CONSISTENCY_GROUPS_MIGRATION + "/cancel"
     URI_CONSISTENCY_GROUPS_MIGRATION_REFRESH = URI_CONSISTENCY_GROUPS_MIGRATION + "/refresh"
@@ -1570,6 +1571,32 @@ def migration_cutover_parser(subcommand_parsers, common_parser):
 def migration_cutover(args):
     migration_operation(args, "create", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_CUTOVER,args.sync,args.synctimeout)
 
+
+# migration readytgt parser
+def migration_readytgt_parser(subcommand_parsers, common_parser):
+    migration_readytgt_parser = subcommand_parsers.add_parser(
+        'migration-readytgt',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Run migration ready-target',
+        description='ViPR Consistency group migration ReadyTgt CLI usage.')
+    migration_readytgt_parser.add_argument('-synchronous', '-sync',
+                                               dest='sync',
+                                               help='Execute in synchronous mode',
+                                               action='store_true')
+    migration_readytgt_parser.add_argument('-synctimeout',
+                                               dest='synctimeout',
+                                               help='Synchronous timeout in Seconds',
+                                               default=0, type=int)
+    # Add parameter from common parser
+    migration_common_parser(migration_readytgt_parser)
+    migration_readytgt_parser.set_defaults(func=migration_readytgt)
+
+# migration readytgt 
+def migration_readytgt(args):
+    migration_operation(args, "create", ConsistencyGroup.URI_CONSISTENCY_GROUPS_MIGRATION_READYTGT,args.sync,args.synctimeout)
+
+
 # migration commit parser
 def migration_commit_parser(subcommand_parsers, common_parser):
     migration_commit_parser = subcommand_parsers.add_parser(
@@ -1895,6 +1922,7 @@ def consistencygroup_parser(parent_subparser, common_parser):
     migration_list_parser(subcommand_parsers, common_parser)
     migration_create_parser(subcommand_parsers, common_parser)
     migration_cutover_parser(subcommand_parsers, common_parser)
+    migration_readytgt_parser(subcommand_parsers, common_parser)
     migration_commit_parser(subcommand_parsers, common_parser)
     migration_cancel_parser(subcommand_parsers, common_parser)
     migration_refresh_parser(subcommand_parsers, common_parser)

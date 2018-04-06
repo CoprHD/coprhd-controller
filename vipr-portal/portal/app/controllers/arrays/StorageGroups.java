@@ -47,6 +47,7 @@ public class StorageGroups extends Controller {
     private static final String COMMIT_MULTIPLE = "resources.storageGroups.commit.multiple";
     private static final String RECOVER_MULTIPLE = "resources.storageGroups.recover.multiple";
     private static final String CUTOVER_MULTIPLE = "resources.storageGroups.cutover.multiple";
+    private static final String READYTGT_MULTIPLE = "resources.storageGroups.readytgt.multiple";
     private static final String SYNC_START_MULTIPLE = "resources.storageGroups.syncstart.multiple";
     private static final String SYNC_STOP_MULTIPLE = "resources.storageGroups.syncstop.multiple";
     private static final String RESCAN_HOST_MULTIPLE = "resources.storageGroups.rescanhosts.multiple";
@@ -167,6 +168,19 @@ public class StorageGroups extends Controller {
                 getViprClient().blockConsistencyGroups().migrationCutover(id);
             }
             flash.success(MessagesUtils.get(CUTOVER_MULTIPLE));
+        } catch (Exception e) {
+            flashException(e);
+            listAll();
+        }
+        listAll();
+    }
+
+    public static void readytgt(@As(",") List<URI> ids) {
+        try {
+            for (URI id : ids) {
+                getViprClient().blockConsistencyGroups().migrationReadyTgt(id);
+            }
+            flash.success(MessagesUtils.get(READYTGT_MULTIPLE));
         } catch (Exception e) {
             flashException(e);
             listAll();

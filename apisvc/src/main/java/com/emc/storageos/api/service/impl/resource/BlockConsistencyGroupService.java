@@ -2873,18 +2873,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
-
-        StorageSystem sourceStorageSystem = _dbClient.queryObject(StorageSystem.class, cg.getStorageController());
-
         ResourceOperationTypeEnum taskType =  ResourceOperationTypeEnum.MIGRATION_CUTOVER;
         MigrationServiceApi migrationApiImpl = getMigrationServiceImpl(cg);
-
-        if (sourceStorageSystem.checkIfVmax3()) {
-           taskType = ResourceOperationTypeEnum.MIGRATION_READYTGT;
-           migrationApiImpl.migrationReadyTgt(id, migration.getId(), taskId);
-        } else {
-            migrationApiImpl.migrationCutover(id, migration.getId(), taskId);
-        }
+        migrationApiImpl.migrationCutover(id, migration.getId(), taskId);
 
         migration.setJobStatus(JobStatus.IN_PROGRESS.name());
         _dbClient.updateObject(migration);

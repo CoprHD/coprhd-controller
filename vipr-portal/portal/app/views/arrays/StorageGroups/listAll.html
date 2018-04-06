@@ -41,6 +41,7 @@
       </button>
       <ul class="dropdown-menu" role="menu">
       	<li><a onclick="return $('#cutoverForm').submit();">&{'resources.storagegroups.migration.cutover'}</a></li>
+      	<li><a onclick="return $('#readytgtForm').submit();">&{'resources.storagegroups.migration.readytgt'}</a></li>
 	  	<li><a onclick="return $('#cancelForm').submit();">&{'resources.storagegroups.migration.cancel'}</a></li>
 	  	<li><a onclick="return $('#recoverForm').submit();">&{'resources.storagegroups.migration.recover'}</a></li>
 	  	<li><a onclick="return $('#rescanhostsForm').submit();">&{'resources.storagegroups.migration.rescanhosts'}</a></li>
@@ -56,6 +57,7 @@
     #{doBody/}
   #{/DataTable.buttonBar}
   #{DataTable.formAction @cutover(), id:'cutoverForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cutoverConfirm')/}
+  #{DataTable.formAction @readytgt(), id:'readytgtForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.readytgtConfirm')/}
   #{DataTable.formAction @commit(), id:'commitForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.commitConfirm')/}
   #{DataTable.formAction @cancel(), id:'cancelForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.cancelConfirm')/}
   #{DataTable.formAction @refresh(), id:'refreshForm', table:'storagegroups', confirm:messages.get('resources.storageGroups.refreshConfirm')/}

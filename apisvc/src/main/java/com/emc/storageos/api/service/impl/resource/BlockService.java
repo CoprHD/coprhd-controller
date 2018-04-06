@@ -43,6 +43,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapVolume;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -65,6 +66,8 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -83,6 +86,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -201,6 +205,13 @@ public class BlockService extends TaskResourceService {
     private static final String MIRRORS = "Mirrors";
 
     private static final String SIZE = "size";
+
+	@Autowired
+	private CustomConfigHandler customConfigHandler;
+
+	public CustomConfigHandler getCustomConfigHandler() {
+		return customConfigHandler;
+	}
 
     // Protection operations that are allowed with /block/volumes/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
@@ -796,6 +807,12 @@ public class BlockService extends TaskResourceService {
         // Validate the port group
         URI portGroupURI = param.getPortGroup();
         if (!NullColumnValueGetter.isNullURI(portGroupURI)) {
+			// Check if the use port group config setting is on
+			String value = customConfigHandler.getComputedCustomConfigValue(
+					CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED, Type.vmax.name(), null);
+			if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
+				throw APIException.badRequests.portGroupSettingIsOff();
+			}
             ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");
             StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupURI);
             if (portGroup == null ||

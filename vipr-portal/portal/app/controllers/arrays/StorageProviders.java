@@ -190,7 +190,7 @@ public class StorageProviders extends ViprResourceController {
                         }
                         if (StringUtils.equals(VMAX, ss.getSystemType())) {
                             String modelType = ss.getModel();
-                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                            if ((modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) || (modelType != null && modelType.contains("PowerMax"))) {
                                 ssMap.put("id", ss.getId().toString());
                                 ssMap.put("name", ss.getName());
                                 storagesystemslist.add(ssMap);

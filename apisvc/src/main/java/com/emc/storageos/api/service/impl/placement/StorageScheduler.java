@@ -650,8 +650,7 @@ public class StorageScheduler implements Scheduler {
                  * Note that personality won't be supplied for stand alone volumes (volumes without data protection).
                  * So we need to consider that case as well.
                  */
-                boolean filterStoragePoolsByPersonalityIfProvided = (personality == null || (RPHelper.SOURCE.equals(personality)
-                        || VirtualPoolCapabilityValuesWrapper.SRDF_SOURCE.equalsIgnoreCase(personality)));
+                boolean filterStoragePoolsByPersonalityIfProvided = (personality == null || (RPHelper.SOURCE.equals(personality)));
                 if (filterStoragePoolsByPersonalityIfProvided) {
                     // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
                     limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);

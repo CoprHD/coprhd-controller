@@ -82,11 +82,18 @@ public class NDMService extends ViPRService {
             addAffectedResource(createMigration);
         }
 
+        StorageSystemRestRep sourceSystem = getClient().storageSystems().get(URI.create(sourceStorageSystem));
+        String fwMajorVersion = sourceSystem.getFirmwareVersion().split("\\.")[0];
+        boolean isVMAX3  = (Integer.parseInt(fwMajorVersion) >= 5977) ? true : false;
 
         // rescan host
         if (!storageGroups.isEmpty()) {
+        	if (!isVMAX3) {
             Tasks<HostRestRep> rescanHost = execute(new RescanHost(storageGroups.get(0)));
-            addAffectedResources(rescanHost);
+            addAffectedResources(rescanHost); } 
+        	else {
+        		logInfo("Not Initiating a rescan of the hosts, because this is a VMAX3 array");
+        	}
         }
 
         logInfo("Migration created. Go to StorageGroup Resource page to do cutover");

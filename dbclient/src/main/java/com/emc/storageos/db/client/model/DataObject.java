@@ -428,9 +428,7 @@ public abstract class DataObject implements Serializable {
         // As an alternate, we can change the BlockFullCopyManager method signatures
         // to accept multiple URIs but doing it will result in changes in too many Impl classes
         // and the real meaning of those methods may not indicate the same.
-        VOLUME_GROUP_PARTIAL_REQUEST(8),   // 0x100
-        // COP-34971 This flag is used in VMAX ExportMask to figure out we are in initiator delete operation.
-        EXPORT_GROUP_REMOVE_INITIATOR_REQUEST(9);   // 0x200
+        VOLUME_GROUP_PARTIAL_REQUEST(8);   // 0x100
 
         private final long mask;
 

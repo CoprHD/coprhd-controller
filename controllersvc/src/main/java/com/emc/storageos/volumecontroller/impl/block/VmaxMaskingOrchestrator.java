@@ -556,14 +556,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         }
 
                         if (!refreshedMasks.containsKey(mask.getId())) {
-                            // set the flag before refreshing exportmask (refer COP-34971)
-                            // So that we will know request is for vmax remove initiator
-                            // and will not delete required FCZoneReferences. Flag is read in NetworkDeviceController
-                            // refreshFCZoneReferences method
-                            addInitiatorRemoveFlag(mask);
                             // refresh the export mask always
-                            mask = device.refreshExportMask(storage, mask);
-                            clearInitiatorRemoveFlag(mask);
+                            mask = ((SmisStorageDevice) device).refreshExportMask(storage, mask, initiatorURIs);
                             refreshedMasks.put(mask.getId(), mask);
                         }
 
@@ -775,32 +769,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 taskCompleter.error(_dbClient, serviceError);
             }
         }
-    }
-
-    /**
-     * Clear the EXPORT_GROUP_REMOVE_INITIATOR_REQUEST flag in mask
-     * 
-     * @param mask
-     */
-    private void clearInitiatorRemoveFlag(ExportMask mask) {
-        mask.clearInternalFlags(Flag.EXPORT_GROUP_REMOVE_INITIATOR_REQUEST);
-        _log.info("exportMask {} has internalFlags set to {}",
-                new Object[] { mask.getLabel(), mask.getInternalFlags() });
-        _dbClient.updateObject(mask);
-
-    }
-
-    /**
-     * Add the EXPORT_GROUP_REMOVE_INITIATOR_REQUEST flag in mask
-     * 
-     * @param mask
-     */
-    private void addInitiatorRemoveFlag(ExportMask mask) {
-        mask.addInternalFlags(Flag.EXPORT_GROUP_REMOVE_INITIATOR_REQUEST);
-        _log.info("exportMask {} has internalFlags set to {}",
-                new Object[] { mask.getLabel(), mask.getInternalFlags() });
-        _dbClient.updateObject(mask);
-
     }
 
     @Override

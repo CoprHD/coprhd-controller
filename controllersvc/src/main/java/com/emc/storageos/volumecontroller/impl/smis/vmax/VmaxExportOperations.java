@@ -2298,9 +2298,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
         }
     }
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask, List<URI> initiatorURIs) throws DeviceControllerException {
 
-    @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         try {
             CIMInstance instance = _helper.getSymmLunMaskingView(storage, mask);
@@ -2554,6 +2553,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
             _log.info(String.format("refreshExportMask took %f seconds", (double) totalTime / (double) 1000));
         }
         return mask;
+    }
+
+    @Override
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
+        return refreshExportMask(storage, mask, null);
     }
 
     // //////////// VMAX specific export helpers ////////////////

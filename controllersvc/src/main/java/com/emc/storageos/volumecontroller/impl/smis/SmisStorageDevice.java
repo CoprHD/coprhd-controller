@@ -103,6 +103,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVolumeExpandJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -1092,6 +1093,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
+    }
+
+    public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask, List<URI> userDeletedInitiaitor)
+            throws DeviceControllerException {
+        return ((VmaxExportOperations) _exportMaskOperationsHelper).refreshExportMask(storage, mask, userDeletedInitiaitor);
     }
 
     @Override

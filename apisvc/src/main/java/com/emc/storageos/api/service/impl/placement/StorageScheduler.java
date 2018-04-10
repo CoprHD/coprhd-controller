@@ -639,6 +639,7 @@ public class StorageScheduler implements Scheduler {
             // PG was not supplied. This is normally OK unless the VMAX PG feature in enabled and the vpool is not for VPLEX. 
             String value = _customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
                     Type.vmax.name(), null);
+            _log.info("Controller config value of: Use Existing Port Group is [{}].", value);
             if (Boolean.TRUE.toString().equalsIgnoreCase(value) && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
                 String personality = capabilities.getPersonality();
                 /*
@@ -652,6 +653,8 @@ public class StorageScheduler implements Scheduler {
                  */
                 boolean filterStoragePoolsByPersonalityIfProvided = (personality == null || (RPHelper.SOURCE.equals(personality)));
                 if (filterStoragePoolsByPersonalityIfProvided) {
+                    _log.info("Limit the storage pools to those not requiring PG because volume personality is: {}.",
+                            personality);
                     // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
                     limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
                 }

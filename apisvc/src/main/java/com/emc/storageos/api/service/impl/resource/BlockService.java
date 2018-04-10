@@ -811,6 +811,8 @@ public class BlockService extends TaskResourceService {
 			String value = customConfigHandler.getComputedCustomConfigValue(
 					CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED, Type.vmax.name(), null);
 			if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {
+				_log.error("The config setting of use existing port groups for VMAX provisioning is off,"
+						+ " please turn it on if using port group for provisioning.");
 				throw APIException.badRequests.portGroupSettingIsOff();
 			}
             ArgValidator.checkFieldUriType(portGroupURI, StoragePortGroup.class, "portGroup");

@@ -8,7 +8,6 @@ import static com.emc.sa.service.ServiceParams.CHANGE_PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.CURRENT_PORT_GROUP;
 import static com.emc.sa.service.ServiceParams.EXPORT;
 import static com.emc.sa.service.ServiceParams.HOST;
-import static com.emc.sa.service.ServiceParams.STORAGE_SYSTEM;
 import static com.emc.sa.service.ServiceParams.SUSPEND_WAIT;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 
@@ -34,9 +33,6 @@ public class ExportChangePortGroupService extends ViPRService {
     
     @Param(EXPORT)
     protected URI exportId;
-    
-    @Param(STORAGE_SYSTEM)
-    protected URI storageSystemId;
     
     @Param(CURRENT_PORT_GROUP)
     protected URI currentPortGroupId;

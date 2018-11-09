@@ -40,8 +40,8 @@
 <target name="adg-security"                        depends="adg-security-11-4_1"/>
 <target name="adg-tools"                           depends="adg-tools-4-3_1"/>
 <target name="adg-vami25"                          depends="adg-vami25-1-2"/>
-<target name="adg_platform"                        depends="adg_platform_12_0_19_0"/>
-<target name="adg_minimal"                         depends="adg_minimal_12_0_19_0"/>
+<target name="adg_platform"                        depends="adg_platform_12_0_20_0"/>
+<target name="adg_minimal"                         depends="adg_minimal_12_0_20_0"/>
 <target name="adg_web-demo-conf"                   depends="adg_web-demo-conf-2-1_1"/>
 <target name="adobe-flex-dev-rt"                   depends="adobe-flex-dev-rt-3.5.0.12683-1"/>
 <target name="ant"                                 depends="ant-1.9.4-1.31_1"/>
@@ -202,6 +202,7 @@
 <target name="glib2-lang"                          depends="glib2-lang-2.38.2-5.12_1"/>
 <target name="glib2-tools"                         depends="glib2-tools-2.38.2"/>
 <target name="glib2-tools-2.38.2"                  depends="glib2-tools-2.38.2-5.12_2"/>
+<target name="glib-networking"                     depends="glib-networking-2.38.2-1.41_1"/>
 <target name="glibc"                               depends="glibc-2.19-22.24.5_1"/>
 <target name="glibc-32bit"                         depends="glibc-32bit-2.19-22.24.5_1"/>
 <target name="glibc-devel"                         depends="glibc-devel-2.19-22.24.5_1"/>
@@ -321,7 +322,7 @@
 <target name="jre7-jdbc"                           depends="java-1.7.0-oracle-jdbc"/>
 <target name="jre8"                                depends="java8"/>
 <target name="keepalived"                          depends="keepalived-1.2.15-12.1_1"/>
-<target name="kernel-default"                      depends="kernel-default-3.12.61-52.122.1_1"/>
+<target name="kernel-default"                      depends="kernel-default-3.12.61-52.125.1_1"/>
 <target name="kernel-default-base"                 depends="kernel-default-base-3.12.51-52.31.1_1"/>
 <target name="kernel-default-devel"                depends="kernel-default-devel-3.12.51-52.31.1_1"/>
 <target name="kernel-devel"                        depends="kernel-devel-3.12.51-52.31.1_1"/>
@@ -447,9 +448,9 @@
 <target name="liboggkate1"                         depends="liboggkate1-0.4.1-20.65_1"/>
 <target name="libopenssl-devel"                    depends="libopenssl-devel-1.0.1i-27.16.1_1"/>
 <target name="libopenssl1_0_0"                     depends="libopenssl1_0_0-1.0.1i"/>
-<target name="libopenssl1_0_0-1.0.1i"              depends="libopenssl1_0_0-1.0.1i-27.21.1_1"/>
+<target name="libopenssl1_0_0-1.0.1i"              depends="libopenssl1_0_0-1.0.1i-27.31.1_1"/>
 <target name="libopenssl1_0_0-1.0.1i-2.12"         depends="libopenssl1_0_0-1.0.1i-2.12_1"/>
-<target name="libopenssl1_0_0-hmac"                depends="libopenssl1_0_0-hmac-1.0.1i-27.28.1_1"/>
+<target name="libopenssl1_0_0-hmac"                depends="libopenssl1_0_0-hmac-1.0.1i-27.31.1_1"/>
 <target name="libpci3"                             depends="libpci3-3.2.1-2.15_1"/>
 <target name="libpcre1"                            depends="libpcre1-8.39-7.1_1"/>
 <target name="libpcre1-8.33"                       depends="libpcre1-8.33-3.314_1"/>
@@ -557,7 +558,7 @@
 <target name="openssh"                             depends="openssh-6.6p1-54.7.1_1"/>
 <target name="openssh-fips"                        depends="openssh-fips-6.6p1-54.7.1_1"/>
 <target name="openssl"                             depends="openssl-1.0.1i"/>
-<target name="openssl-1.0.1i"                      depends="openssl-1.0.1i-27.28.1_1"/>
+<target name="openssl-1.0.1i"                      depends="openssl-1.0.1i-27.31.1_1"/>
 <target name="openssl-certs"                       depends="openssl-certs-1.97-0.3.1_1"/>
 <target name="oro"                                 depends="oro-2.0.8"/>
 <target name="osgi"                                depends="osgi-1.2.0"/>

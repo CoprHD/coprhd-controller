@@ -8,6 +8,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.API_BAD_REQUEST;
+import static com.emc.storageos.db.client.util.SizeUtil.SIZE_GB;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
+import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
@@ -60,11 +62,13 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.BulkRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -73,6 +77,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
+import com.emc.storageos.model.block.BlockSnapshotExpandParam;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
@@ -1046,5 +1051,96 @@ public class BlockSnapshotService extends TaskResourceService {
         _dbClient.createObject(volume);
 
         return volume;
+    }
+    
+    
+    /**
+     * Request to expand blocksnapshot capacity to the specified size.
+     * Currently This API is supported only for XtremIO.
+     *
+     * @prereq snapshot should exist before this operation and 
+     *                   newSize should be greater than current size.
+     *
+     * @param id
+     *            the URN of a ViPR BlockSnapshot.
+     * @param param
+     *            Specifies requested size for BlockSnapshot expansion.
+     *
+     * @brief Expand blocksnapshot capacity
+     * @return Task resource representation
+     *
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/expand")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep expandBlockSnapshot(@PathParam("id") URI id, BlockSnapshotExpandParam param) throws InternalException {
+
+        // Get the volume.
+        ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
+        BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.EXPAND_BLOCK_SNAPSHOT);
+        
+        Volume volume = (Volume) queryResource(snapshot.getParent().getURI());
+        
+        // Get the new size.
+        Long newSize = SizeUtil.translateSize(param.getNewSize());
+        
+        //Check whether snapshot belongs to a XIO or not as only XIO supports snapshot expansion.
+        if (!Type.isXtremIOStorageSystem(Type.valueOf(snapshot.getSystemType()))) {
+            _log.error("Snapshot {} expansion is supported only for xtremio systems.", snapshot.getLabel());
+            throw APIException.badRequests.snapshotExpansionNotSupported(snapshot.getLabel(), snapshot.getSystemType());
+        }
+
+        if (newSize.equals(snapshot.getProvisionedCapacity())) {
+            _log.error("Snapshot newSize specified is same as current size {}GB", SizeUtil.translateSize(snapshot.getProvisionedCapacity(), SIZE_GB));
+            throw APIException.badRequests.snapshotNewSizeSameAsCurrentSize();
+        }
+        // Verify that the source volume is 'expandable'
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        if (!virtualPool.getExpandable()) {
+            _log.error("Expand feature is not enabled for VPool {}", virtualPool.getLabel());
+            throw APIException.badRequests.snapshotNotExpandable(virtualPool.getLabel(), snapshot.getLabel());
+        }
+        
+        // Check if the snapshot new size is same as source volume size. if not throw exception
+        if (!newSize.equals(volume.getProvisionedCapacity())) {
+        	Double sourVolSizeInGB = SizeUtil.translateSize(volume.getProvisionedCapacity(), SIZE_GB);
+            _log.error("Snapshot {} newSize {} is not matching with source volume size {}GB", snapshot.getLabel(), newSize, sourVolSizeInGB);
+            throw APIException.badRequests.snapshotSourceVolumeSizeMismatch(snapshot.getLabel(), volume.getLabel(), sourVolSizeInGB);
+        }
+
+        // verify quota
+        if (newSize > snapshot.getProvisionedCapacity()) {
+            long size = newSize - snapshot.getProvisionedCapacity();
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
+            ArgValidator.checkEntity(tenant, volume.getTenant().getURI(), false);
+            Project project = _dbClient.queryObject(Project.class, volume.getProject().getURI());
+            ArgValidator.checkEntity(project, volume.getProject().getURI(), false);
+            VirtualPool vPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            ArgValidator.checkEntity(vPool, volume.getVirtualPool(), false);
+            CapacityUtils.validateQuotasForProvisioning(_dbClient, vPool, project, tenant, size, "snapshot");
+        }
+        
+        // Make sure that we don't have some pending operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(snapshot));
+        
+        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
+        
+        _log.info("expandBlockSnapshot --- Snapshot id: {}, Current size: {}, New size: {}", id, snapshot.getProvisionedCapacity(), newSize);
+
+        String taskId = UUID.randomUUID().toString();
+        
+        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId, op);
+       
+        // Expand the snapshot.
+        blockServiceApiImpl.expandBlockSnapshot(snapshot, newSize, taskId);
+       
+        auditOp(OperationTypeEnum.EXPAND_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN, snapshot.getId().toString(), snapshot.getLabel());
+        
+        return toTask(snapshot, taskId, op); 
     }
 }

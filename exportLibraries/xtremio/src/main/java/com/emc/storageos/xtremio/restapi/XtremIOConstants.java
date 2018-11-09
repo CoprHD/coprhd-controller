@@ -105,6 +105,8 @@ public class XtremIOConstants {
     public static final String ONE_HOUR = "one_hour";
     public static final String AVG_CPU_USAGE = "avg__cpu_usage";
     public static final String NAME = "name";
+    
+    public static final String SNAP_SIZE_MISMATCH_ERROR_KEY = "invalid_vol_size";
 
     public static enum XTREMIO_ENTITY_TYPE {
         ConsistencyGroup,

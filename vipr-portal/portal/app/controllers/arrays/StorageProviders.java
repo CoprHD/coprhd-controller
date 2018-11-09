@@ -74,6 +74,8 @@ public class StorageProviders extends ViprResourceController {
     private static final String VMAX = "vmax";
     private static final String XTREMIO = "xtremio";
     private static final String SUFFIX_ALL_FLASH = "F";
+    private static final String POWERMAX = "PowerMax";
+    private static final String PMAX = "pmax";
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String STORAGE_SYSTEMS = "storage_systems";
@@ -190,7 +192,7 @@ public class StorageProviders extends ViprResourceController {
                         }
                         if (StringUtils.equals(VMAX, ss.getSystemType())) {
                             String modelType = ss.getModel();
-                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && (modelType.contains(SUFFIX_ALL_FLASH) ||  modelType.contains(POWERMAX) || modelType.contains(PMAX))) {
                                 ssMap.put("id", ss.getId().toString());
                                 ssMap.put("name", ss.getName());
                                 storagesystemslist.add(ssMap);
@@ -211,7 +213,7 @@ public class StorageProviders extends ViprResourceController {
                     }
                     if (StringUtils.equals(VMAX, ss.getSystemType()) || StringUtils.equals(UNITY, ss.getSystemType())) {
                         String modelType = ss.getModel();
-                        if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                        if (modelType != null && (modelType.contains(SUFFIX_ALL_FLASH) ||  modelType.contains(POWERMAX) || modelType.contains(PMAX))) {
                             ssMap.put("id", ss.getId().toString());
                             ssMap.put("name", ss.getName());
                             storagesystemslist.add(ssMap);

@@ -134,6 +134,18 @@ public interface BlockController extends BlockStorageManagementController {
      */
     public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws InternalException;
+    
+    /**
+     * WF for block snapshot expand request.
+     * 
+     * @param storage URI of storage controller.
+     * @param snapshot URI of snapshot to be created.
+     * @param size new snapshot size.
+     * @param opId
+     * @throws InternalException When an exception occurs expanding the volume
+     */
+    public void expandBlockSnapshot(URI storage, URI snapshot, Long size, String opId) throws InternalException;
+
 
     /**
      * This interface is for the snapshot active. The createSnapshot may have done

@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileMountInfo;
@@ -802,6 +803,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
 
         for (ExportGroup export : exportGroups) {
+            //RP internal EG can have Host/Cluster URN to comply with VMAX-RP best practice.
+            //While doing Host related operation These EG should be ignored.
+            if (export.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                _log.info("Skipping add initiator step. Export group : {} is an internal object.", export.getId());
+                continue;
+            }
             List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
@@ -845,7 +852,25 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorsURI);
         List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, initiators);
 
+        // This will make sure we update Cluster ExportGroup first.
+        // So that in case of last initiator delete, zone get removed from switch.Refer COP-35287 for details
+        ArrayList<ExportGroup> exportGroupsSeq = new ArrayList<>();
         for (ExportGroup export : exportGroups) {
+            //RP internal EG can have Host/Cluster URN to comply with VMAX-RP best practice.
+            //While doing Host related operation These EG should be ignored.
+            if (export.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                _log.info("Skipping remove initiator step. Export group : {} is an internal object.", export.getId());
+                continue;
+            }
+            if (export.getType().equals("Cluster")) {
+                _log.info("Cluster ExportGroup will get updated {} before any Host ExportGroup", export.getLabel());
+                exportGroupsSeq.add(0, export);
+            } else {
+                exportGroupsSeq.add(export);
+            }
+        }
+
+        for (ExportGroup export : exportGroupsSeq) {
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             Set<URI> addedClusters = new HashSet<>();
@@ -901,6 +926,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
 
         for (ExportGroup export : exportGroups) {
+            //RP internal EG can have Host/Cluster URN to comply with VMAX-RP best practice.
+            //While doing Host related operation These EG should be ignored.
+            if (export.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                _log.info("Skipping remove host step. Export group : {} is an internal object.", export.getId());
+                continue;
+            }
             newWaitFor = addStepsForRemoveHostFromExport(workflow, newWaitFor, hostIds, export.getId());
         }
 
@@ -1040,6 +1071,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<ExportGroup> exportGroups = getSharedExports(_dbClient, clusterId);
 
         for (ExportGroup eg : exportGroups) {
+            //RP internal EG can have Host/Cluster URN to comply with VMAX-RP best practice.
+            //While doing Host related operation These EG should be ignored.
+            if (eg.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                _log.info("Skipping Add Host step. Export group : {} is an internal object.", eg.getId());
+                continue;
+            }
 
             Set<URI> addedClusters = new HashSet<>();
             Set<URI> removedClusters = new HashSet<>();
@@ -1219,6 +1256,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
 
         for (ExportGroup export : getExportGroups(_dbClient, hostId, hostInitiators)) {
+            //RP internal EG can have Host/Cluster URN to comply with VMAX-RP best practice.
+            //While doing Host related operation These EG should be ignored.
+            if (export.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
+                _log.info("Skipping update export group for export group : {} is an internal object.", export.getId());
+                continue;
+            }
             List<URI> existingHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 

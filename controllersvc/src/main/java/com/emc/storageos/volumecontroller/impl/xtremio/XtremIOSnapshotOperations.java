@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
@@ -35,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUti
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
@@ -259,17 +261,30 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
     @Override
     public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
+        Volume sourceVol = null;
         try {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
-            Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
+            sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             client.restoreVolumeFromSnapshot(clusterName, sourceVol.getDeviceLabel(), snapshotObj.getDeviceLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            ServiceError serviceError = null;
+            if (e instanceof XtremIOApiException) {
+                XtremIOApiException xioException = (XtremIOApiException) e;
+                // check for specific error key for snapshot size mismatch with source volume.
+                if(null != xioException.getMessage() && xioException.getMessage().contains(XtremIOConstants.SNAP_SIZE_MISMATCH_ERROR_KEY)) {
+                    String restoreFailureMsg = String.format(
+                            "snapshot size mismatch with the source volume size %s. Use expand snapshot feature to increase the snapshot size.", 
+                            sourceVol.getProvisionedCapacity());
+                    serviceError = DeviceControllerErrors.xtremio.restoreSnapshotFailureSourceSizeMismatch(restoreFailureMsg);
+                }
+            } else {
+                serviceError = DeviceControllerException.errors.jobFailed(e);
+            }
             taskCompleter.error(dbClient, serviceError);
         }
 
@@ -298,7 +313,18 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            ServiceError serviceError = null;
+            if (e instanceof XtremIOApiException) {
+                XtremIOApiException xioException = (XtremIOApiException) e;
+                // check for specific error key for snapshot size mismatch with source volume.
+                if(null != xioException.getMessage() && xioException.getMessage().contains(XtremIOConstants.SNAP_SIZE_MISMATCH_ERROR_KEY)) {
+                    String restoreFailureMsg = "One or more CG snapshots size mismatch with its source volume size. "
+                            + "Use expand snapshot feature to increase the snapshot size.";
+                    serviceError = DeviceControllerErrors.xtremio.restoreSnapshotFailureSourceSizeMismatch(restoreFailureMsg);
+                }
+            } else {
+                serviceError = DeviceControllerException.errors.jobFailed(e);
+            }
             taskCompleter.error(dbClient, serviceError);
         }
     }
@@ -306,18 +332,31 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
     @Override
     public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
+        Volume sourceVol = null;
         try {
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
-            Volume sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
+            sourceVol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             client.refreshSnapshotFromVolume(clusterName, sourceVol.getDeviceLabel(), snapshotObj.getDeviceLabel());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            taskCompleter.error(dbClient, serviceError);
+            ServiceError serviceError = null;
+            if (e instanceof XtremIOApiException) {
+                XtremIOApiException xioException = (XtremIOApiException) e;
+                // check for specific error key for snapshot size mismatch with source volume.
+                if(null != xioException.getMessage() && xioException.getMessage().contains(XtremIOConstants.SNAP_SIZE_MISMATCH_ERROR_KEY)) {
+                    String restoreFailureMsg = String.format(
+                            "snapshot size mismatch with the source volume size %s. Use expand snapshot feature to increase the snapshot size.", 
+                            sourceVol.getProvisionedCapacity());
+                    serviceError = DeviceControllerErrors.xtremio.resyncSnapshotFailureSourceSizeMismatch(restoreFailureMsg);
+                }
+            } else {
+                serviceError = DeviceControllerException.errors.jobFailed(e);
+            }
+            taskCompleter.error(dbClient, serviceError);          
         }
 
     }
@@ -373,7 +412,18 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            ServiceError serviceError = null;
+            if (e instanceof XtremIOApiException) {
+                XtremIOApiException xioException = (XtremIOApiException) e;
+                // check for specific error key for snapshot size mismatch with source volume.
+                if(null != xioException.getMessage() && xioException.getMessage().contains(XtremIOConstants.SNAP_SIZE_MISMATCH_ERROR_KEY)) {
+                    String restoreFailureMsg = "One or more CG snapshots size mismatch with its source volume size. "
+                            + "Use expand snapshot feature to increase the snapshot size.";
+                    serviceError = DeviceControllerErrors.xtremio.resyncSnapshotFailureSourceSizeMismatch(restoreFailureMsg);
+                }
+            } else {
+                serviceError = DeviceControllerException.errors.jobFailed(e);
+            }
             taskCompleter.error(dbClient, serviceError);
         }
 

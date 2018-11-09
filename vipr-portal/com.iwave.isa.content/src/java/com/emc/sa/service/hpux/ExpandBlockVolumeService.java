@@ -35,10 +35,10 @@ public class ExpandBlockVolumeService extends HpuxService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        volume = BlockStorageUtils.getVolume(uri(volumeId));
         acquireHostsLock();
+        volume = BlockStorageUtils.getVolume(uri(volumeId));
 
-        expandBlockVolumeHelper.precheck(volume);
+        expandBlockVolumeHelper.precheck(volume, newSizeInGB);
     }
 
     @Override

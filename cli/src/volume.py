@@ -894,8 +894,7 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
-               consistencygroup, storage_device_name, serial_number,
-               storage_device_type, portgroupname, synctimeout=0):
+               consistencygroup, portgroup_nativeguid, synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -944,21 +943,8 @@ class Volume(object):
                 tenant)
             request['consistency_group'] = consuri
 
-        from storageportgroup import Storageportgroup
-        if(portgroupname):
-            storage_system = StorageSystem(self.__ipAddr, self.__port)
-            
-            storage_system_uri = None
-        
-            if(serial_number):
-                storage_system_uri \
-                    = storage_system.query_by_serial_number_and_type(
-                            serial_number, storage_device_type)
-            elif(storage_device_name):
-                storage_system_uri = storage_system.query_by_name_and_type(
-                            storage_device_name, storage_device_type)
-            portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
-            pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+        if(portgroup_nativeguid):
+            pguri = varray_obj.query_storageport_group_uri_by_native_guid(portgroup_nativeguid, varray_uri)
             request['port_group'] = pguri
         
         body = json.dumps(request)
@@ -1780,7 +1766,7 @@ class Volume(object):
     
         o = common.json_decode(s)
     
-        return o		
+        return o
 
 # volume Create routines
 
@@ -1835,23 +1821,14 @@ def create_parser(subcommand_parsers, common_parser):
                                help='The name of the consistency group',
                                dest='consistencygroup',
                                metavar='<consistentgroupname>')
-    create_parser.add_argument('-portgroup', '-pgname',
-                               help='Name of Storageportgroup',
-                               metavar='<portgroupname>',
+    create_parser.add_argument('-portgroup', '-pg',
+                               help='Name of the storage port group',
+                               metavar='<port_group_name>',
                                dest='portgroupname')
-    create_parser.add_argument('-storagesystem', '-ss',
-                              help='Name of Storagesystem',
-                              dest='storagesystem',
-                              metavar='<storagesystemname>')
-    create_parser.add_argument('-serialnumber', '-sn',
-                              metavar="<serialnumber>",
-                              help='Serial Number of the storage system',
-                              dest='serialnumber')
-    create_parser.add_argument('-t', '-type',
-                               choices=StorageSystem.SYSTEM_TYPE_LIST,
-                               dest='type',
-                               metavar="<storagesystemtype>",
-                               help='Type of storage system')
+    create_parser.add_argument('-sn', '-serialnumber',
+                               dest='serialnumber',
+                               metavar='<serialnumber>',
+                               help='Serial number of the storage system')
     create_parser.add_argument('-synchronous', '-sync',
                                dest='sync',
                                help='Execute in synchronous mode',
@@ -2451,16 +2428,18 @@ def volume_create(args):
     try:
         if(not args.tenant):
             args.tenant = ""
+        portGroupNativeGuidSuffix = None
         if(args.portgroupname):
-            if(not (args.type and (args.serialnumber or args.storagesystem))):
-                raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName. Also give the Type of device')
+            if(not args.serialnumber):
+                raise SOSError(SOSError.CMD_LINE_ERR,
+                    'The serial number of the storage system must be provided when the port group name (-pg) is specified.')
+            else:
+                portGroupNativeGuidSuffix = args.serialnumber + "+PORTGROUP+" + args.portgroupname
         res = obj.create(
             args.tenant + "/" + args.project, args.name, size,
             args.varray, args.vpool, None, args.sync,
-            args.count, None, args.consistencygroup, args.storagesystem,
-            args.serialnumber,
-            args.type,
-            args.portgroupname, args.synctimeout)
+            args.count, None, args.consistencygroup,
+            portGroupNativeGuidSuffix, args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
     except SOSError as e:

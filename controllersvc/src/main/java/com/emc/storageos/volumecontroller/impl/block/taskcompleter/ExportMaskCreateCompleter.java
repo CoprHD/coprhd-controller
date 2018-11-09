@@ -44,6 +44,12 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
     public void removeInitiators(List<URI> initiators) {
         _initiatorURIs.removeAll(initiators);
     }
+    
+    public void setVolumeMap(Map<URI, Integer> volumes) {
+        if(_volumeMap != null) {
+            _volumeMap.putAll(volumes);
+        }
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,

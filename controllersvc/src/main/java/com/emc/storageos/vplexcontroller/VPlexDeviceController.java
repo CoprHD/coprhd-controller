@@ -5373,7 +5373,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
         boolean canDeleteMask = removeAllInits && !exportMask.hasAnyExistingInitiators();
 
         if (canDeleteMask) {
-            if (!ExportUtils.exportMaskHasBothExclusiveAndSharedVolumes(exportGroup, otherExportGroups, exportMask)) {
+            if (!ExportUtils.exportMaskHasVolumeFromMutipleExportGroup(exportGroup, otherExportGroups, exportMask)) {
+
                 _log.info("all initiators are being removed and no " + "other ExportGroups reference ExportMask {}",
                         exportMask.getMaskName());
                 _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
@@ -5397,7 +5398,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         .createStep(null, "Zone delete mask: " + exportMask.getMaskName(), lastStep, nullURI, "network-system",
                                 _networkDeviceController.getClass(), zoneMaskDeleteMethod, zoneNullRollbackMethod, null);
             } else {
-                // export Mask has shared and exclusive volumes, removing the volumes.
+                // export Mask has multiple shared/exclusive volumes or volumes from different virtual array/project, removing the volumes.
                 // The volumes can be taken from the export Group
 
                 List<URI> volumeURIList = URIUtil.toURIList(exportGroup.getVolumes().keySet());

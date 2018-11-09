@@ -4471,15 +4471,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         CreateCopyParams standbyLocalCopyParams = null;
                         List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
                         Set<URI> journalVolumes = new HashSet<URI>();
+                        List<String> deletedCopies = new ArrayList<>();
                         if (!standbyLocalCopyVols.isEmpty()) {
-                            for (Volume standbyCopyVol : standbyLocalCopyVols) {
-
-                                // 1. delete the standby CDP copy if it exists
-                                if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
-                                    RecoverPointVolumeProtectionInfo standbyCdpCopy = rp
-                                            .getProtectionInfoForVolume(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
-                                    rp.deleteCopy(standbyCdpCopy);
-                                }
+                        	for (Volume standbyCopyVol : standbyLocalCopyVols) {
+                                
+                        		//For case where there are multiple Rsets, we should invoke deleteCopy only once, it shall
+                        		//remove the related copy information from other Rsets as well. rpCopyName is same across
+                        		//all Rpsets, so track the delete based on rpCopyName
+                        		String rpCopyName = standbyCopyVol.getRpCopyName().trim();
+                        		if(!deletedCopies.contains(rpCopyName)) {
+                        			// 1. delete the standby CDP copy if it exists
+                        			 if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
+                                         RecoverPointVolumeProtectionInfo standbyCdpCopy = rp
+                                                 .getProtectionInfoForVolume(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
+                                         rp.deleteCopy(standbyCdpCopy);
+                                         deletedCopies.add(rpCopyName);
+                                        
+                                     }
+                        		}                               
 
                                 // set up volume info for the standby copy volume
                                 CreateVolumeParams vol = new CreateVolumeParams();
@@ -4686,7 +4695,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 protectionVolume.setPersonality(Volume.PersonalityTypes.TARGET.toString());
                 protectionVolume.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                 protectionVolume.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
-                protectionVolume.setRpTargets(new StringSet());
+                //Clear targets - For some reason RP targets are not getting cleared when it is being set with
+                // new empty instance of StringSet(), hence getting rpTargets and clearing them and resetting
+                StringSet resetRpTargets = protectionVolume.getRpTargets();
+                resetRpTargets.clear();
+                protectionVolume.setRpTargets(resetRpTargets);
                 _dbClient.updateObject(protectionVolume);
             } else if (!protectionVolume.checkPersonality(Volume.PersonalityTypes.METADATA.toString())) {
                 _log.info("Target " + RPHelper.getRPWWn(protectionVolume.getId(), _dbClient) + " is a target that remains a target");

@@ -4,27 +4,27 @@
  */
 package com.emc.storageos.vcentercontroller;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.http.HttpResponse;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.HttpParams;
+import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +50,7 @@ public class VcenterHostCertificateGetter {
         REACHABLE, UNREACHABLE, UNAUTHORIZED, UNKNOWN
     }
 
-    private HttpResponse
+    private String
             executeRequest(String host, Integer port, String certificatePath, String username, String password, Integer timeout)
                     throws Exception {
         if (host == null || host.equals("")) {
@@ -70,56 +70,53 @@ public class VcenterHostCertificateGetter {
         }
         _log.info("Get SSL thumbprint host " + host + ", port " + port + ", certificatePath " + certificatePath + ", timeout " + timeout);
 
-        HttpResponse response;
-        DefaultHttpClient httpclient = null;
-        HttpParams params = new BasicHttpParams();
-        if (timeout > 0) {
-            _log.info("Socket timeout set to " + timeout + " seconds");
-            params.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, timeout);
-            params.setParameter(CoreConnectionPNames.SO_TIMEOUT, timeout);
-        }
+        CloseableHttpResponse response = null;
+        CloseableHttpClient httpClient = null;
+        String responseString = null;
         try {
-            // basic authentication credentials
             _log.info("Configure HTTP client for the basic authentication challenge");
-            httpclient = new DefaultHttpClient(params);
-            SSLHelper.configurePermissiveSSL(httpclient);
-            httpclient.getCredentialsProvider().setCredentials(
-                    new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
+            HttpClientBuilder httpClientBuilder = SSLHelper.getPermissiveSSLHttpClientBuilder(false, -1, -1, timeout,
+                    timeout);
+            // basic authentication credentials
+            CredentialsProvider credsProvider = new BasicCredentialsProvider();
+            credsProvider.setCredentials(new AuthScope(AuthScope.ANY),
                     new UsernamePasswordCredentials(username, password));
+            httpClientBuilder.setDefaultCredentialsProvider(credsProvider);
+            httpClient = httpClientBuilder.build();
 
             // request to certificate
             HttpGet httpget = new HttpGet("https://" + host + ":" + port + certificatePath);
             // execute request
             _log.info("Executing request " + httpget.getRequestLine());
-            response = httpclient.execute(httpget);
+            response = httpClient.execute(httpget);
             _log.info("HTTP request executed successfully " + response);
+            responseString = parseResponse(response);
         } finally {
-            // release connection
-            try {
-                if (httpclient != null) {
-                    if (httpclient.getConnectionManager() != null) {
-                        httpclient.getConnectionManager().shutdown();
-                    }
-                }
-            } catch (Exception ex) {
-                _log.info("Ignore httpclient.getConnectionManager().shutdown() exception ", ex);
-            }
+            IOUtils.closeQuietly(response);
+            IOUtils.closeQuietly(httpClient);
         }
-        if (response == null) {
-            _log.error("HTTP response null");
-            throw new Exception("HTTP response null");
-        }
-        return response;
+        return responseString;
     }
 
     HostConnectionStatus getConnectionStatus(String host, Integer port, String certificatePath, String username, String password,
             Integer timeout) {
-        HttpResponse response = null;
+        String responseString = null;
         // First, make sure can execute the request successfully
         try {
-            response = executeRequest(host, port, certificatePath, username, password, timeout);
+            responseString = executeRequest(host, port, certificatePath, username, password, timeout);
+        } catch (RuntimeException ex){
+            String exMsg = ex.getMessage();
+            if (exMsg.equalsIgnoreCase("Null response from host")) {
+                return HostConnectionStatus.UNREACHABLE;
+            } else if (exMsg.toLowerCase().contains("401 unauthorized")) {
+                _log.info("Unauthorized response");
+                return HostConnectionStatus.UNAUTHORIZED;
+            } else {
+                _log.info("Unreachable response");
+                return HostConnectionStatus.UNREACHABLE;
+            }
         } catch (Exception ex) {
-            if (ex instanceof java.net.SocketTimeoutException) {
+            if (ex instanceof java.net.SocketTimeoutException || ex instanceof ConnectTimeoutException) {
                 // This exception is usually the case when we're waiting for an ESXi to boot for the first time.
                 // It makes a mess in the logs if we print the stack and ERROR for each attempt we make.
                 // Assumption is if this code is used for other cases, errors further up the chain will indicate
@@ -136,54 +133,38 @@ public class VcenterHostCertificateGetter {
                 return HostConnectionStatus.UNREACHABLE;
             }
         }
-
-        // Second, ensure that the response is valid
-        if (response == null || response.getStatusLine() == null) {
-            _log.error("Null response from host " + host);
-            return HostConnectionStatus.UNREACHABLE;
-        }
-
-        // Third, inspect the response
-        String responseStatus = response.getStatusLine().toString().toLowerCase();
-        _log.info("Host " + host + " response is " + responseStatus);
-        if (responseStatus.contains("401 unauthorized")) {
-            _log.info("Unauthorized response");
-            return HostConnectionStatus.UNAUTHORIZED;
-        } else if (responseStatus.contains("200 ok")) {
-            _log.info("Reachable response");
+        if (StringUtils.isNotEmpty(responseString)) {
             return HostConnectionStatus.REACHABLE;
         } else {
-            _log.info("Unreachable response");
             return HostConnectionStatus.UNREACHABLE;
         }
     }
 
     String getSSLThumbprint(String host, Integer port, String certificatePath, String username, String password, Integer timeout)
             throws Exception {
-        HttpResponse response = null;
-        try {
-            response = executeRequest(host, port, certificatePath, username, password, timeout);
-        } catch (Exception ex) {
-            _log.error("Unexepected error executing request https://{}", host + ":" + port + certificatePath, ex);
-            throw new Exception("Unexepected error executing request https://" + host + ":" + port + certificatePath);
-        }
-
         String cert = null;
         try {
-            // extract base64 encoded certificate from response
-            _log.info("Extract base64 encoded certification from response");
-            _log.info("Response " + response.getStatusLine());
-            if (response.getEntity() != null) {
-                cert = convertStreamToString(response.getEntity().getContent());
-                _log.info("Response content length: " + response.getEntity().getContentLength());
-                _log.info("Content: " + cert);
-                // strip pem certificate of begin and end strings
-                cert = cert.replaceAll("-----BEGIN CERTIFICATE-----", "").replaceAll("-----END CERTIFICATE-----", "");
-                _log.info("Certificate extracted " + cert);
+            cert = executeRequest(host, port, certificatePath, username, password, timeout);
+            if (StringUtils.isEmpty(cert)) {
+                _log.error("Empty or null response string from host - {} ", host);
+                throw new RuntimeException("Empty or null response string from host - " + host);
             }
         } catch (Exception ex) {
-            _log.error("Unexepected error extracting content from response {} ", response.getEntity().getContent(), ex);
-            throw new Exception("Unexepected error extracting content from response " + response.getEntity().getContent());
+            _log.error("Unexepected error executing request https://{}", host + ":" + port + certificatePath, ex);
+            throw new Exception("Unexepected error executing request https://" + host + ":" + port + certificatePath, ex);
+        }
+
+        try {
+            // extracted base64 encoded certificate from response
+            _log.info("Extracted base64 encoded certification from response");
+            _log.info("Content: {}", cert);
+            // strip pem certificate of begin and end strings
+            cert = cert.replaceAll("-----BEGIN CERTIFICATE-----", "").replaceAll("-----END CERTIFICATE-----", "");
+            _log.info("Certificate extracted {}", cert);
+
+        } catch (Exception ex) {
+            _log.error("Unexepected error extracting content from response {} ", ex.getMessage(), ex);
+            throw new Exception("Unexepected error extracting content from response " + ex.getMessage(), ex);
         }
         if (cert == null || cert.equals("")) {
             _log.error("Certificate base 64 encoded string " + cert);
@@ -290,25 +271,6 @@ public class VcenterHostCertificateGetter {
         return hash;
     }
 
-    public String convertStreamToString(InputStream is) throws IOException {
-        if (is != null) {
-            Writer writer = new StringWriter();
-            char[] buffer = new char[1024];
-            try {
-                Reader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-                int n;
-                while ((n = reader.read(buffer)) != -1) {
-                    writer.write(buffer, 0, n);
-                }
-            } finally {
-                is.close();
-            }
-            return writer.toString();
-        } else {
-            return "";
-        }
-    }
-
     public static String getHex(byte[] raw) {
         if (raw == null) {
             return null;
@@ -319,5 +281,32 @@ public class VcenterHostCertificateGetter {
                     .append("0123456789ABCDEF".charAt((b & 0x0F)));
         }
         return hex.toString();
+    }
+
+    /**
+     * Parse the response of a call to host/server.
+     *
+     * @param response
+     *            response from the host/server
+     * @return Response entity as a string
+     * @throws IOException
+     *             bad response data
+     * @throws RuntimeException
+     *             Parse Failed
+     */
+    private String parseResponse(CloseableHttpResponse response) throws IOException, RuntimeException {
+
+        if (response == null || response.getStatusLine() == null) {
+            _log.error("Null response from host");
+            throw new RuntimeException("Null response from host");
+        }
+        if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+            _log.debug("Invalid Response: {}", response.getStatusLine());
+            throw new RuntimeException("Invalid response from host: " + response.getStatusLine());
+        }
+        _log.info("Response " + response.getStatusLine());
+        HttpEntity entity = response.getEntity();
+        _log.info("Response content length: {}",  entity.getContentLength());
+        return EntityUtils.toString(entity);
     }
 }

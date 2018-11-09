@@ -1,9 +1,9 @@
 {
     baseKey:"ExportChangePortGroup.Block",
-    serviceId:"ExportChangePortGroup",    
+    serviceId:"ExportChangePortGroup",
     roles: [
-        "SYSTEM_ADMIN"
-    ],
+    "TENANT_ADMIN"
+  ],
     fields:{
         project:{
             type:"assetType.vipr.project",
@@ -21,9 +21,6 @@
         export:{
           type: "assetType.vipr.exportPathExport", 
           lockable: false
-        },
-        storageSystem: {
-            type:"assetType.vipr.exportPathStorageSystem"
         },
         virtualArray:{
             type:"assetType.vipr.exportPathVirtualArray",

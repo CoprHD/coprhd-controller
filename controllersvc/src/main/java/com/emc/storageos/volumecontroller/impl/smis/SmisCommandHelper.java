@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -120,9 +121,10 @@ public class SmisCommandHelper implements SmisConstants {
     public static final String VMAX_PREFIX = "vmax";
     public static final String VNX_PREFIX = "vnx";
     private static final int SYNC_WRAPPER_WAIT = 5000;
-    private static final int SYNC_WRAPPER_TIME_OUT = 12000000; // set to 200 minutes to handle striped meta volumes with
+    private static final Long DEFAULT_SYNC_WRAPPER_TIME_OUT = 12000000L; // set to 200 minutes to handle striped meta volumes with
                                                                // BCV helper
                                                                // expansion (it may take long time)
+    private static final String SYNC_WRAPPER_TIMEOUT_WRAPPER_CONFIG_KEY = "controller_sync_wrapper_timeout_minutes";
     private static final String EMC_IS_BOUND = "EMCIsBound";
     private static final int MAX_REFRESH_LOCK_WAIT_TIME = 300;
     private static final long REFRESH_THRESHOLD = 120000;
@@ -137,6 +139,7 @@ public class SmisCommandHelper implements SmisConstants {
     DbClient _dbClient = null;
     ControllerLockingService _locker;
     private ExportMaskNameGenerator _nameGenerator;
+    private CoordinatorClient _coordinator;
 
     public void setCimArgumentFactory(CIMArgumentFactory cimArgumentFactory) {
         _cimArgument = cimArgumentFactory;
@@ -164,6 +167,10 @@ public class SmisCommandHelper implements SmisConstants {
 
     public void setNameGenerator(ExportMaskNameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        _coordinator = coordinator;
     }
 
     public boolean checkConnectionliveness(StorageSystem storageDevice) {
@@ -342,14 +349,27 @@ public class SmisCommandHelper implements SmisConstants {
         }
         JobContext jobContext = new JobContext(_dbClient, _cimConnection, null, null, null, null, this);
         long startTime = System.currentTimeMillis();
-        int sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(SYNC_WRAPPER_TIME_OUT);
+        Long sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(DEFAULT_SYNC_WRAPPER_TIME_OUT);
+
+        boolean usesConfigTimeoutValue = false;
+        if (StorageSystem.Type.vmax.name().equalsIgnoreCase(storageDevice.getSystemType())) {
+            Long syncWrapperTimeoutInInMilliSeconds = ControllerUtils.MINUTE_TO_MILLISECONDS * Long
+                    .valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, SYNC_WRAPPER_TIMEOUT_WRAPPER_CONFIG_KEY));
+            usesConfigTimeoutValue = true;
+            sync_wrapper_time_out = InvokeTestFailure.internalOnlyOverrideSyncWrapperTimeOut(syncWrapperTimeoutInInMilliSeconds);
+            _log.info("SMIS job Sync timeout in ms: {}", sync_wrapper_time_out);
+        }
         while (true) {
             JobPollResult result = job.poll(jobContext, SYNC_WRAPPER_WAIT);
             if (!result.isJobInTerminalState()) {
                 if (System.currentTimeMillis() - startTime > sync_wrapper_time_out) {
-                    throw new SmisException(
-                            "Timed out waiting on smis job to complete after " +
-                                    (System.currentTimeMillis() - startTime) + " milliseconds");
+                    String timeoutMessage = "Timed out waiting on smis job to complete after " +
+                            (System.currentTimeMillis() - startTime) + " milliseconds.";
+                    if (usesConfigTimeoutValue) {
+                        timeoutMessage = timeoutMessage
+                                + " Please retry this operation after increasing the value of 'Task timeout for VMAX SMIS job in minutes' in the configuration: System > General Configuration > Controller section.";
+                    }
+                    throw new SmisException(timeoutMessage);
                 } else {
                     try {
                         Thread.sleep(SYNC_WRAPPER_WAIT);

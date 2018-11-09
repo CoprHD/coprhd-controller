@@ -49,6 +49,8 @@ class Snapshot(object):
     URI_SNAPSHOT_TASKS_BY_OPID = '/vdc/tasks/{0}'
 
     URI_RESOURCE_DEACTIVATE = '{0}/deactivate'
+    
+    URI_BLOCK_SNAPSHOT_EXPAND = '/{0}/snapshots/{1}/expand'
 
     URI_CONSISTENCY_GROUP = "/block/consistency-groups"
     URI_CONSISTENCY_GROUPS_SNAPSHOT = URI_CONSISTENCY_GROUP + \
@@ -523,7 +525,23 @@ class Snapshot(object):
         return o
     
     
-    
+    def snapshot_expand_uri(self, storageresType, storageresTypename, resourceUri, name, body, sync, synctimeout=0):
+        snapshotUri = self.snapshot_query(
+            storageresType,
+            storageresTypename,
+            resourceUri,
+            name)
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port,
+                "POST",
+                Snapshot.URI_BLOCK_SNAPSHOT_EXPAND.format(storageresType, snapshotUri),
+                body)
+        o = common.json_decode(s)
+        if(sync):
+            return self.block_until_complete(storageresType, snapshotUri, o["id"], synctimeout)
+        else:
+            return o   
         
 
     def snapshot_activate_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0):
@@ -2260,6 +2278,98 @@ def show_snapshot_shares(args):
         else:
             common.format_err_msg_and_raise(
                 "show-shares", "snapshot", e.err_text, e.err_code)
+                        
+def expand_parser(subcommand_parsers, common_parser):
+    expand_parser = subcommand_parsers.add_parser('expand',
+                                                  parents=[common_parser],
+                                                  conflict_handler='resolve',
+                                                  help='Expand BlockSnapshot')
+    mandatory_args = expand_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<snapshotname>',
+                                dest='name',
+                                help='Name of snapshot',
+                                required=True)
+    expand_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-size', '-s',
+                                help='New size of blocksnapshot: {number}[unit]. ' +
+                                'A size suffix of K for kilobytes, ' +
+                                'M for megabytes, G for gigabytes, ' +
+                                'T for terabytes is optional.' +
+                                'Default unit is bytes.',
+                                metavar='<snapshotsize[kKmMgGtT]>',
+                                dest='size',
+                                required=True)
+    expand_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    expand_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+    mutex_group = expand_parser.add_mutually_exclusive_group(required=True)
+
+    mutex_group.add_argument('-volume', '-vol',
+                             metavar='<volumename>',
+                             dest='volume',
+                             help='Name of a volume')
+    mutex_group.add_argument('-consistencygroup', '-cg',
+                             metavar='<consistencygroup>',
+                             dest='consistencygroup',
+                             help='Name of a consistencygroup')
+    expand_parser.set_defaults(func=snapshot_expand)
+
+def snapshot_expand(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
+    size = common.to_bytes(args.size)
+    if(not size):
+        raise SOSError(SOSError.CMD_LINE_ERR,
+                       'error: Invalid input for -size')
+    obj = Snapshot(args.ip, args.port)
+    try:
+        (storageresType, storageresTypename) = obj.get_storageAttributes(
+            None, args.volume, args.consistencygroup)
+        resourceUri = obj.storageResource_query(
+            storageresType,
+            None,
+            args.volume,
+            args.consistencygroup,
+            args.project,
+            args.tenant)
+        body = json.dumps({
+            "new_size": size
+        })
+        start = time.time()
+        obj.snapshot_expand_uri(
+            storageresType,
+            storageresTypename,
+            resourceUri,
+            args.name,
+            body,
+            args.sync,
+            args.synctimeout)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot " +
+                args.name +
+                ": Expand Failed\n" +
+                e.err_text)
+        else:
+            raise e
 
 
 def activate_parser(subcommand_parsers, common_parser):
@@ -2320,7 +2430,6 @@ def activate_parser(subcommand_parsers, common_parser):
                                default=0,
                                type=int)
     mandatory_args.set_defaults(func=snapshot_activate)
-
 
 def snapshot_activate(args):
     if not args.sync and args.synctimeout !=0:
@@ -3072,6 +3181,9 @@ def snapshot_parser(parent_subparser, common_parser):
 
     # create command parser
     create_parser(subcommand_parsers, common_parser)
+    
+    # expand command parser
+    expand_parser(subcommand_parsers, common_parser)
 
     # delete command parser
     delete_parser(subcommand_parsers, common_parser)

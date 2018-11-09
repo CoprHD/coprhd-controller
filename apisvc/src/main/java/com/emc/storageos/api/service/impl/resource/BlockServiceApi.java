@@ -504,6 +504,22 @@ public interface BlockServiceApi {
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
             String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
+    
+    /**
+     * Expand the given blockSnapshot with new size.
+     *
+     * @param snapshot
+     *            The snapshot whose capacity to expand.
+     * @param newSize
+     *            The desired new snapshot size.
+     * @param taskId
+     *            The id of the snapshot expansion task.
+     *
+     * @throws ControllerException
+     */
+    public void expandBlockSnapshot(BlockSnapshot snapshot, Long newSize, String taskId)
+            throws InternalException;
+
 
     /**
      * Uses the appropriate controller to delete the snapshot.

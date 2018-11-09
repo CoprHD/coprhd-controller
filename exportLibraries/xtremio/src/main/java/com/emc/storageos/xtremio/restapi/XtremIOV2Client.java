@@ -16,10 +16,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupRequest;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupVolumeRequest;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOEntityTagDelete;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorGroupCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOLunMapCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapCreateAndReassign;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapshotExpand;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOTagRequest;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOV2SnapCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOVolumeCreate;
@@ -644,6 +646,22 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Calling Tag Delete with: {}", deleteURI.toString());
         delete(deleteURI);
     }
+    
+    @Override
+    public void deleteEntityTag(String tagName, String tagEntityType, String entityDetails, String clusterName) throws Exception {
+        // construct the body with entity & entity-details to untag.
+        XtremIOEntityTagDelete tagDeleteParam = new XtremIOEntityTagDelete();
+        tagDeleteParam.setEntityType(tagEntityType);
+        tagDeleteParam.setEntityDetails(entityDetails);
+        String rootFolder = XtremIOConstants.getV2RootFolderForEntityType(tagEntityType);
+        String xioTagName = rootFolder.concat(tagName);
+        String uriString = XtremIOConstants.XTREMIO_V2_TAGS_STR
+                .concat(XtremIOConstants.getInputNameForClusterString(xioTagName, clusterName));
+
+        URI deleteURI = URI.create(uriString);
+        log.info("Calling Entity Tag Delete with: {}", deleteURI.toString());
+        delete(deleteURI, getJsonForEntity(tagDeleteParam));
+    }
 
     @Override
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception {
@@ -727,6 +745,15 @@ public class XtremIOV2Client extends XtremIOClient {
     @Override
     public boolean isVersion2() {
         return true;
+    }
+
+    @Override
+    public void expandBlockSnapshot(String snapshotName, String size, String clusterName) throws Exception {
+        XtremIOSnapshotExpand volExpand = new XtremIOSnapshotExpand();
+        volExpand.setSize(size);
+        volExpand.setClusterName(clusterName);
+        String volUriStr = XtremIOConstants.XTREMIO_V2_SNAPS_STR.concat(XtremIOConstants.getInputNameString(snapshotName));
+        put(URI.create(volUriStr), getJsonForEntity(volExpand));
     }
 
 }

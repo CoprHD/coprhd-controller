@@ -744,6 +744,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 // set file export data and add it to the export map
                 fExport = new FileExport(newIsilonExport.getClients(), storagePortName, mountPath, strCSSecurityType,
                         permissions, root_user, protocol, storagePort, path, mountPath, subDirectory, comments);
+                setClientsForFileExport(fExport, newIsilonExport );
                 fExport.setIsilonId(id);
             } else {
                 // There is export in Isilon with the given id.
@@ -762,11 +763,29 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
 
                 // update clients
-                fExport.setClients(newIsilonExport.getClients());
+                setClientsForFileExport(fExport, newIsilonExport );
             }
 
             args.getFileObjExports().put(exportKey, fExport);
         }
+    }
+
+    //Method to set the clients in FileExport to RO, RW or Root clients from IsilonExport based on permissions
+    private void setClientsForFileExport(FileExport fExport, IsilonExport isilonExport){
+       if (FileShareExport.Permissions.ro.name().equals(fExport.getPermissions())){
+          _log.debug("Setting clients to RO clients");
+          fExport.setClients(isilonExport.getReadOnlyClients());
+       } else if (FileShareExport.Permissions.rw.name().equals(fExport.getPermissions())){
+          _log.debug("Setting clients to RW clients");
+          fExport.setClients(isilonExport.getReadWriteClients());
+       } else if (FileShareExport.Permissions.root.name().equals(fExport.getPermissions())){
+          _log.debug("Setting clients to root clients");
+          fExport.setClients(isilonExport.getRootClients());
+       } else if (fExport.getPermissions() == null){
+          _log.debug("Permissions is null for FileExport; not setting clients");
+       }
+
+
     }
 
     private IsilonExport setIsilonExport(FileExport fileExport, String permissions, List<String> securityType,
@@ -778,9 +797,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             comments = "";
         }
         newIsilonExport.setComment(comments);
-
-        // Empty list of clients means --- all clients.
-        newIsilonExport.addClients(fileExport.getClients());
 
         // set security type
         // Need to use "unix" instead of "sys" . Isilon requires "unix", not
@@ -828,25 +844,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         newIsilonExport.setComment(comments);
 
         int roHosts = 0;
-        int rwHosts = 0;
-        int rootHosts = 0;
 
         // Empty list of clients means --- all clients.
         if (expRule.getReadOnlyHosts() != null) {
-            newIsilonExport.addClients(new ArrayList<String>(expRule.getReadOnlyHosts()));
             roHosts = expRule.getReadOnlyHosts().size();
             newIsilonExport.addReadOnlyClients(new ArrayList<String>(expRule.getReadOnlyHosts()));
         }
 
         if (expRule.getReadWriteHosts() != null) {
-            newIsilonExport.addClients(new ArrayList<String>(expRule.getReadWriteHosts()));
-            rwHosts = expRule.getReadWriteHosts().size();
             newIsilonExport.addReadWriteClients(new ArrayList<String>(expRule.getReadWriteHosts()));
         }
 
         if (expRule.getRootHosts() != null) {
-            newIsilonExport.addClients(new ArrayList<String>(expRule.getRootHosts()));
-            rootHosts = expRule.getRootHosts().size();
             newIsilonExport.addRootClients(new ArrayList<String>(expRule.getRootHosts()));
         }
 
@@ -866,10 +875,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         newIsilonExport.setMapRoot(root_user);
         newIsilonExport.resetReadOnly();
 
-        if (roHosts > 0 && rwHosts == 0 && rootHosts == 0) {
-            // RO Export
-            newIsilonExport.setReadOnly();
-        }
 
         _log.info("setIsilonExport completed with creating {}", newIsilonExport.toString());
         return newIsilonExport;
@@ -2146,26 +2151,18 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 }
 
                 _log.info("Update Isilon Export with id {} and {}", isilonExportId, isilonExport);
-                List<String> allClients = new ArrayList<>();
                 if (isilonExport != null) {
-
-                    boolean hasrwClients = false;
-                    boolean hasrootClients = false;
-
-                    if ((isilonExport.getReadWriteClients() != null && !isilonExport.getReadWriteClients().isEmpty())
-                            || (exportRule.getReadWriteHosts() != null && !exportRule.getReadWriteHosts().isEmpty())) {
-                        hasrwClients = true;
-                    }
-                    if ((isilonExport.getRootClients() != null && !isilonExport.getRootClients().isEmpty())
-                            || (exportRule.getRootHosts() != null && !exportRule.getRootHosts().isEmpty())) {
-                        hasrootClients = true;
-                    }
-
+                	boolean hasroClients = false;
+                	
+                	if ((isilonExport.getReadOnlyClients() != null && !isilonExport.getReadOnlyClients().isEmpty())
+                            || (exportRule.getReadOnlyHosts() != null && !exportRule.getReadOnlyHosts().isEmpty())) {
+                		hasroClients = true;
+                	}
+                	
                     List<String> roClients = new ArrayList<>();
                     // over write roClients
                     if (exportRule.getReadOnlyHosts() != null) {
                         roClients.addAll(exportRule.getReadOnlyHosts());
-                        allClients.addAll(exportRule.getReadOnlyHosts());
 
                         List<String> existingRWRootClients = new ArrayList<String>();
                         existingRWRootClients.addAll(isilonExport.getReadWriteClients());
@@ -2196,7 +2193,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     // elements
                     if (exportRule.getReadWriteHosts() != null) {
                         rwClients.addAll(exportRule.getReadWriteHosts());
-                        allClients.addAll(exportRule.getReadWriteHosts());
 
                         List<String> existingRORootClients = new ArrayList<String>();
                         existingRORootClients.addAll(isilonExport.getReadOnlyClients());
@@ -2227,7 +2223,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     List<String> rootClients = new ArrayList<>();
                     if (rootHosts != null) {
                         rootClients.addAll(rootHosts);
-                        allClients.addAll(rootHosts);
 
                         List<String> existingRORWClients = new ArrayList<String>();
                         existingRORWClients.addAll(isilonExport.getReadOnlyClients());
@@ -2252,23 +2247,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         isilonExport.setRootClients(new ArrayList<String>(rootClients));
                     }
 
-                    if (hasrwClients || hasrootClients) {
-                        isilonExport.resetReadOnly();
-                    } else {
-                        isilonExport.setReadOnly();
-                    }
+                    isilonExport.resetReadOnly();
 
                     isilonExport.setMapAll(null);
                     isilonExport.setMapRoot(root_user);
 
                     // There is export in Isilon with the given id.
                     // Overwrite this export with a new set of clients.
-                    // We overwrite only clients element in exports. Isilon API
-                    // does not use read_only_clients,
-                    // read_write_clients or root_clients.
-
-                    // List<String> newClients = isilonExport.getClients();
-                    // newClients.addAll(allClients);
+                    // No longer using Clients list -- so set this to empty list
+                    List<String> allClients = new ArrayList<>();
                     isilonExport.setClients(new ArrayList<String>(allClients));
 
                     IsilonExport clonedExport = cloneExport(isilonExport);

@@ -118,7 +118,8 @@ test_expand_host_filesystem() {
             # Add a break in the output
             echo " "
 	done
-
+        # Expand volume to a smaller size to verfiy Precheck works
+	fail expand_volume $TENANT ${hostname} ${volume} ${PROJECT} 1 ${os}
 	run unmount_and_delete_volume $TENANT ${hostname} "${volume}" ${PROJECT} ${os}
     done
 }
@@ -334,7 +335,6 @@ windows_mount_volume() {
     project_id=`project list --tenant ${tenant_arg} | grep "${6} " | awk '{print $4}'`
     catalog_failure=$7
     volume_id=`volume list ${PROJECT} | grep "${volname_arg}" | awk '{print $7}'`
-
     catalog order MountVolumeonWindows ${tenant_arg} project=${project_id},volume=${volume_id},host=${host_id},fileSystemType=ntfs,partitionType=GPT,blockSize=DEFAULT,mountPoint=,artificialFailure=${catalog_failure},label= BlockServicesforWindows --failOnError true
     return $?
 }
@@ -441,7 +441,6 @@ expand_volume() {
     fi
 
     # expand_volume $TENANT ${hostname} ${volume} ${PROJECT} "5" ${os}
-
     catalog order ${service_catalog} ${tenant_arg} host=${host_id},size=${size},${volume_parameter_name}=${volume_id},artificialFailure=${catalog_failure} ${service_category} --failOnError true
     return $?
 }

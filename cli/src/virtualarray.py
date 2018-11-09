@@ -32,6 +32,7 @@ class VirtualArray(object):
     URI_AUTO_TIER_POLICY = "/vdc/varrays/{0}/auto-tier-policies"
     URI_LIST_STORAGE_PORTS = "/vdc/varrays/{0}/storage-ports"
     URI_STORAGE_PORT_DETAILS = "/vdc/storage-ports/{0}"
+    URI_LIST_VIRTUALARRAY_STORAGE_PORT_GROUPS = URI_VIRTUALARRAY_URI + '/storage-port-groups'
 
     def __init__(self, ipAddr, port):
         '''
@@ -331,6 +332,62 @@ class VirtualArray(object):
                 portDetailsList.append(portDetails)
 
         return portDetailsList
+        
+    '''
+    Lists the storage port groups in a virtual array.
+        Parameters:
+        varrayName: the name of the virtual array
+        tenantName: (optional) the name of the tenant. Required if storage port groups are queried by export group
+        projectName: (optional) the name of the tenant. Required if storage port groups are queried by export group
+        exportGroupName: (optional) the name of the export group
+    
+    '''
+    def list_storageport_groups(self, varrayName, tenantName=None, projectName=None, exportGroupName=None):
+
+        varrayUri = self.varray_query(varrayName)
+
+        if(exportGroupName):
+            from exportgroup import ExportGroup
+            exportgroupObj = ExportGroup(self.__ipAddr, self.__port)
+            exportgroup_uri = exportgroupObj.exportgroup_query(exportGroupName,
+                                                 projectName, tenantName, varrayuri)
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "GET",
+                VirtualArray.URI_LIST_VIRTUALARRAY_STORAGE_PORT_GROUPS.format(
+                    varrayUri) + "?export_group=" + exportgroup_uri, None)
+        else:
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "GET",
+                VirtualArray.URI_LIST_VIRTUALARRAY_STORAGE_PORT_GROUPS.format(varrayUri), None)
+
+        result=common.json_decode(s)
+        return result['storage_port_group']
+    
+    def query_storageport_group_uri_in_export_group_by_native_guid(self, portGroupNativeGuid, varrayURI, exportGroupURI):
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "GET",
+                VirtualArray.URI_LIST_VIRTUALARRAY_STORAGE_PORT_GROUPS.format(
+                    varrayURI) + "?export_group=" + exportGroupURI, None)
+        portgroups=common.json_decode(s)
+        for portGroup in portgroups["storage_port_group"]:
+            if(portGroup['native_guid'].endswith(portGroupNativeGuid)):
+                return portGroup['id']
+        raise SOSError(SOSError.NOT_FOUND_ERR,
+            "Could not find the storage group in the export group with native guid ending with: " + portGroupNativeGuid)
+            
+    def query_storageport_group_uri_by_native_guid(self, portGroupNativeGuid, varrayURI):
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "GET",
+                VirtualArray.URI_LIST_VIRTUALARRAY_STORAGE_PORT_GROUPS.format(
+                    varrayURI), None)
+        portgroups=common.json_decode(s)
+        for portGroup in portgroups["storage_port_group"]:
+            if(portGroup['native_guid'].endswith(portGroupNativeGuid)):
+                return portGroup['id']
+        raise SOSError(SOSError.NOT_FOUND_ERR,
+            "Could not find the storage group with native guid ending with: " + portGroupNativeGuid)
 
 # VIRTUALARRAY Create routines
 
@@ -746,6 +803,39 @@ def storageport_list(args):
                                         e.err_text, e.err_code)
 
 
+def list_storage_port_groups_parser(subcommand_parsers, common_parser):
+    # list command parser
+    list_parser = subcommand_parsers.add_parser(
+        'list-storage-port-groups',
+        description='ViPR varray List Storage Port Groups CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List of storage port groups associated with the varray')
+
+    mandatory_args = list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of varray',
+                                metavar='<varrayname>',
+                                dest='name',
+                                required=True)
+    list_parser.set_defaults(func=storageport_group_list)
+
+
+def storageport_group_list(args):
+    varray = VirtualArray(args.ip, args.port)
+    try:
+        # Get the URIs of all associated ports
+        portGroupList = varray.list_storageport_groups(args.name)
+        from common import TableGenerator
+        for portGroup in portGroupList:
+            portNames=[]
+            for storagePort in  portGroup['storage_ports']['storage_port']:
+                portNames.append(storagePort['name']);
+            portGroup['ports'] = portNames
+        TableGenerator(portGroupList, ['module/name', 'ports', 'native_guid', 'registration_status']).printTable()
+    except SOSError as e:
+        common.format_err_msg_and_raise("list-storage-port-groups", "varray",
+                                        e.err_text, e.err_code)
 #
 # varray Main parser routine
 #
@@ -785,3 +875,6 @@ def varray_parser(parent_subparser, common_parser):
 
     # List storage ports parser
     list_storage_ports_parser(subcommand_parsers, common_parser)
+    
+    # List storage port groups parser
+    list_storage_port_groups_parser(subcommand_parsers, common_parser)

@@ -28,6 +28,17 @@ public interface XtremIOProvisioningClient {
      * @throws Exception
      */
     public void deleteTag(String tagName, String tagEntityType, String clusterName) throws Exception;
+    
+    /**
+     * Delete a tag on a specific entity.
+     *
+     * @param tagName
+     * @param tagEntityType
+     * @param entityDetails
+     * @param clusterName
+     * @throws Exception
+     */
+    public void deleteEntityTag(String tagName, String tagEntityType, String entityDetails, String clusterName) throws Exception;
 
     /**
      * Tag an object with the given tag name
@@ -265,4 +276,13 @@ public interface XtremIOProvisioningClient {
      */
     public XtremIOResponse refreshSnapshotFromCG(String clusterName, String cgName, String snapshotName, boolean noBackup) throws Exception;
 
+    /**
+     * Expands a Snapshot
+     *
+     * @param snapshotName
+     * @param size
+     * @param clusterName
+     * @throws Exception
+     */
+    public void expandBlockSnapshot(String snapshotName, String size, String clusterName) throws Exception;
 }

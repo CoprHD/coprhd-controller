@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -86,7 +88,9 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Sets;
 
 public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
@@ -556,7 +560,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                         if (!refreshedMasks.containsKey(mask.getId())) {
                             // refresh the export mask always
-                            mask = device.refreshExportMask(storage, mask);
+                            // COP-34971 Pass the deleted initiator list to underlying method refreshZoningMap and refreshFCZoneReferences()
+                            // of NetworkDeviceController
+                            if (device instanceof SmisStorageDevice) {
+                                mask = ((SmisStorageDevice) device).refreshExportMask(storage, mask, initiatorNames);
+                            } else {
+                                mask = device.refreshExportMask(storage, mask);
+                            }
                             refreshedMasks.put(mask.getId(), mask);
                         }
 
@@ -789,6 +799,140 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, Integer> volumeMap) {
         findUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
     }
+      
+    /**
+     * This method find the ultimate usable hlus for HPUX host on VMAX system.
+     *      
+     *
+     * @param minHlu
+     * @param freeHLUs
+     * @param userHlus
+     * @param finalUsableHlus
+     * @param errMsg
+     */
+    private boolean verifyAndGetValidHlus(Integer minHlu, Set<Integer> freeHLUs, Set<Integer> userHlus,
+            Set<Integer> finalUsableHlus, StringBuffer errMsg) {
+        Set<Integer> sortedFreeHLUs = new TreeSet<Integer>(freeHLUs);
+        Iterator<Integer> freeHLUItr = sortedFreeHLUs.iterator();
+        // Remove free hlus which are less than user provided least hlu
+        while(freeHLUItr.hasNext()) {
+            Integer hlu = freeHLUItr.next();
+            if(hlu < minHlu) {
+                freeHLUItr.remove(); 
+            }else {
+                break;
+            }
+        }
+
+        Set<Integer> commonHluSet = Sets.intersection(sortedFreeHLUs, new TreeSet(userHlus));
+        finalUsableHlus.addAll(commonHluSet);
+        if (commonHluSet.size() == userHlus.size()) {
+            _log.info("All user provided hlus are available on system");
+            return true;
+        } else {
+            // Remove common hlus from free list
+            Set<Integer> remainingFreeHlus = Sets.difference(sortedFreeHLUs, commonHluSet);
+            int stillNeed = userHlus.size() - commonHluSet.size();
+            if(remainingFreeHlus.size() < stillNeed) {
+                String msg = String.format("No more free HLU available for %d volumes", stillNeed - remainingFreeHlus.size());
+                _log.warn(msg);
+                errMsg.append(msg);
+                return false;
+            } else {
+                Set<Integer> remSortedFreeHlus = new TreeSet<Integer>(remainingFreeHlus);
+                for ( Integer hlu : remSortedFreeHlus) {
+                    finalUsableHlus.add(hlu);
+                    if(--stillNeed <= 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+
+    /**
+     * This method is different than findAndUpdateFreeHLUsForClusterExport(). It is used for updating the hlu when there
+     * is one hlu being allocated as per user request and others are being added by client but may be invalid. This will
+     * fail at device level so we need to update the hlus with appropriate HLU.
+     *
+     * 
+     * Finds the next available HLU for cluster export by querying the cluster hosts
+     * used HLUs and updates the volumeHLU map with free HLUs.
+     *
+     * @param storage
+     *            the storage system
+     * @param exportGroup
+     *            the export group
+     * @param initiatorURIs
+     *            the initiator uris
+     * @param volumeMap
+     *            the volume HLU map
+     */
+    public void validateAndUpdateFreeHLUsForHPUXClusterExport(StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+        if (!exportGroup.checkInternalFlags(Flag.INTERNAL_OBJECT) && exportGroup.forCluster()
+                && !volumeMap.values().contains(ExportGroup.LUN_UNASSIGNED)
+                && ExportUtils.systemSupportsConsistentHLUGeneration(storage)) {
+
+            _log.info("Validate and update free HLUs for Cluster Export START..");
+            /**
+             * Group the initiators by Host. For each Host, call device.findHLUsForInitiators() to get used HLUs.
+             * Add all hosts HLUs to a Set.
+             * Get the maximum allowed HLU for the storage array.
+             * Calculate the free lowest available HLUs.
+             * Update the new values in the VolumeHLU Map.
+             */
+            Set<Integer> usedHlus = findHLUsForClusterHosts(storage, exportGroup, initiatorURIs);
+            Integer maxHLU = ExportUtils.getMaximumAllowedHLU(storage);
+            Set<Integer> freeHLUs = ExportUtils.calculateFreeHLUs(usedHlus, maxHLU);
+            freeHLUs = ExportUtils.filterHLUforHPUX(freeHLUs);
+
+            // Get least hlu value from user input!!!
+            List<Integer> hlus = new ArrayList<Integer>();
+            hlus.addAll(volumeMap.values());
+            Collections.sort(hlus);
+            Integer minHlu = hlus.get(0);
+
+            // Verify the least hlu number exists in free hlu list
+            // otherwise, throw an error
+            if(!freeHLUs.contains(minHlu)) {
+                String errorMsg = String.format(("HLU: %d provided for HPUX host" + 
+                        " does not exist on storage system"), minHlu);
+                _log.error(errorMsg);
+                throw DeviceControllerException.exceptions.minHluDoesNotAvailableOnSystem(errorMsg);
+            }
+
+            StringBuffer errMsg = new StringBuffer();
+            Set<Integer>  userInputHlus = new HashSet<Integer>();
+            userInputHlus.addAll(volumeMap.values());
+            Set<Integer> finalUsableHlus = new HashSet<Integer>();
+            if(!verifyAndGetValidHlus(minHlu, freeHLUs, userInputHlus,
+                    finalUsableHlus, errMsg)) {
+                _log.error(errMsg.toString());
+                throw DeviceControllerException.exceptions.minHluDoesNotAvailableOnSystem(errMsg.toString());
+            }
+
+            Iterator<Integer> validHLUItr = finalUsableHlus.iterator();
+            for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
+                Integer hlu = entry.getValue();
+                if (hlu != ExportGroup.LUN_UNASSIGNED) {
+                    _log.info("HLU {} would update to new avaliable HLU", hlu);
+                    if (validHLUItr.hasNext()) {
+                        entry.setValue(validHLUItr.next());
+                    } else {
+                        String detailMsg = String.format("Requested volumes: {%s}, free HLUs available: {%s}",
+                                Joiner.on(',').join(volumeMap.keySet()), finalUsableHlus);
+                        _log.warn("No more free HLU available on array to assign. {}", detailMsg);
+                        throw DeviceControllerException.exceptions.volumeExportReachedMaximumHlu(detailMsg);
+                    }
+
+                }
+            }
+
+        }
+    }
 
     /**
      * Routine contains logic to create an export mask on the array
@@ -896,7 +1040,18 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
 
-        findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        List<Initiator> initiatorList = _dbClient.queryObject(Initiator.class, Sets.newHashSet(initiatorURIs));
+
+        boolean hasHPUXHost = ExportUtils.hasInitiatorHPUX(initiatorList, _dbClient);
+
+        if(hasHPUXHost && storage.getSystemType().equals(StorageSystem.Type.vmax.toString())) {
+            _log.info(
+                    "The inititators list is of HPUX host, hence will find and update free HLUs if there is one hlu that is been allocated as per user request.");
+            validateAndUpdateFreeHLUsForHPUXClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        } else {
+            _log.info("The inititators list is not of HPUX host, hence will find and update free HLUs");
+            findAndUpdateFreeHLUsForClusterExport(storage, exportGroup, initiatorURIs, volumeMap);
+        }
         
         /**
          * If export Group cluster. run algorithm to discard the matching masks based on the below
@@ -2659,7 +2814,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info(String.format("port group is %s", portGroup.getLabel()));
             pgPorts = StringSetUtil.stringSetToUriList(portGroup.getStoragePorts());
             if (!CollectionUtils.isEmpty(pgPorts)) {
-                pathParams.getStoragePorts().replace(StringSetUtil.uriListToStringSet(pgPorts));
+            	StringSet pgPortsURISet = StringSetUtil.uriListToStringSet(pgPorts);
+            	if (pathParams.getStoragePorts().isEmpty()) {
+            		pathParams.setStoragePorts(pgPortsURISet);
+            	} else {
+            		pathParams.getStoragePorts().replace(pgPortsURISet);
+            	}
             } else {
                 _log.error(String.format("The port group %s does not have any port members", portGroup));
                 throw DeviceControllerException.exceptions.noPortMembersInPortGroupError(portGroup.getLabel());

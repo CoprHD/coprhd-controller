@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -2417,6 +2418,38 @@ public class NetworkDeviceController implements NetworkController {
      */
     public void refreshZoningMap(ExportMask exportMask, Collection<String> removedInitiators,
             Collection<String> removedPorts, boolean maskUpdated, boolean persist) {
+        refreshZoningMap(exportMask, removedInitiators, removedPorts, maskUpdated, persist, null);
+    }
+
+    /**
+     * Update the zoning map for as export mask previously "accepted". This applies to
+     * brown field scenarios where a export mask was found on the storage array. For
+     * those export masks, changes outside of the application are expected and the
+     * application should get the latest state before making any changes. This
+     * function is called from ExportMaskOperations#refreshZoneMap after all
+     * updates to the initiators, ports and volumes were made into the export mask and
+     * the export group. The update steps are as follow:
+     * <ol>
+     * <li>Get the current zones for those initiators that were not added by ViPR and the storage ports that exist in the mask.</li>
+     * <li>Diff the current zones with those in the export mask and update the zoning map</li>
+     * <li>Update the FCZoneReferences to match the zone updates</li>
+     * </ol>
+     * Note that ViPR does not keep FCZoneReferences only for volumes created by ViPR. As those
+     * volumes are not updated by ExportMaskOperations#refreshZoneMap, no additional code
+     * is needed to remove FCZoneReferences for removed volumes.
+     * 
+     * @param exportMask the export mask being updated.
+     * @param removedInitiators the list of initiators that were removed. This is needed because
+     *            these were removed from the zoingMap by {@link ExportMask#removeInitiators(Collection)}
+     * @param removedPorts the set of storage ports that were removed
+     * @param maskUpdated a flag that indicates if an update was made to the mask that requires
+     *            a zoning refresh
+     * @param persist a boolean that indicates if the changes should be persisted in the db
+     * @param userRemovedInitiators optional field can be null. List of user removed initiators for this refresh operation
+     */
+    public void refreshZoningMap(ExportMask exportMask, Collection<String> removedInitiators,
+            Collection<String> removedPorts, boolean maskUpdated, boolean persist, List<String> userRemovedInitiators) {
+
         try {
             // check if zoning is enabled for the mask
             if (!zoningEnabled(exportMask)) {
@@ -2551,7 +2584,7 @@ public class NetworkDeviceController implements NetworkController {
 
             // get all the existing zone references from the database, these are
             refreshFCZoneReferences(exportMask,
-                    existingRefs, addedZoneInfos, updatedZoneInfos, removedZonesKeys);
+                    existingRefs, addedZoneInfos, updatedZoneInfos, removedZonesKeys, userRemovedInitiators);
             if (persist) {
                 _dbClient.updateAndReindexObject(exportMask);
             }
@@ -2594,9 +2627,10 @@ public class NetworkDeviceController implements NetworkController {
      * @param addedZoneInfos the ZoneInfo instances of zones that were added in this refresh operation
      * @param updatedZoneInfos the ZoneInfo instances of zones that were updated in this refresh operation
      * @param removedZonesKeys the keys of the zones that were removed.
+     * @param userRemovedInitiators optional field can be null. List of user removed initiators for this refresh operation
      */
     private void refreshFCZoneReferences(ExportMask exportMask, Map<String, List<FCZoneReference>> existingRefs,
-            List<ZoneInfo> addedZoneInfos, List<ZoneInfo> updatedZoneInfos, List<String> removedZonesKeys) {
+            List<ZoneInfo> addedZoneInfos, List<ZoneInfo> updatedZoneInfos, List<String> removedZonesKeys, List<String> userRemovedInitiators) {
 
         // get the export mask volumes and export groups because FCZoneReference are kept for each
         Map<URI, Integer> exportMaskVolumes = StringMapUtil.stringMapToVolumeMap(exportMask.getVolumes());
@@ -2618,9 +2652,17 @@ public class NetworkDeviceController implements NetworkController {
                                                                                * &&
                                                                                * ref.getExistingZone()
                                                                                */) {
-                        _log.info("FCZoneReference {} for volume {} and exportGroup {} will be deleted",
-                                new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri() });
-                        refs.add(ref);
+                        if (isPartOfUserRemovedInitiator(ref, userRemovedInitiators)) {
+
+                            _log.info(
+                                    "FCZoneReference {} for volume {} and exportGroup {} with userRemovedInitiators {} will not be deleted",
+                                    new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri(), userRemovedInitiators });
+                        } else {
+                            _log.info(
+                                    "FCZoneReference {} for volume {} and exportGroup {} with userRemovedInitiators {} will be deleted",
+                                    new Object[] { ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri(), userRemovedInitiators });
+                            refs.add(ref);
+                        }
                     }
                 }
             }
@@ -2675,6 +2717,30 @@ public class NetworkDeviceController implements NetworkController {
         }
         _dbClient.createObject(refs);
     }
+
+    /**
+     * This check FCZoneReference initiator is part of user removed initiator list or not.
+     * 
+     * @param ref the FCZoneReference object
+     * @param userRemovedInitators user removed initiator list form exportGroupRemoveInitiators operation
+     * @return
+     */
+
+    private boolean isPartOfUserRemovedInitiator(FCZoneReference ref, List<String> userRemovedInitators) {
+        if (CollectionUtils.isEmpty(userRemovedInitators)) {
+            return false;
+        }
+        // sample pwwn is 1010101111111111_5000123123123123.
+        // Mostly it is initiator followed by port, here extra safety is taken while checking.
+        String[] pwwns = ref.getPwwnKey().split("_");
+        if (pwwns.length > 1) {
+            if ((userRemovedInitators.contains(pwwns[0])) || (userRemovedInitators.contains(pwwns[1]))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     /**
      * Given the zoning map, find all the instances of FCZoneReference for each initiator-port pair.

@@ -1,0 +1,33 @@
+{
+  baseKey:"ExpandBlockSnapshot.Block",
+  serviceId:"ExpandBlockSnapshot",
+  fields: {
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume"
+    },
+
+    volume:{
+      type:"assetType.vipr.blockVolumeWithSnapshot",
+      select: "one"
+    },
+    
+    snapshots:{
+      type:"assetType.vipr.snapshotAvailableForExpand",
+      select: "many"
+    },
+
+    size:{
+      type:"expandSize",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

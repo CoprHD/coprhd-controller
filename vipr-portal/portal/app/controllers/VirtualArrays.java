@@ -114,6 +114,8 @@ public class VirtualArrays extends ViprResourceController {
     private static final String GUIDE_VISIBLE = "guideVisible";
     private static final String STORAGE_SYSTEMS = "storage_systems";
     private static final String VARRAYS = "varrays";
+    private static final String POWERMAX = "PowerMax";
+    private static final String PMAX = "pmax";
 
     /**
      * Simple create and save operation that takes only the name.
@@ -172,7 +174,7 @@ public class VirtualArrays extends ViprResourceController {
 						}
                         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                             String modelType = storageSystem.getModel();
-                            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                            if (modelType != null && (modelType.contains(SUFFIX_ALL_FLASH) ||  modelType.contains(POWERMAX) || modelType.contains(PMAX))) {
                                 ids.add(storageSystem.getId().toString());
                             }
                         }
@@ -185,7 +187,7 @@ public class VirtualArrays extends ViprResourceController {
 							}
                             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                                 String modelType = storageSystem.getModel();
-                                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                                if (modelType != null && (modelType.contains(SUFFIX_ALL_FLASH) ||  modelType.contains(POWERMAX) || modelType.contains(PMAX))) {
                                     ids.add(storageSystem.getId().toString());
                                 }
                             }
@@ -270,7 +272,7 @@ public class VirtualArrays extends ViprResourceController {
 		}
         if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType()) ) {
             String modelType = storageSystem.getModel();
-            if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+            if (modelType != null && (modelType.contains(SUFFIX_ALL_FLASH) ||  modelType.contains(POWERMAX) || modelType.contains(PMAX))) {
             	return true;
             }
         }
@@ -321,7 +323,7 @@ public class VirtualArrays extends ViprResourceController {
 			}
             if (StringUtils.equals(VMAX, storageSystem.getSystemType()) || StringUtils.equals(UNITY, storageSystem.getSystemType())) {
                 String modelType = storageSystem.getModel();
-                if (modelType != null && modelType.contains(SUFFIX_ALL_FLASH)) {
+                if (modelType != null && (modelType.contains(SUFFIX_ALL_FLASH) ||  modelType.contains(POWERMAX) || modelType.contains(PMAX))) {
                     ids.add(storageSystem.getId().toString());
                 }
             }

@@ -44,11 +44,23 @@ public class ExpandBlockVolumeHelper {
         this.linuxSupport = linuxSupport;
     }
 
-    public void precheck(BlockObjectRestRep volume) {
+    private void precheck(BlockObjectRestRep volume) {
         usePowerPath = linuxSupport.checkForMultipathingSoftware();
         mountPoint = linuxSupport.findMountPoint(volume);
         linuxSupport.verifyVolumeMount(volume, mountPoint.getPath(), usePowerPath);
         linuxSupport.verifyVolumeFilesystemMount(volume, mountPoint.getPath(), usePowerPath);
+    }
+
+    /**
+     * precheck method.
+     * @param volume {@link BlockObjectRestRep} instance
+     * @param newSizeInGB {@link Double} new size of volume in GB.
+     */
+    public void precheck(BlockObjectRestRep volume, Double newSizeInGB) {
+        if (BlockStorageUtils.isViprVolumeExpanded(volume, newSizeInGB)) {
+            ExecutionUtils.fail("linux.expand.fail", new Object[] {}, volume.getName(), BlockStorageUtils.getCapacity(volume));
+        }
+        precheck(volume);
     }
 
     public void expandVolume(BlockObjectRestRep volume, Double newSizeInGB) {

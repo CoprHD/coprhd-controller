@@ -18,6 +18,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
@@ -80,6 +82,9 @@ public class ExportUtils {
     // This may be a dangerous thing to do, so we see this as a "kill switch" when service is in a desperate
     // situation and they need to disable the feature.
     private static final String VALIDATION_CHECK_PROPERTY = "validation_check";
+    // Regex pattern for checking if the HLUs ends with [0-7]
+    private static final String REGEX = ".*[0-7]$";
+    private static final Pattern pattern = Pattern.compile(REGEX);
 
     private static CoordinatorClient coordinator;
 
@@ -1801,6 +1806,35 @@ public class ExportUtils {
     }
 
     /**
+     * Export Mask can be shared with multiple ExportGroups in the below case.
+     * 
+     * 1. Create a volume and Export it to Host/Cluster via two different Virtual Array
+     * 2. Export Mask has both exclusive and shared volumes.
+     * 3. Create volumes from different projects and export to same compute resource.
+     * 
+     * A storage view cannot be deleted, if there are multiple volumes on the storage view which are part of different ExportGroup.
+     * We have to return true for all above case.
+     * 
+     * @return
+     */
+    public static boolean exportMaskHasVolumeFromMutipleExportGroup(ExportGroup current, List<ExportGroup> otherExportGroups,
+            ExportMask exportMask) {
+        for (ExportGroup exportGroup : otherExportGroups) {
+            // This piece of code gets executed only when all the initiators of
+            // Host are being asked to remove and the export mask is being shared.
+            if (!URIUtil.identical(current.getId(), exportGroup.getId()) &&
+                    !CollectionUtils.isEmpty(exportGroup.getInitiators())) {
+                _log.info(
+                        "Export Mask is being shared with other Export Groups, and the Export Group {} is different from the current processed {}."
+                                + "Assuming this mask contains multiple volumes ,removing the initiators might affect.",
+                        exportGroup.getId(), current.getId());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns true if the storage system implementation supports consistent HLU generation for cluster export.
      *
      * @param storage the storage system
@@ -2580,4 +2614,90 @@ public class ExportUtils {
 
         return lunIds;
     }
+
+    /**
+     * Checks if the initiatorList contains any initiator of HPUX host.
+     * 
+     * @param initiatorList
+     * @param dbClient
+     * @return true if the list contains HPUX host initiator otherwise false
+     */
+    public static boolean hasInitiatorHPUX(List<Initiator> initiatorList, DbClient dbClient) {
+        boolean initiatorIsHPUX = false;
+        if (!initiatorList.isEmpty()) {
+            Initiator ini = initiatorList.get(0);
+            URI hostURI = ini.getHost();
+            if (NullColumnValueGetter.isNullURI(hostURI)) {
+                _log.info("Found an initiator that doesn't belong to any host. Hence returning false");
+                return false;
+            }
+            Host host = dbClient.queryObject(Host.class, hostURI);
+            String hostType = host.getType();
+            if (hostType.equals(Host.HostType.HPUX.toString())) {
+                _log.info("Found a HPUX initiator");
+                initiatorIsHPUX = true;
+            }
+        }
+        return initiatorIsHPUX;
+    }
+
+    /**
+     * 
+     * Returns true if the hlu string provided is valid for HPUX and vmax.
+     * i.e it should end with 0-7 in its hexadecimal notation.
+     * 
+     * @param hexNot
+     * @return
+     */
+    public static boolean isValidHpuxHlu(String hexNot) {
+        Matcher matcher = pattern.matcher(hexNot);
+        return matcher.matches();
+    }
+
+    /**
+     * filters out the HLU for any hlu ending with [8-f] in hexadecimal format. This will be used to assign HLUs for VSA
+     * set
+     * initiator's volume.
+     * 
+     * @param freeHLUs
+     * @return list of HLU which ends with [0-7] in its hexadecimal format
+     */
+    public static Set<Integer> filterHLUforHPUX(Set<Integer> freeHLUs) {
+        Set<Integer> filteredHLUs = new HashSet<Integer>();
+        String hexNot = new String();
+        for (Integer hlu : freeHLUs) {
+            hexNot = Integer.toHexString(hlu);
+            if (isValidHpuxHlu(hexNot)) {
+                filteredHLUs.add(hlu);
+            }
+        }
+        return filteredHLUs;
+    }
+
+    /**
+     * Checks if the initiators are of Other host-type.
+     * 
+     * @param initiatorList
+     * @param dbClient
+     * @return
+     */
+    public static boolean hasInitiatorOther(List<Initiator> initiatorList, DbClient dbClient) {
+        boolean initiatorIsOther = false;
+        if (!initiatorList.isEmpty()) {
+            Initiator ini = initiatorList.get(0);
+            URI hostURI = ini.getHost();
+            if (NullColumnValueGetter.isNullURI(hostURI)) {
+                _log.info("Found an initiator that doesn't belong to any host. Hence returning false");
+                return false;
+            }
+            Host host = dbClient.queryObject(Host.class, hostURI);
+            String hostType = host.getType();
+            if (hostType.equals(Host.HostType.Other.toString())) {
+                _log.info("Found an Other host initiator");
+                initiatorIsOther = true;
+            }
+        }
+        return initiatorIsOther;
+    }
+
 }

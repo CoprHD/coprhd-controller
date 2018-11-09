@@ -669,6 +669,17 @@ public class RecoverPointScheduler implements Scheduler {
             VirtualPoolCapabilityValuesWrapper capabilities, String personality) {
 
         List<StoragePool> candidateStoragePools = new ArrayList<StoragePool>();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, personality);
+        /*
+         * The port group provided is belongs to RP source storage system.
+         * If port group set in capabilities, ViPR looks storage pools from given PG's storage system only
+         * Need to remove PORT_GROUP entry from capabilities for RP target volume,
+         * so that ViPR picks RP target storage pools from right storage system.
+         */
+        // TODO We have add support for PG for target volumes in the near future.
+        if (RPHelper.TARGET.equals(personality) || RPHelper.JOURNAL.equals(personality)) {
+            capabilities.removeCapabilityEntry(VirtualPoolCapabilityValuesWrapper.PORT_GROUP);
+        }
 
         _log.info(String.format("Fetching candidate pools for %s - %s volumes of size %s GB %n",
                 capabilities.getResourceCount(), personality, SizeUtil.translateSize(capabilities.getSize(), SizeUtil.SIZE_GB)));

@@ -38,7 +38,7 @@ public class ExpandBlockVolumeService extends LinuxService {
         acquireHostsLock();
         volume = BlockStorageUtils.getVolume(uri(volumeId));
 
-        expandBlockVolumeHelper.precheck(volume);
+        expandBlockVolumeHelper.precheck(volume, newSizeInGB);
     }
 
     @Override

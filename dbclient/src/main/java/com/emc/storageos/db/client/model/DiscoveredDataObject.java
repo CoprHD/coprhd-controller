@@ -188,6 +188,10 @@ public class DiscoveredDataObject extends DataObject {
         static public boolean isHDSStorageSystem(Type type) {
             return (type.equals(hds));
         }
+        
+        static public boolean isXtremIOStorageSystem(Type type) {
+            return (type.equals(xtremio));
+        }
 
         static public boolean isObjectStorageSystem(Type type) {
             return (type.equals(ecs));

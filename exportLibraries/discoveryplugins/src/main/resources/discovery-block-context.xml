@@ -2206,7 +2206,9 @@
 	</bean>
 	
 	<bean id="portGroupProcessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.VmaxPortGroupProcessor" />
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.VmaxPortGroupProcessor" >
+		<property name="partitionManager" ref="partitionManager" />	
+	</bean>
 
 
 

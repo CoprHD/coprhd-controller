@@ -1402,6 +1402,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void expandBlockSnapshot(BlockSnapshot snapshot, Long newSize, String taskId)
+            throws InternalException {
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
+        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
+        controller.expandBlockSnapshot(storageSystem.getId(), snapshot.getId(), newSize, taskId);
+    }
 
     /**
      * {@inheritDoc}

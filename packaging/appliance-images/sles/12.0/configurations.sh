@@ -897,8 +897,8 @@ fix_enable_java_sslv3() {
     fi
     if [ -f /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security ] ; then
         cp -p /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security.orig
-        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/'
-        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, MD5, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
+        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3, RC4, MD5withRSA,/\jdk.tls.disabledAlgorithms=RC4,/'
+        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, MD5/jdk.certpath.disabledAlgorithms=MD2/'
     fi
 }
 

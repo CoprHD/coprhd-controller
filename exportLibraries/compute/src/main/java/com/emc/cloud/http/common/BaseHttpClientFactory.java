@@ -7,29 +7,19 @@
  */
 package com.emc.cloud.http.common;
 
+import java.security.GeneralSecurityException;
+
+import org.apache.http.auth.AuthenticationException;
+import org.apache.http.impl.client.CloseableHttpClient;
+
 /**
  * @author prabhj
  *
  */
 import com.emc.cloud.http.ssl.SSLHelper;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
-import java.security.GeneralSecurityException;
-import org.apache.http.auth.AuthenticationException;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.impl.client.AbstractHttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.impl.conn.SingleClientConnManager;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class BaseHttpClientFactory {
-
-    private static final Logger LOG = LoggerFactory.getLogger(BaseHttpClientFactory.class);
 
     /** create thread-safe HTTP client instances */
     protected boolean threadSafeClients = false;
@@ -102,82 +92,6 @@ public class BaseHttpClientFactory {
         return connectionReadTimeout;
     }
 
-    /**
-     * create a HTTPClient using the factory's default configuration
-     * 
-     * @throws AuthenticationException, GeneralSecurityException, RuntimeException
-     * 
-     */
-    public AbstractHttpClient createHTTPClient() throws AuthenticationException, GeneralSecurityException, RuntimeException {
-        // use the configured defaults
-        return createHTTPClient(connectionTimeout, connectionReadTimeout);
-    }
-
-    /**
-     * create a HTTPClient overriding the factory's default configuration
-     * 
-     * @param useConnectionTimeout - allows override of the the default connectionTimeout
-     * @param useConnectionReadTimeout - allows override of the default connectionReadTimeout
-     * @throws AuthenticationException, GeneralSecurityException, RuntimeException
-     * 
-     */
-    public AbstractHttpClient createHTTPClient(int useConnectionTimeout, int useConnectionReadTimeout) throws AuthenticationException,
-            GeneralSecurityException, RuntimeException {
-
-        return createRawHTTPClient(useConnectionTimeout, useConnectionReadTimeout);
-
-    }
-
-    /**
-     * Create a HTTPClient using the factories configuration without Credentials
-     * 
-     * @param useConnectionTimeout - allows override of the the default connectionTimeout
-     * @param useConnectionReadTimeout - allows override of the default connectionReadTimeout
-     * @throws AuthenticationException, GeneralSecurityException, RuntimeException
-     * 
-     */
-    protected AbstractHttpClient createRawHTTPClient(int useConnectionTimeout, int useConnectionReadTimeout)
-            throws AuthenticationException, GeneralSecurityException, RuntimeException {
-
-        // select the appropriate connection manager and set options as appropriate
-        ClientConnectionManager cm = null;
-        if (threadSafeClients) {
-            ThreadSafeClientConnManager tscm = new ThreadSafeClientConnManager();
-            tscm.setMaxTotal(maxConnections);
-            tscm.setDefaultMaxPerRoute(maxConnectionsPerHost);
-            cm = tscm;
-        } else {
-            cm = new SingleClientConnManager();
-        }
-
-        // construct a client instance with the connection manager embedded
-        AbstractHttpClient httpClient = new DefaultHttpClient(cm);
-
-        if (relaxSSL) {
-            // !!!WARNING: This effectively turns off the authentication component of SSL, leaving only encryption
-            // can throw GeneralSecurityException
-            SSLHelper.configurePermissiveSSL(httpClient);
-        } else if (isSecureSSL()) {
-            SSLHelper.configureSSLWithTrustManger(httpClient, coordinator);
-        }
-
-        // see org.apache.http.client.params.AllClientPNames for a collected
-        // list of the available client parameters
-        HttpParams clientParams = httpClient.getParams();
-        HttpConnectionParams.setConnectionTimeout(clientParams, useConnectionTimeout);
-        HttpConnectionParams.setSoTimeout(clientParams, useConnectionReadTimeout);
-
-        // consider turning off the use of the Expect: 100-Continue response if
-        // your posts/puts tend to be relatively small
-        HttpProtocolParams.setUseExpectContinue(clientParams, false);
-
-        // TODO: reconsider this setting
-        // by default the client auto-retries on failures - turn that off so we can handle it manually
-        httpClient.setHttpRequestRetryHandler(new DefaultHttpRequestRetryHandler(0, false));
-
-        return httpClient;
-    }
-
     public void setCoordinator(CoordinatorClientImpl coordinator) {
         this.coordinator = coordinator;
     }
@@ -192,5 +106,59 @@ public class BaseHttpClientFactory {
 
     public void setSecureSSL(boolean secureSSL) {
         this.secureSSL = secureSSL;
+    }
+
+    /**
+     * create a HTTPClient using the factory's default configuration
+     * @return {@link CloseableHttpClient} instance
+     * @throws AuthenticationException, GeneralSecurityException, RuntimeException
+     *
+     */
+    public CloseableHttpClient createHTTPClient() throws AuthenticationException, GeneralSecurityException, RuntimeException {
+        // use the configured defaults
+        return createHTTPClient(connectionTimeout, connectionReadTimeout);
+    }
+
+    /**
+     * create a HTTPClient overriding the factory's default configuration
+     *
+     * @param useConnectionTimeout - allows override of the the default connectionTimeout
+     * @param useConnectionReadTimeout - allows override of the default connectionReadTimeout
+     * @return {@link CloseableHttpClient} instance
+     * @throws AuthenticationException, GeneralSecurityException, RuntimeException
+     *
+     */
+    public CloseableHttpClient createHTTPClient(int useConnectionTimeout, int useConnectionReadTimeout) throws AuthenticationException,
+            GeneralSecurityException, RuntimeException {
+
+        return createRawHTTPClient(useConnectionTimeout, useConnectionReadTimeout);
+
+    }
+
+    /**
+     * Create a HTTPClient using the factories configuration without Credentials
+     *
+     * @param useConnectionTimeout - allows override of the the default connectionTimeout
+     * @param useConnectionReadTimeout - allows override of the default connectionReadTimeout
+     * @return {@link CloseableHttpClient} instance
+     * @throws AuthenticationException, GeneralSecurityException, RuntimeException
+     *
+     */
+    protected CloseableHttpClient createRawHTTPClient(int useConnectionTimeout, int useConnectionReadTimeout)
+            throws AuthenticationException, GeneralSecurityException, RuntimeException {
+
+        CloseableHttpClient closeableHttpClient = null;
+        if (relaxSSL) {
+            // !!!WARNING: This effectively turns off the authentication
+            // component of SSL, leaving only encryption
+            // can throw GeneralSecurityException
+            closeableHttpClient = SSLHelper.getPermissiveSSLHttpClient(threadSafeClients, maxConnections,
+                    maxConnectionsPerHost, useConnectionTimeout, useConnectionReadTimeout);
+        } else if (isSecureSSL()) {
+            closeableHttpClient = SSLHelper.getSSLEnabledHttpClient(threadSafeClients, maxConnections,
+                    maxConnectionsPerHost, useConnectionTimeout, useConnectionReadTimeout, coordinator);
+        }
+
+        return closeableHttpClient;
     }
 }

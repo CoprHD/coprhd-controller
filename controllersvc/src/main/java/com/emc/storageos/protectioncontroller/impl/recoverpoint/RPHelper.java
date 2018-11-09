@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -84,13 +84,10 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.RPRecommendation;
-import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
-import com.google.common.collect.ComparisonChain;
 
 /**
  * RecoverPoint specific helper bean
@@ -2611,5 +2608,26 @@ public class RPHelper {
             return (vpool.getJournalSize() != null 
                     && (vpool.getJournalSize().endsWith("x") || vpool.getJournalSize().endsWith("X")));
         }
+    }
+
+    /**
+     * Checks if the Export has any RP-tagged volume. Will return true on encountering the first instance of RP-tagged
+     * volume.
+     * 
+     * @param exportGroup
+     * @param dbClient
+     * @return true if EG has RP-tagged volume, false otherwise
+     */
+    public static boolean validateForRPVolumes(ExportGroup exportGroup, DbClient dbClient) {
+        if (CollectionUtils.isEmpty(exportGroup.getVolumes().keySet())) {
+            return false;
+        }
+        List<Volume> vols = dbClient.queryObject(Volume.class, URIUtil.uris(exportGroup.getVolumes().keySet()));
+        for (Volume vol : vols) {
+            if (vol.checkForRp()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

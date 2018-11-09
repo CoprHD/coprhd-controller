@@ -199,6 +199,7 @@ URI_BLOCK_SNAPSHOTS             = URI_SERVICES_BASE  + '/block/snapshots/{0}'
 URI_BLOCK_SNAPSHOTS_EXPORTS     = URI_BLOCK_SNAPSHOTS + '/exports'
 URI_BLOCK_SNAPSHOTS_UNEXPORTS   = URI_BLOCK_SNAPSHOTS + '/exports/{1},{2},{3}'
 URI_BLOCK_SNAPSHOTS_RESTORE     = URI_BLOCK_SNAPSHOTS + '/restore'
+URI_BLOCK_SNAPSHOTS_EXPAND      = URI_BLOCK_SNAPSHOTS + '/expand'
 URI_BLOCK_SNAPSHOTS_ACTIVATE    = URI_BLOCK_SNAPSHOTS + '/activate'
 URI_BLOCK_SNAPSHOTS_EXPOSE      = URI_BLOCK_SNAPSHOTS + '/expose'
 URI_BLOCK_SNAPSHOTS_TASKS       = URI_BLOCK_SNAPSHOTS + '/tasks/{1}'
@@ -5431,6 +5432,17 @@ class Bourne:
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
         return (o, s['state'], s['message'])
+    
+    def block_snapshot_expand(self, snapshot, size):
+        params = {
+            'new_size'          : size,
+        }
+        suri = self.block_snapshot_query(snapshot)
+        suri = suri.strip()
+        o = self.api('POST', URI_BLOCK_SNAPSHOTS_EXPAND.format(suri), params)
+        self.assert_is_dict(o)
+        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
+        return (o, s['state'], s['message'])
 
     def block_snapshot_exports(self, snapshot):
         vuri = self.block_snapshot_query(snapshot).strip()
@@ -9579,7 +9591,7 @@ class Bourne:
     #compute virtual pool APIs
     #
     # Create a compute virtual pool
-    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template):
+    def computevirtualpool_create(self, name, computesysname, systemtype, usematchedpools, varray, template, templatetype):
         #get varray details
         varray_list = []
         varrayURI = self.neighborhood_query(varray)
@@ -9587,7 +9599,12 @@ class Bourne:
         varraydictlist = { 'varray' : varray_list }
         # get service profile template from for the given compute system
         sptIDs = []
-        templateURI = self.computesystem_getSPTid(computesysname, template)
+        templatename=template
+        if (templatetype == 'Initial'):
+            templatename=templatename+" (Initial Template)"
+        else:
+            templatename=templatename+" (Updating Template)"
+        templateURI = self.computesystem_getSPTid(computesysname, templatename)
         sptIDs.append(templateURI)
         sptdictList = { 'service_profile_template': sptIDs }
         params = {

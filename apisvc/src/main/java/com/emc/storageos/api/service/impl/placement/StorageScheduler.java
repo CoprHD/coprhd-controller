@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -627,6 +628,7 @@ public class StorageScheduler implements Scheduler {
                         }
                     }
                 }
+
                 if (setSystemMatcher) {
                     Set<String> storageSystemSet = new HashSet<String>();
                     storageSystemSet.add(pgSystemURI.toString());
@@ -636,13 +638,35 @@ public class StorageScheduler implements Scheduler {
                 // port group could be only specified for native vmax
                 throw APIException.badRequests.portGroupValidForVMAXOnly();
             }
-        } else {                        
+        } else {
             // PG was not supplied. This is normally OK unless the VMAX PG feature in enabled and the vpool is not for VPLEX. 
             String value = _customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.VMAX_USE_PORT_GROUP_ENABLED,
                     Type.vmax.name(), null);
+            _log.info("Controller config value of: Use Existing Port Group is [{}].", value);
             if (Boolean.TRUE.toString().equalsIgnoreCase(value) && !VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
-                limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
+                String personality = capabilities.getPersonality();
+                /*
+                 * Execution hits this block for the provisioning target volumes.
+                 * In a volume create and export operation, since we don't want target storage pool filtered by source PG,
+                 * the PG urn will be removed in respective StorageSchedulers: SRDFScheduler and RPScheduler.
+                 * So we want to limit the filtering when provisioning is for source volumes.
+                 * 
+                 * Note that personality won't be supplied for stand alone volumes (volumes without data protection).
+                 * So we need to consider that case as well.
+                 */
+                boolean filterStoragePoolsByPersonalityIfProvided = (personality == null || (RPHelper.SOURCE.equals(personality)
+                        || VirtualPoolCapabilityValuesWrapper.SRDF_SOURCE.equalsIgnoreCase(personality)));
+                if (filterStoragePoolsByPersonalityIfProvided) {
+                    if (personality == null) {
+                        _log.info("Limit the storage pools to those not requiring PG because it is a standalone volume.");
+                    } else {
+                        _log.info("Limit the storage pools to those not requiring PG because the personality of the volume is: {}.",
+                                personality);
+                    }
+
+                    // VMAX PG feature is enabled. Limit the valid storage pools to those not requiring PG.
+                    limitToStoragePoolsNotRequiringPortGroup(capabilities, vpool, provMapBuilder);
+                }
             }            
         }
 
@@ -1787,29 +1811,6 @@ public class StorageScheduler implements Scheduler {
         return volume;
     }
     
-    /*
-     * In Elm, there is no workload in SLO policy,
-     * old policy with Diamond + any workload is tread as Diamod + None
-     */
-    private static URI getElmDiamondPolicy(URI storage, String oldPolicyName, DbClient dbClient) {
-        // Look for only Diamond SLO
-        if(!oldPolicyName.contains(DIAMONDSLO)){
-            return null;
-        }
-        StorageSystem   storageSystem = dbClient.queryObject(StorageSystem.class, storage);
-        if(storageSystem != null && !storageSystem.getInactive() && storageSystem.isV3ElmCodeOrMore()) {
-            // Get all policies existing on storage system!!
-            List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
-            for (AutoTieringPolicy policy: systemDbPolicies) {
-                // Get the Elm Diamond SLO policy 
-                if(policy.getVmaxSLO() != null && policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
-                    return policy.getId();
-                }
-            }
-        }
-
-        return null;
-    }
     /**
      * Get the AutoTierPolicy URI for a given StoragePool and auto tier policy name.
      *
@@ -1849,8 +1850,9 @@ public class StorageScheduler implements Scheduler {
         // Verify the policy on Elm array, 
         // Diamond + WL should treat as Diamond + None
         if (poolObj != null && !poolObj.getInactive()) {
-            URI elmPolicy = getElmDiamondPolicy(poolObj.getStorageDevice(), policyName, dbClient);
+            URI elmPolicy = ControllerUtils.getElmDiamondPolicy(poolObj.getStorageDevice(), policyName, dbClient);
             if ( elmPolicy != null) {
+                _log.info("Found Elm SLO policy {} for vPool old policy {}", elmPolicy, policyName);
                 return elmPolicy;
             }
         }

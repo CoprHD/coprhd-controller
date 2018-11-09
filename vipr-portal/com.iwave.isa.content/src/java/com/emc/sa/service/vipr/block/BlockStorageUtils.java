@@ -34,6 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -72,6 +74,7 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateContinuousCopy;
 import com.emc.sa.service.vipr.block.tasks.DeactivateVolume;
 import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
 import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
+import com.emc.sa.service.vipr.block.tasks.ExpandBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
 import com.emc.sa.service.vipr.block.tasks.FindBlockVolumeHlus;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
@@ -175,6 +178,9 @@ public class BlockStorageUtils {
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
     public static final String UNDERSCORE = "_";
+    // Regex pattern for checking if the HLUs ends with [0-7]
+    private static final String REGEX = ".*[0-7]$";
+    private static final Pattern pattern = Pattern.compile(REGEX);
 
     public static boolean isHost(URI id) {
         return StringUtils.startsWith(id.toString(), "urn:storageos:Host");
@@ -243,7 +249,7 @@ public class BlockStorageUtils {
         return execute(new GetVirtualArray(id));
     }
 
-    private static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
+    public static List<VolumeRestRep> getVolumes(List<URI> volumeIds) {
         return execute(new GetBlockVolumes(volumeIds));
     }
 
@@ -492,6 +498,18 @@ public class BlockStorageUtils {
     public static void expandVolume(URI volumeId, double newSizeInGB) {
         String newSize = gbToVolumeSize(newSizeInGB);
         Task<VolumeRestRep> task = execute(new ExpandVolume(volumeId, newSize));
+        addAffectedResource(task);
+    }
+    
+    public static void expandBlockSnapshots(Collection<URI> snapshotIds, double newSizeInGB) {
+        for (URI snapshotId : snapshotIds) {
+            expandBlockSnapshot(snapshotId, newSizeInGB);
+        }
+    }
+
+    public static void expandBlockSnapshot(URI snapshotId, double newSizeInGB) {
+        String newSize = gbToVolumeSize(newSizeInGB);
+        Task<BlockSnapshotRestRep> task = execute(new ExpandBlockSnapshot(snapshotId, newSize));
         addAffectedResource(task);
     }
 
@@ -1671,7 +1689,7 @@ public class BlockStorageUtils {
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.capacityNotFound", resource.getId()));
     }    
-    
+
     /**
      * Returns the viprcli command for adding a tag to a block volume
      * 
@@ -1687,5 +1705,30 @@ public class BlockStorageUtils {
         TenantOrgRestRep tenant = getTenant(project.getTenant().getId());
         return ExecutionUtils.getMessage("viprcli.volume.tag", blockObject.getName(), tenant.getName(), project.getName(),
                 tagName, tagValue);
+    }
+
+    /**
+     * Utility method that determines if the given volume is already expanded (greater than requested size) based on
+     * a desired expansion size.
+     *
+     * @param volume the volume to inspect
+     * @param sizeInGb the requested volume expand size
+     * @return true if the volume is already greater than requested size, else false otherwise
+     */
+    public static <T extends BlockObjectRestRep> boolean isViprVolumeExpanded(T resource, Double sizeInGb) {
+        return (Double.parseDouble(getCapacity(resource)) > sizeInGb);
+    }
+
+    /**
+     * 
+     * returns if the hlu string provided is valid for HPUX and vmax i.e it should end with 0-7 in its hexadecimal
+     * notation
+     * 
+     * @param hexNot
+     * @return
+     */
+    public static boolean isValidHpuxHlu(String hexNot) {
+        Matcher matcher = pattern.matcher(hexNot);
+        return matcher.matches();
     }
 }

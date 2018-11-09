@@ -56,6 +56,8 @@ public class NativeGUIDGenerator {
 
     public static final String PORT = "PORT";
 
+    public static final String PORTGROUP = "PORTGROUP";
+
     public static final String ADAPTER = "ADAPTER";
 
     public static final String FILESYSTEM = "FILESYSTEM";
@@ -869,6 +871,10 @@ public class NativeGUIDGenerator {
 
     public static String generateNativeGuidForNamespace(StorageSystem device, String uniqueId, String type) {
         return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), type, uniqueId);
+    }
+
+    public static String generateNativeGuidForStoragePortGroup(StorageSystem device, String portGroupName) {
+        return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), PORTGROUP, portGroupName);
     }
 
 }

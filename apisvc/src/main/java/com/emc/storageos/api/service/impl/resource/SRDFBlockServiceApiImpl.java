@@ -416,7 +416,15 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         volume.setLabel(label);
-        volume.setCapacity(SizeUtil.translateSize(size));
+        long sizeLong = SizeUtil.translateSize(size);
+        volume.setCapacity(sizeLong);
+        Long thinVolumePreAllocationSize = 0L;
+        if (null != vpool.getThinVolumePreAllocationPercentage()) {
+        	thinVolumePreAllocationSize = VirtualPoolUtil.getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), sizeLong);
+        }
+        if (0 != thinVolumePreAllocationSize) {
+        	volume.setThinVolumePreAllocationSize(thinVolumePreAllocationSize);
+        }
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                 vpool.getSupportedProvisioningType()));
         volume.setVirtualPool(vpool.getId());
@@ -441,7 +449,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         } else if (personality.equals(Volume.PersonalityTypes.TARGET)) {
             volume.setAccessState(VolumeAccessState.NOT_READY.name());
         }
-
+        
         URI storageSystemUri = null;
         if (!remote) {
             storageSystemUri = placement.getSourceStorageSystem();

@@ -4,34 +4,24 @@
  */
 package controllers;
 
+import static com.emc.vipr.client.core.TasksResources.SYSTEM_TENANT;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
-import static com.emc.vipr.client.core.TasksResources.SYSTEM_TENANT;
-import static com.emc.vipr.client.core.TasksResources.FETCH_ALL;
 
 import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang3.text.WordUtils;
 
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.tasks.TaskStatsRestRep;
-import com.emc.storageos.model.workflow.WorkflowStepRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.impl.TaskUtil.State;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import controllers.security.Security;
 import controllers.tenant.TenantSelector;
@@ -40,9 +30,7 @@ import models.datatable.TaskLogsDataTable;
 import models.datatable.TasksDataTable;
 import play.Logger;
 import play.data.binding.As;
-import play.i18n.Messages;
 import play.mvc.Controller;
-import play.mvc.Util;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.StringOption;
@@ -79,8 +67,26 @@ public class Tasks extends Controller {
         if (systemTasks == null) {
             systemTasks = Boolean.FALSE;
         }
+
         if (systemTasks && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
             forbidden();
+        }
+
+        /**
+         * To show warning message if number of tasks are more than 10K
+         */
+        URI tenantId = null;
+        if (systemTasks) {
+        	tenantId = SYSTEM_TENANT;
+        } else {
+        	tenantId = uri(Models.currentAdminTenant());
+        }
+        ViPRCoreClient client = getViprClient();
+        TaskStatsRestRep stats = client.tasks().getStatsByTenant(tenantId);
+        int taskCount = stats.getPending() + stats.getError() + stats.getReady();
+        renderArgs.put("taskCount", taskCount);
+        if (taskCount > TasksDataTable.TASK_MAX_COUNT) {
+            flash.put("warning", MessagesUtils.get("tasks.warning", taskCount, TasksDataTable.TASK_MAX_COUNT));
         }
 
         renderArgs.put("isSystemAdmin", Security.isSystemAdminOrRestrictedSystemAdmin());
@@ -98,7 +104,7 @@ public class Tasks extends Controller {
             maxTasks = 100;
         }
 
-        int[] tasks = { 100, 1000, 2000, 5000, 10000, -1 };
+        int[] tasks = { 100, 1000, 2000, 5000, 10000 };
         List<StringOption> options = Lists.newArrayList();
         options.add(new StringOption(String.valueOf(maxTasks), MessagesUtils.get("tasks.nTasks", maxTasks)));
         for (int taskCount : tasks) {
@@ -117,17 +123,16 @@ public class Tasks extends Controller {
         if (systemTasks == null) {
             systemTasks = Boolean.FALSE;
         }
+
         if (systemTasks && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
             forbidden();
         }
 
         Integer maxTasks = params.get("maxTasks", Integer.class);
-        if (maxTasks == null) {
+        if (maxTasks == null || maxTasks == 0) {
             maxTasks = 100;
         }
-        if (maxTasks == 0) {
-            maxTasks = -1;
-        }
+
         ViPRCoreClient client = getViprClient();
         List<TaskResourceRep> taskResourceReps = null;
         if (lastUpdated == null) {
@@ -292,8 +297,6 @@ public class Tasks extends Controller {
 
         renderJSON(TaskUtils.getTaskSummary(task));
     }
-
-    
 
     public static void deleteTask(String taskId) {
         if (StringUtils.isNotBlank(taskId)) {

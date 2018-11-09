@@ -7,8 +7,15 @@ package com.emc.storageos.isilon.restapi;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.NewCookie;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
@@ -20,7 +27,9 @@ import org.apache.commons.httpclient.protocol.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
@@ -46,6 +55,22 @@ public class IsilonApiFactory {
     private ConcurrentMap<String, IsilonApi> _clientMap;
     private MultiThreadedHttpConnectionManager _connectionManager;
 
+    // Class for initial Isilon Session creation
+    private class IsilonIdentity {
+    	private String username;
+    	private String password;
+    	private ArrayList<String> services;
+    	
+		public IsilonIdentity(String username, String password) {
+			super();
+			this.username = username;
+			this.password = password;
+			this.services = new ArrayList<String>();
+			services.add("platform");
+			services.add("namespace");
+		}
+    }
+    
     /**
      * Maximum number of outstanding connections
      * 
@@ -150,15 +175,119 @@ public class IsilonApiFactory {
      * @return
      */
     public IsilonApi getRESTClient(URI endpoint, String username, String password) {
-        IsilonApi isilonApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
-        if (isilonApi == null) {
-            Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
-            RESTClient restClient = new RESTClient(jerseyClient);
-            isilonApi = new IsilonApi(endpoint, restClient);
-            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, isilonApi);
-        }
-        return isilonApi;
+    	// Handling the multiple threads accessing the clientMap
+    	synchronized(this){
+	        IsilonApi isilonApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
+	        if (isilonApi == null) {
+	            isilonApi = createRESTClient(endpoint, username, password);
+	        } else {
+	            boolean validSession = isilonApi.validateSession();
+	            if (!validSession) {
+	            	_log.info("Invalidating the Isilon Rest client with CSRF Auth for the management server {}", endpoint);
+	            	isilonApi.close();
+	            	_clientMap.remove(endpoint.toString() + ":" + username + ":" + password);
+	            	isilonApi = createRESTClient(endpoint, username, password);
+	            }
+	        }
+	        return isilonApi;
+    	}
     }
+
+    /**
+     * Creating a new Isilon REST client with the provided credentials
+     * 
+     * @param endpoint
+     * @param username
+     * @param password
+     * @return
+     */
+	private IsilonApi createRESTClient(URI endpoint, String username, String password) {
+		Client jerseyClient = new ApacheHttpClient(_clientHandler);
+		Map<String, String> isilonAuthInfo = getAuthType(jerseyClient, endpoint, username, password);
+
+		String authType = isilonAuthInfo.get(IsilonApiConstants.AUTH_TYPE);
+
+		RESTClient restClient = null;
+		if (authType.equals(IsilonApiConstants.AuthType.BASIC.name())) {
+			_log.info("Creating new Isilon Rest client with Basic Auth for the management server {}", endpoint);
+		    jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+		    restClient = new RESTClient(jerseyClient, authType);
+		} else {
+			_log.info("Creating new Isilon Rest client with CSRF Auth for the management server {}", endpoint);
+			String isisessId = isilonAuthInfo.get(IsilonApiConstants.SESSION_COOKIE);
+			String isicsrfId = isilonAuthInfo.get(IsilonApiConstants.CSRF_COOKIE);
+			restClient = new RESTClient(jerseyClient, authType, endpoint, isisessId, isicsrfId);
+		}
+
+		IsilonApi isilonApi = new IsilonApi(endpoint, restClient);
+		_clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, isilonApi);
+		return isilonApi;
+	}
+
+	/**
+     * Method gets the supported Authentication type from the Isilon
+     * 
+     * @param _client reference to the Jersey Apache HTTP client.
+     * @param baseUrl reference to the device URI
+     * @param username Isilon credentials
+     * @param password Isilon credentials
+     * @return
+     */
+	private Map<String, String> getAuthType(Client _client, URI baseUrl, String username, String password) {
+		Map<String, String> isilonAuthInfo = new HashMap<String,String>();
+		isilonAuthInfo.put(IsilonApiConstants.AUTH_TYPE, IsilonApiConstants.AuthType.BASIC.name());
+
+		IsilonIdentity isilonObj = new IsilonIdentity(username, password);
+		String body = new Gson().toJson(isilonObj);
+		URI sessionURL = baseUrl.resolve(IsilonApiConstants.URI_SESSION);
+		ClientResponse clientResp = _client.resource(sessionURL).type(MediaType.APPLICATION_JSON)
+				.accept(MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
+		if (clientResp.getStatus() != 201) {
+			String errMsg = String.format("Unable to find the supported authentication for the given endpoint %s", baseUrl.toString());
+            _log.error(errMsg, baseUrl);
+            throw IsilonException.exceptions.unableToConnect(baseUrl);
+        }
+		String strObj = clientResp.getEntity(String.class);
+
+		Map<String, String> isilonCookieMap = getIsilonCookies(clientResp);
+
+        if (isilonCookieMap != null && isilonCookieMap.size() > 1) {
+            String isisessId = isilonCookieMap.get(IsilonApiConstants.SESSION_COOKIE);
+            isilonAuthInfo.put(IsilonApiConstants.SESSION_COOKIE, isisessId);
+            String isicsrfId = isilonCookieMap.get(IsilonApiConstants.CSRF_COOKIE);
+            isilonAuthInfo.put(IsilonApiConstants.CSRF_COOKIE, isicsrfId);
+            if (!isisessId.isEmpty() && !isicsrfId.isEmpty()) {
+            	isilonAuthInfo.put(IsilonApiConstants.AUTH_TYPE, IsilonApiConstants.AuthType.CSRF.name());
+            	return isilonAuthInfo;
+            }
+        }
+        isilonAuthInfo.put(IsilonApiConstants.AUTH_TYPE, IsilonApiConstants.AuthType.BASIC.name());
+        return isilonAuthInfo;
+	}
+
+	/**
+	 * Method retrieve the Isilon cookies
+	 * 
+	 * @param clientResp HTTP client response
+	 * @return
+	 */
+	private Map<String,String> getIsilonCookies(ClientResponse clientResp) {
+		HashMap<String,String> isilonCookieMap = null;
+
+		List<NewCookie> cookies = clientResp.getCookies();
+
+		if (cookies != null && cookies.size() > 1) {
+			isilonCookieMap = new HashMap<String,String>();
+			for(NewCookie cookie : cookies)
+		    {
+				if (cookie.getName().equals(IsilonApiConstants.SESSION_COOKIE))
+					isilonCookieMap.put(IsilonApiConstants.SESSION_COOKIE, cookie.getValue());
+				if (cookie.getName().equals(IsilonApiConstants.CSRF_COOKIE))
+					isilonCookieMap.put(IsilonApiConstants.CSRF_COOKIE, cookie.getValue());
+		    }
+		}
+
+		return isilonCookieMap;
+	}
 
 }

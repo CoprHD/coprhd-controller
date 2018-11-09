@@ -1,739 +1,272 @@
-SOFTWARE LICENSE AND MAINTENANCE AGREEMENT
+Congratulations on your new Dell EMC purchase!
+Your purchase and use of this Dell EMC product is subject to and governed by the Dell EMC Commercial Terms of Sale, unless you have a separate written agreement with Dell EMC that specifically applies to your order, and the End User License Agreement (E-EULA), which are each presented below in the following order:     
+•	Commercial Terms of Sale
+•	End User License Agreement (E-EULA)
+The Commercial Terms of Sale for the United States are presented below and are also available online at the website below that corresponds to the country in which this product was purchased.  
+By the act of clicking “I accept,” you agree (or re-affirm your agreement to) the foregoing terms and conditions.  To the extent that Dell Inc. or any Dell Inc.’s direct or indirect subsidiary (“Dell”) is deemed under applicable law to have accepted an offer by you: (a) Dell hereby objects to and rejects all additional or inconsistent terms that may be contained in any purchase order or other documentation submitted by you in connection with your order; and (b) Dell hereby conditions its acceptance on your assent that the foregoing terms and conditions shall exclusively control.  
+IF YOU DO NOT AGREE WITH THESE TERMS, DO NOT USE THIS PRODUCT AND CONTACT YOUR DELL REPRESENTATIVE WITHIN FIVE BUSINESS DAYS TO ARRANGE A RETURN.
+COMMERCIAL TERMS OF SALE
+(United States)
+Unless otherwise agreed by the Suppliers (defined below) in writing, these Commercial Terms of Sale (CTS) apply to direct commercial and public sector purchasers of hardware, software and services and commercial end-users who purchase through a reseller (“Customer”). By using this product, Customer accepts and is bound by the CTS. 
+The term “Suppliers” means, as applicable:
+EMC Corporation (“EMC”)
+176 South Street
+Hopkinton, Massachusetts 01748
+or
+Dell Marketing L.P. (“Dell”)
+One Dell Way
+Round Rock, Texas 78682
+Email for Legal Notices:  Dell_Legal_Notices@dell.com 
 
-           ***  IMPORTANT INFORMATION - PLEASE READ CAREFULLY  ***
+Customer may buy or license Products, buy Services, or both, from one or both Suppliers under the CTS, or from an Affiliate that provides Customer a quote referencing the CTS.  The General Terms below apply to Suppliers and to Affiliates who provide products and services pursuant to the CTS, unless stated otherwise.  The Supplier or Affiliate that issues the quote to Customer is solely responsible to Customer to fulfill the obligations under that quote.  
+GENERAL TERMS
+1.	DEFINITIONS
+A.	“Affiliate” means Dell Inc. or Dell Inc.’s direct or indirect subsidiaries.
+B.	“Delivery” for Equipment occurs when Supplier provides the Equipment to a carrier at Supplier’s designated point of shipment.  “Delivery” for Software and Independent Software occurs either when Supplier provides physical media to a Supplier-designated carrier at Supplier’s designated point of shipment, or the date Supplier notifies Customer that Software or Independent Software is available for electronic download.
+C.	“Documentation” means Supplier’s then current, generally available user manuals and online help for Products.
+D.	“Products” means collectively: (i) “Equipment” (which is the hardware that Supplier provides to Customer under the CTS); and (ii) “Software” (which is Suppliers’ generally available application, microcode, firmware and operating system software that Supplier licenses to Customer under the CTS); and (iii) Independent Software (which is Supplier’s software that can operate on hardware other than Equipment).  Terms applicable to specific Products are further discussed in the Product Schedules in Section 9 below.  Products exclude Services and Third Party Products. 
+E.	“Providers” means entities (other than Customer) whose components, subassemblies, software, services, or some combination of these items have been incorporated into Products, Services, or both.
+F.	“Service Agreements”  means service contracts, including service descriptions available at www.dell.com/servicecontracts/global, service briefs, statements of work, services specifications, and any other similar mutually agreed documents.  
+G.	“Services” means collectively: (i) services for the support and maintenance of Products (“Support Services”) as set forth in Service Schedule referenced in Section 9 below, and applicable Product Schedules; and (ii) consulting, installation, implementation, and other services that are not Support Services (“Professional Services”) further discussed in the Service Schedule referenced in Section 9 below.  		
+H. 	“Software Release” means any subsequent, generally available version of Software or Independent Software provided after initial Delivery of Software or Independent Software, but does not mean a new Product.
+I.	“Third Party Products” means hardware, software, or services that are not “Dell” branded, “EMC” branded, or “Dell EMC” branded.  Third Party Products may include, without limitation, products and services manufactured, created, licensed, or performed by or on behalf of Supplier or its Affiliates, and may include hardware or software installed on a Product in the course of performing a Service.
+2.	BUYING PRODUCTS AND SERVICES
 
-This Software contains computer programs and other proprietary material and
-information, the use of which is subject to and expressly conditioned upon
-acceptance of this Software License and Maintenance Agreement (the &quot;Agreement&quot;).
+A.	Quotes and Orders. “Order” means Customer’s order of Products or Services, through either Dell.com or other online process; and also means Customer purchase orders that reference a Supplier quote and, if applicable, contract code, and Supplier order forms executed by Customer. Orders are subject to credit approval and are subject to Supplier acceptance. Acceptance of one Order is independent from any other Order. Quoted prices are effective until the expiration date of the Supplier’s quote, but may change due to shortages in materials or resources, increase in the cost of manufacturing, or other factors. Orders may contain charges for shipping and handling.  Supplier is not responsible for pricing, typographical, or other errors in any offer and may cancel Orders affected by such errors.
+B.	Changed or Discontinued Products or Services. Supplier may revise or discontinue products,  services, and Third Party Products at any time, including after Customer places an Order, but prior to Supplier’s shipment or performance. As a result, products and services Customer receives may differ from those ordered. However, Dell branded, EMC branded, and Dell EMC branded Products will materially meet or exceed all published specifications for the Products. Parts used in repairing or servicing Products may be new, equivalent to new, or reconditioned.
 
-This Agreement is a legally binding document between you (meaning the individual
-person or the entity that the individual represents that has obtained the
-Software for its internal productive use and not for outright resale) (the
-&quot;Customer&quot;) and EMC (which means (i) EMC Corporation, if Customer is located in
-the United States; (ii) the local EMC sales subsidiary, if Customer is located
-in a country in which EMC Corporation has a local sales subsidiary; and (iii)
-EMC Information Systems International (&quot;EISI&quot;), if Customer is located outside
-the United States and in a country in which EMC Corporation does not have a
-local sales subsidiary). Unless EMC agrees otherwise in writing, this Agreement
-governs Customer&apos;s use of the Software except to the extent all or any portion
-of the Software is: (a) the subject of a separate written agreement; or (b)
-governed by a third party licensor&apos;s terms and conditions. Capitalized terms
-have meaning stated in the Agreement.
+C.	Cancelation and Acceptance.  Customer may not cancel Orders except as provided in this sub-section 2.C. Orders for Third-Party Products are subject to availability and are cancellable only by Supplier. All Equipment, Software and Independent Software are deemed accepted by Customer upon Delivery.  Customer may return certain Products to Suppliers pursuant to the policy at Dell.com/returnspolicy. Even though Customer accepts Products as stated in the prior sentence, Customer retains all rights and remedies set forth in the applicable Product warranty. 
+D.	Risk of Loss; Title. Risk of loss for sold Equipment and licensed Software and Independent Software transfers to Customer upon Delivery.  Title to Equipment passes to Customer upon Delivery.  Title to Software and Independent Software does not pass to Customer. Software and Independent Software are only licensed to Customer and not sold. Unless otherwise agreed, Supplier will choose the common carrier.  Customer must notify Dell within twenty-one days of the invoice date if Customer believes any part of its Order is missing, wrong, or damaged.
+E.	Payment.  Customer must pay Supplier’s invoices in full and in the same currency as Supplier’s quote within the time noted on Supplier’s invoice, or if not noted, then within thirty days after the date of the  invoice, with interest accruing after the due date at the lesser of 1.5% per month or the highest lawful rate. Supplier may invoice parts of an Order separately or together in one invoice. All invoices  will be deemed accurate unless Customer advises Supplier in writing of a material error within ten days following receipt. If Customer advises Supplier of a material error, (i) any amounts corrected by Supplier in writing  must be paid within fourteen days of correction, and (ii) all other amounts shall be paid by Customer by the due date. If Customer withholds payment because Customer believes an invoiced amount is incorrect, and Supplier concludes that the amount is accurate, Customer must pay interest as described below from the due date for the amount until Supplier’s receipt of payment. Customer may not offset, defer or deduct any invoiced amounts that Supplier determines are correct following the notification process stated above. Supplier, without waiving any other rights or remedies and without liability to Customer, may suspend any or all Services until all overdue amounts are paid in full.
+F.	Taxes. Customer is responsible for payment of any sales, use, value added, GST, and any other similar taxes or governmental fees associated with Customer’s Order, except for taxes based on Supplier’s net income, gross revenue, or employment obligations. Customer must also pay all freight, insurance, and taxes (including but not limited to import or export duties, sales, use, value add, and excise taxes). If Supplier is obligated by applicable law to collect and remit any taxes or fees, then Supplier will add the appropriate amount to Customer’s invoices as a separate line item.  If Customer qualifies for a tax exemption, Customer must provide Supplier with a valid certificate of exemption or other appropriate proof of exemption.  If Customer is required by law to make a withholding or deduction from payment, Customer will make payments to Supplier net of the required withholding or deduction, and will provide to Supplier satisfactory evidence (e.g., official withholding tax receipts) that Customer has accounted to the relevant authority for the sum withheld or deducted. If Customer does not provide the information within sixty days of remittance to the applicable tax authority, Supplier will charge Customer for the amount that Customer deducted for the transaction.
+G.	Orders Through Channel Partners. If Customer’s purchase is made through a reseller, then the foregoing sections 2A, 2C, 2D, 2E, and 2F do not apply and all credit, invoicing, payment, returns, ordering, and cancelation terms for the purchase will be as agreed between Customer and the reseller. 
+H.	Third Party Products, EMC Select and Brokerage Products.  Customer may purchase Third Party Products through Suppliers. The terms governing Customer’s use of Third Party Products are as follows:  
+H (1). The third party manufacturer’s standard end user terms, including warranty, indemnification, and technical support and maintenance terms and conditions, apply to purchases of Third Party Products unless Customer has a separate negotiated agreement with the third party manufacturer for the applicable Product, in which case that negotiated agreement will govern.  This CTS does not apply to Third Party Terms except as provided in section H(2)(i) below. 
+H (2).	Select and Brokerage Products.  Suppliers sell certain products and services designated as “Select” or “Brokerage.”  Select products and services are designated by “SEL” in the Supplier quote and Brokerage products and services are designated with “Brokerage” or similar descriptor on the Supplier quote. The Select products and services are listed at http://www.EMC.com/partnersalliances/programs/select.jsp. Select and Brokerage products and services generally include Third Party Products, but may also include Supplier Products.
+(i)	When Select and Brokerage products and services are Supplier Products (i.e., described in a Product or Service Schedule to the CTS), the terms of the CTS apply.
+(ii)	When Select and Brokerage products and services are Third Party Products, the Select or Brokerage partner’s standard terms apply, and the CTS, including the warranty and indemnity terms, do not apply.
+The manufacturer of the applicable product or service provides technical support and maintenance, if any, for all Select and Brokerage products.
+Customer agrees to abide by the applicable terms and conditions in this Sub-section 2H. Except as provided in Section 2 H(2)(ii) above, Suppliers have no liability to Customer for any damages that arise out of or relate to Third Party Products. Suppliers provide Third Party Products “AS IS”, make no express warranties, and disclaim all implied warranties, including merchantability, fitness for a particular purpose, title, and non-infringement as well as any warranty arising by statute, operation of law, course of dealing or performance, or usage of trade.
+3.	SOFTWARE LICENSE TERMS.  Dell branded, EMC branded, and Dell EMC branded Software that Supplier provides pre-installed on or that only operates on Equipment is subject to the end user license agreement, below. Independent Software is subject to the terms stated in Product Schedule 1 (“Infrastructure Product Terms”).
+A. 	Services Software.  “Services Software” is software that Supplier may make available to Customer in connection with Services. Services Software may be hosted by Supplier or installed on Customer’s computers.  Customer agrees that it shall (i) only use the Services Software in connection with the Supplier’s Services, (ii) use any Services Software hosted by Supplier in a lawful manner, without interfering with other Supplier customer’s use of the Services Software, and without attempting to disrupt the security or operation of the network or systems used to provide the Services Software; and (iii) not misappropriate, disclose, or otherwise violate Supplier’s or its Providers’ intellectual property rights in the Services Software.  It may be necessary for Supplier to perform scheduled or unscheduled repairs or maintenance, or remotely patch or upgrade the Services Software, which may temporarily degrade the quality of the Services or result in a partial or complete outage of the Services Software.   CUSTOMER AGREES THAT THE OPERATION AND AVAILABILITY OF THE SYSTEMS USED FOR ACCESSING AND INTERACTING WITH THE SERVICES SOFTWARE, INCLUDING TELEPHONE, COMPUTER NETWORKS, AND THE INTERNET, OR TO TRANSMIT INFORMATION, CAN BE UNPREDICTABLE AND MAY, FROM TIME TO TIME, INTERFERE WITH OR PREVENT ACCESS TO OR USE OR OPERATION OF SUCH SERVICES SOFTWARE.  SUPPLIER SHALL NOT BE LIABLE FOR ANY SUCH INTERFERENCE WITH OR PREVENTION OF CUSTOMER’S ACCESS TO OR USE OF THE SERVICES SOFTWARE.
+B. 	Third Party Software License Terms.  Software for which Supplier is not the licensor (“Third Party Software”) may come with its own license terms (“Separate License Terms”), such as a: (i) “click-to-accept" agreement included as part of the installation or download process; (ii) "shrink-wrap" agreement included in the Product packaging; or (iii) a notice indicating that by installing or using a Product or the component, the related license terms apply. The Separate License Terms govern Customer’s use of Third Party Software. Suppliers provide Third Party Software “AS IS”, make no express warranties, and disclaim all implied warranties, including merchantability, fitness for a particular purpose, title, and non-infringement as well as any warranty arising by statute, operation of law, course of dealing or performance, or usage of trade.
+4.	EQUIPMENT WARRANTY, EXCLUSIONS, AND DISCLAIMERS
+A.	Equipment Warranty.  The warranties for Equipment are stated in the applicable Product Schedules at Section 9 below. 
+B.	Equipment Warranty Exclusions.  Equipment warranties do not cover problems that arise from: (i) accident or neglect by Customer or any third party; (ii) any third party items or services with which the Equipment is used or other causes beyond Supplier’s control; (iii) installation, operation, or use not in accordance with Supplier’s instructions or applicable Documentation; (iv) use in an environment, in a manner, or for a purpose for which the Equipment was not designed; (v) modification, alteration, or repair by anyone other than Supplier or its authorized representatives; or (vi) causes attributable to normal wear and tear. Supplier has no obligation for Software installed or used beyond the licensed use, for Equipment that Customer moved from the Installation Site without Supplier’s consent when applicable, or Product whose original identification marks have been altered or removed or for any Software for which payment has not been received.  The Products and Services are not fault-tolerant and are not designed or intended for use in hazardous environments requiring fail-safe performance, such as any application in which the failure of the Products or Services could lead directly to death, personal injury, or physical or property damage (collectively, “High-Risk Activities”). Suppliers expressly disclaim any express or implied warranty of fitness for High-Risk Activities.
+C.	Equipment Warranty Disclaimer.  Other than the warranties set forth in this Section 4C and the Product and Service Schedules in Section 9, and to the maximum extent permitted by applicable law, Suppliers and Affiliates, and their Providers: (i) make no other express warranties; (ii) disclaim all implied warranties, including merchantability, fitness for a particular purpose, title, and non-infringement; and (iii) disclaim any warranty arising by statute, operation of law, course of dealing or performance, or usage of trade.  
+5.	TERM; TERMINATION OR SUSPENSION.  This CTS is effective upon the earlier of Customer’s issuance of an Order to Supplier, or Customer’s acceptance of the CTS. The CTS continues until it is terminated in accordance with this Section.  The term and termination provisions for Support Services are contained in the applicable Product and Services Schedules. 
+A.	Suspension or Modification of Services.  
+Supplier may suspend, terminate, withdraw, or discontinue all or part of the Services when Supplier believes, in its sole judgment, that Customer is involved in any fraudulent or illegal activities. 
+B.	Termination.  Either party may terminate the CTS, a Service Agreement, or license for Software or Independent Software: (i) for a material breach by the other party that is not cured within thirty days of the breaching party’s receipt of written notice of the breach; or (ii) if a party declares bankruptcy or is adjudicated bankrupt or a receiver or trustee is appointed for substantially all of its assets.  In addition, Supplier may terminate the CTS or one or more Service Agreements or software licenses with ten days’ written notice if: (a) Customer does not make payment as required by the CTS or the applicable Schedule (where the payment is not subject to a good faith dispute); (b) Customer fails to make the payment within ten days after receiving written notice of the past due amount; (c) Customer purchased through a reseller and, as applicable, (c)(1) the agreement between Customer and the reseller expires or is terminated; (c)(2) the agreement between Supplier and the reseller expires or is terminated; or (c)(3) the reseller is delinquent on its payment obligations to Supplier. Supplier may terminate the CTS and some or all of the Schedules immediately if Customer is acquired by or merged with a competitor of Supplier or any of its Affiliates.  Termination of a Service Agreement will not terminate other Service Agreements, and termination of all Service Agreements will not terminate this CTS.
+C.	Survival.  The provisions relating to payment of outstanding fees, records and audit, confidentiality, and liability will survive termination, all rights of action accruing prior to termination, along with any other provision of the CTS that, expressly, or by its nature and context, is intended to survive 
+6.	INDEMNITY
+A.	Indemnification by Customer. Customer will defend and indemnify Suppliers and Affiliates against any third party claim resulting or arising from Customer’s: (i) failure to obtain any appropriate license, intellectual property rights, or other permissions, regulatory certifications, or approvals associated with technology or data that Customer provides to Suppliers or Affiliates, or with non-Supplier software or other components that Customer directs or requests that Suppliers or Affiliates use with, install, or integrate as part of the Products or Services; (ii) violation of Suppliers’ or Affiliates’ proprietary rights; (iii) misrepresentation of facts regarding an export license or any allegation made against any Supplier or Affiliates due to Customer’s violation or alleged violation of applicable export laws; or (iv) transfer or provision of access to Excluded Data to any Supplier or Affiliates.
+B. Excluded Data.  “Excluded Data” means: (i) data that is classified, used on the U.S. Munitions list (including software and technical data) or both; (ii) articles, services, and related technical data designated as defense articles and defense services; and (iii) ITAR (International Traffic in Arms Regulations) related data; and (iv) other personally identifiable information that is subject to heightened security requirements as a result of Customer’s internal policies or practices or by law. Customer acknowledges that products and services provided under the CTS are not designed to process, store, or be used in connection with Excluded Data.  Customer is solely responsible for reviewing data that will be provided to or accessed by Suppliers to ensure that it does not contain Excluded Data.
+7.	LIMITATION OF LIABILITY
+A.	Limitations on Damages. The limitations, exclusions and disclaimers stated below apply to all Disputes (as defined in Section 9F (“Governing Law; Informal Dispute Resolution; Attorney’s Fees”).  The terms of this Section are agreed allocations of risk constituting part of the consideration for Suppliers’ and Affiliates’ sale of products and services to Customer and will apply even if there is a failure of the essential purpose of any limited remedy, and regardless whether a party has been advised of the possibility of the liabilities. 
+A. (1).	Limitation on Direct Damages.  Except for Customer’s obligations to pay for products and services, Customer’s violation of the restrictions on use of products and services or Supplier’s intellectual property rights, Customer’s indemnity obligation stated in Section 6 (“Indemnity”), each party’s total liability for Disputes is limited to the amount Customer paid to Supplier during the twelve months before the date that the Dispute arose for the product, services, or both that are the subject of the Dispute, but excluding amounts received as reimbursement of expenses or payment of taxes.  
+A. (2).	No Indirect Damages.  Except for Customer’s payment obligations and violation of Suppliers’ intellectual property rights, neither Supplier nor Customer has liability to the other for special, consequential, exemplary, punitive, incidental, or indirect damages, or for lost profits, loss of revenue, loss of data, or loss of use, or procurement of substitute products or services. 
+B.	Regular Back-ups.  Customer is solely responsible for its data.  Customer must back up its data before Supplier performs any remedial, upgrade, or other work on Customer’s production systems. If applicable law prohibits exclusion of liability for lost data, then Supplier will only be liable for the cost of the typical effort to recover the lost data from Customer’s last available back-up.  
+C.	Limitation Period.  Except as stated in this Section 7C, all claims must be made within the period specified by applicable law. If the law allows the parties to specify a shorter period for bringing claims, or the law does not provide a time at all, then claims must be made within eighteen months after the cause of action accrues.
+8.	CONFIDENTIALITY. “Confidential Information” is any information, technical data, or know-how furnished, whether in written, oral, electronic, website-based, or other form, by the discloser to the recipient that: (i) is marked, accompanied, or supported by documents clearly and conspicuously designating the documents as "confidential", “internal use”, or the equivalent; (ii) is identified by the discloser as confidential before, during, or promptly after the presentation or communication; or (iii) should reasonably be known by recipient to be confidential. This CTS imposes no obligation upon a recipient with respect to information designated as confidential which: (a) the recipient can demonstrate was already in its possession before receipt from the discloser;  (b) is or becomes publicly available through no fault of the recipient or its Representatives (defined below); (c) is rightfully received by the recipient from a third party who has no duty of confidentiality; (d) is disclosed by the discloser to a third party without a duty of confidentiality on the third party; or (e) is independently developed by the recipient without a breach of the CTS. If a recipient is required by a government body or court of law to disclose Confidential Information, to the extent permitted by law, the recipient agrees to give the discloser reasonable advance notice so that the discloser may contest the disclosure or seek a protective order. Recipient will use Confidential Information only for the purpose of and in connection with the evaluation of a potential, or continuation of, a business transaction or relationship between the parties. Recipient may disclose Confidential Information to its directors, officers, employees, and employees of its affiliates, as well as its and its affiliates’ contractors, advisors, and agents, so long as those individuals have a need to know in their work for recipient in furtherance of the potential or continued business transaction or relationship, and are bound by obligations of confidentiality at least as restrictive as those imposed on recipient in this CTS (collectively, “Representatives”).  Recipient is fully liable for any breach of this CTS by its Representatives. Recipient will use the same degree of care, but no less than reasonable care, as the recipient uses with respect to its own similar information to protect the Confidential Information.  Recipient may only disclose Confidential Information as authorized by this CTS. The terms of this CTS do not restrict the right of recipient to independently design, develop, acquire, market, service, or otherwise deal in, directly or indirectly, products or services competitive with those of the discloser so long as the recipient does not use any of the discloser's Confidential Information for those activities.  Unless the parties otherwise agree in writing, a recipient's duty to protect Confidential Information expires three years from the date of disclosure. However, subject to the terms of this Section, the obligation to protect technical information about a discloser’s current products and services and all information about possible unreleased products or services never expires. Upon the discloser's written request, recipient will promptly return or destroy all Confidential Information received from the discloser, together with all copies. Notwithstanding the foregoing, recipient’s professional advisors (e.g., lawyers and accountants) may retain in confidence one file copy of their respective work papers and final reports in accordance with their professional and ethical obligations.
+9.	MISCELLANEOUS
+A.	References.  Supplier may identify Customer as a user of Products, Services, or both, as applicable. 
+B.	Customer and System Data. In connection with Supplier’s performance or Customer’s use of the Services and Service  Software, Supplier may obtain, receive, and/or collect data, including system-specific data (collectively, the “Data”). Customer grants Suppliers: (i) a non-exclusive, worldwide, royalty-free, perpetual, irrevocable license to use, compile, distribute, display, store, process, reproduce, or create derivative works of the Data solely to provide the Services or use the Service Software; (ii) a license to aggregate and use the Data in an anonymous manner in support of Supplier’s marketing and sales activities; and (iii) the right to copy and maintain the Data on Supplier’s or its suppliers’ servers as necessary to provide the Services. Customer represents and warrants that it has obtained all rights, permissions, and consents necessary to use and transfer the Data within and outside of the country in which Customer is located.
+C. 	Notices. The parties will provide all notices under this CTS in writing.  Customer must provide notices to Suppliers, at the Dell email address on the first page of the CTS and, if applicable, Supplier’s address as stated in a Schedule.
+D.	Excused Performance.  Except for payment of amounts due and owing, neither Supplier nor Customer will be liable for failure to perform its obligations during any period if performance is delayed or rendered impracticable or impossible due to circumstances beyond that party’s reasonable control.
+E.	Assignment.  Customer may not assign the CTS, a Supplier’s quote, or an Order, or any right or obligation under the CTS, a quote or an Order, or delegate any performance, without Supplier’s prior written consent (except an assignment of Customer’s Order to Dell Financial Services, LLC, does not require consent), which will not be unreasonably withheld.  Even if Supplier consents to an assignment or delegation, Customer remains responsible for all obligations to Supplier under the CTS, a quote, or Order that Customer incurred prior to the effective date of the assignment or delegation.  Customer attempts to assign or delegate without Supplier’s prior, written consent are void. Supplier may use Affiliates or other qualified subcontractors to provide Services to Customer, but Supplier remains responsible to Customer for the performance of those Services.
+F.	Governing Law; Informal Dispute Resolution; Attorney’s Fees. The CTS, and any dispute, claim, or controversy (whether in contract, tort, or otherwise) related to or arising out of the CTS or any quote or Order (“Dispute”) is governed by the laws of the State of Texas (excluding the conflicts of law rules) and the federal laws of the United States. The U.N. Convention on Contracts for the International Sale of Goods does not apply.  To the extent permitted by law, the state and federal courts located in Texas will have exclusive jurisdiction for any Disputes. Customer and Suppliers agree to submit to the personal jurisdiction of the state and federal courts located within Travis or Williamson County, Texas, and agree to waive any and all objections to the exercise of jurisdiction over the parties by those courts and to venue in those courts.  The parties agree to waive, to the maximum extent permitted by law, any right to a jury trial with respect to any Dispute.  Neither Customer nor Suppliers are entitled to join or consolidate claims by or against other customers, or pursue any claim as a representative or class action, or in private attorney general capacity.  As a condition precedent to filing any lawsuit, the parties will attempt to resolve any Dispute against one or more Suppliers or any Supplier Affiliate through negotiation with persons fully authorized to resolve the Dispute, or through mediation utilizing a mutually agreeable mediator, rather than through litigation.  The existence or results of any negotiation or mediation will be treated as confidential. Although the merits of the underlying Dispute will be resolved in accordance with this Section, any party has the right to obtain from a court of competent jurisdiction a temporary restraining order, preliminary injunction, or other equitable relief to preserve the status quo, prevent irreparable harm, avoid the expiration of any applicable limitation periods, or preserve a superior position with respect to other creditors.  If the parties are unable to resolve the Dispute within thirty days (or other mutually agreed time) of notice of the Dispute to the other party, the parties will be free to pursue all remedies available at law or in equity.  In any Dispute (other than Supplier’s efforts to collect overdue amounts from Customer) each party will bear its own attorneys’ fees and costs and expressly waives any statutory right to attorneys’ fees under § 38.001 of the Texas Civil Practices and Remedies Code. 
+G.	Waiver. Failure to enforce a provision of the CTS will not constitute a waiver of that or any other provision of the CTS.
+H.	Independent Contractors. The parties are independent contractors for all purposes under the CTS and cannot obligate any other party without prior written approval. The parties do not intend anything in the CTS to allow any party to act as an agent or representative of a party, or the parties to act as joint venturers or partners for any purpose. No party is responsible for the acts or omissions of any other.
+I.	Severability. If any part of the CTS or document that incorporates the CTS by reference is held unenforceable, the validity of all remaining parts will not be affected.
+J. 	Privacy Statements. For information about Supplier’s Privacy Statements, please read Dell's global and country-specific privacy policies at www.Dell.com/Privacy.  These policies explain how Dell treats Customer personal information and protects Customer privacy.
+K.	Trade Compliance.  Customer’s purchase of Products or Services and access to related technology (collectively, the “Materials”) are for its own use, not for resale, export, re-export, or transfer.  Customer is subject to and responsible for compliance with the export control and economic sanctions laws of the United States and other applicable jurisdictions.  Materials may not be used, sold, leased, exported, imported, re-exported, or transferred except with Supplier’s prior written authorization and in compliance with such laws, including, without limitation, export licensing requirements, end user, end-use, and end-destination restrictions, prohibitions on dealings with sanctioned individuals and entities, including but not limited to persons on the Office of Foreign Assets Control's Specially Designated Nationals and Blocked Persons List, or the U.S. Department of Commerce Denied Persons List.  Customer represents and warrants that it is not the subject or target of, and that Customer is not located in a country or territory (including without limitation, North Korea, Cuba, Iran, Syria, and Crimea) that is the subject or target of, economic sanctions of the United States or other applicable jurisdictions.
+L.	Encryption. Customer certifies that all items (including hardware, software, technology and other materials) it provides to Dell for any reason that contain or enable encryption functions either (i) satisfy the criteria in the Cryptography Note (Note 3) of Category 5, Part 2 of the Wassenaar Arrangement on Export Controls for Conventional Arms (Wassenaar Arrangement) and Dual-Use Goods and Technologies and Category 5, Part 2 of the U.S. Commerce Control List (CCL) or (ii) employ key length of 56-bit or less symmetric, 512-bit asymmetric or less, and 112-bit or less elliptic curve or (iii) are otherwise not subject to the controls of Category 5, Part 2 of the Wassenaar Arrangement and Category 5, Part 2 of the CCL. Dell is not responsible for determining whether any Third-Party Product to be used in the products and services satisfies regulatory requirements of the country to which such products or services are to be delivered or performed, and Dell shall not be obligated to provide any product or service where the product or service is prohibited by law or does not satisfy the local regulatory requirements
+M.	U.S. Government Restricted Rights. The software and documentation provided with the products and services are “commercial items” as that term is defined at 48 C.F.R. 12.101, consisting of “commercial computer software” and “commercial computer software documentation” as such terms are used in 48 C.F.R. 12.212. Consistent with 48 C.F.R. 12.212 and 48 C.F.R. 227.7202-1 through 227.7202-4, all U.S. Government end-users acquire the software and documentation with only those rights set forth herein. Contractor/manufacturer of  Dell-branded Software and Dell-branded Products is Dell Products L.P., One Dell Way, Round Rock, Texas 78682.
+N.	Entire Agreement; Conflicts.  The CTS (including the General Terms and  Product and Service Schedules, and other online terms referenced in the CTS), and, if Customer is directly purchasing from Supplier, the  Supplier’s quote, and each Order: (i) comprise the complete statement of the agreement of the parties with regard to its subject matter; and (ii) may be modified only in a writing signed by Customer and Supplier.  All terms of any Customer Order, including but not limited to (1) any terms that are inconsistent or conflict with this CTS, a Supplier quote, or both, and (2) any pre-printed terms, have no legal effect and do not modify or supplement the CTS, even if Supplier does not expressly object to those terms when accepting a Customer Order. Each Service Agreement will be interpreted  independent of any other Service Agreement.   If there is a conflict between any Service Agreement and the CTS, the terms of the Service Agreement will take precedence, and in  the event of any conflicts between a Product or Service Schedule and the General Terms, the Product or Service Schedule will prevail. In the event that a subject is addressed in both the Supplier Software license agreement provided in or with the Software and the CTS or in any Product or Service Schedule, then the corresponding provision of the Supplier Software license agreement will prevail.    No party is relying upon the representations of statements of the other that are not fully expressed in this CTS, and each party expressly disclaims reliance upon any representations or statements not expressly set forth in this CTS. Any claims by any party of fraud in the inducement of this CTS or any Supplier quote or Customer Order based on any statements, representations, understandings, or omissions, whether oral or written, that are not fully expressed in this CTS or the applicable Supplier’s quote are expressly waived and released.   Cloud-type services, such as software-as-a-service, storage-as-a-service, and the like, that Customer orders from Supplier are provided pursuant to the Cloud Services Terms of Services located at www.dell.com/dellemccloudterms.  The following Product and Service Schedules are incorporated into this CTS. 
 
-If Customer does not have a currently enforceable, written and separately signed
-software license agreement directly with EMC or the Distributor from whom
-Customer obtained this Software, then by clicking on the &quot;Agree&quot; or &quot;Accept&quot; or
-similar button at the end of this Agreement, or proceeding with the
-installation, downloading, use or reproduction of this Software, or authorizing
-any other person to do so, you are representing to EMC that you are (i)
-authorized to bind the Customer; and (ii) agreeing on behalf of the Customer
-that the terms of this Agreement shall govern the relationship of the parties
-with regard to the subject matter in this Agreement and are waiving any rights,
-to the maximum extent permitted by applicable law, to any claim anywhere in the
-world concerning the enforceability or validity of this Agreement.
+Product Schedules :  http://www.dell.com/learn/us/en/uscorp1/terms-conditions/cts-product-schedules
+•	Product Schedule 1 to CTS – Infrastructure Product Terms
+•	Product Schedule 2 to CTS – Networking Product and Server Product Terms
+•	Product Schedule 3 to CTS – Client Product Terms
+•	Product Schedule 4 to CTS – Pivotal™ Product Terms
+Service Schedules:  http://www.dell.com/learn/us/en/uscorp1/terms-conditions/commercialtermsofsale-servicesschedules
+•	Service Schedule A to CTS – General Support Services Terms
+•	Service Schedule B to CTS – General Professional Services Terms
+•	Service Schedule C to CTS – Pivotal Professional Services Terms
 
-If Customer has a currently enforceable, written and separately signed software
-license agreement directly with EMC or the Distributor from whom Customer
-obtained this Software, then by clicking on the &quot;Agree&quot; or &quot;Accept&quot; or similar
-button at the end of this Agreement, or proceeding with the installation,
-downloading, use or reproduction of this Software, or authorizing any other
-person to do so, you are representing that you are (i) authorized to bind the
-Customer; and (ii) agreeing on behalf of the Customer that the terms of such
-written, signed agreement shall replace and supersede the terms of this
-Agreement and shall govern the relationship of the parties with regard to this
-Software, and are waiving any rights, to the maximum extent permitted by
-applicable law, to any claim anywhere in the world concerning the enforceability
-or validity of such written signed agreement.
+Commercial Terms of Sale Country Websites
+AMERICAS
+Canada 	Dell.ca/terms
+Canada (French)	Dell.ca/conditions
+Argentina	www.dell.com/learn/ar/es/arcorp1/terms-of-sale
 
-If you do not have authority to agree to the terms of this Agreement on behalf
-of the Customer, or do not accept the terms of this Agreement on behalf of the
-Customer, click on the &quot;Cancel&quot; or &quot;Decline&quot; or other similar button at the end
-of this Agreement and/or immediately cease any further attempt to install,
-download or use this Software for any purpose, and remove any partial or full
-copies made from this Software.
+Aruba	www.dell.com/learn/aw/en/awcorp1/terms-of-sale
 
-1.  DEFINITIONS.
-A.  &quot;Affiliate&quot; means a legal entity that is controlled by, controls, or is
-under common &quot;control&quot; of EMC or Customer. &quot;Control&quot; means more than 50% of the
-voting power or ownership interests.
-B.  &quot;Confidential Information&quot; means and includes the terms of this Agreement,
-Software, and Support Tools and all confidential and proprietary information of
-EMC or Customer, including without limitation, all business plans, product
-plans, financial information, software, designs, and technical, business and
-financial data of any nature whatsoever, provided that such information is
-marked or designated in writing as &quot;confidential,&quot; &quot;proprietary,&quot; or any other
-similar term or designation. Confidential Information does not include
-information that is (i) rightfully in the receiving party&apos;s possession without
-obligation of confidentiality prior to receipt from the disclosing party, (ii) a
-matter of public knowledge through no fault of the receiving party, (iii)
-rightfully furnished to the receiving party by a third party without restriction
-on disclosure or use; or (iv) independently developed by the receiving party
-without use of or reference to the disclosing party&apos;s Confidential Information.
-C.  &quot;Distributor&quot; means a reseller, distributor, system integrator, service
-provider, independent software vendor, value-added reseller, OEM or other
-partner that is authorized by EMC to license Software to end users. The term
-shall also refer to any third party duly authorized by a Distributor to license
-Software to end users.
-D.  &quot;Documentation&quot; means the then-current, generally available, written user
-manuals and online help and guides for Software provided by EMC.
-E.  &quot;Product Notice&quot; means the notice by which EMC informs Customer of product-
-specific use rights and restrictions, warranty periods, warranty upgrades and
-maintenance (support) terms. Product Notices may be delivered in an EMC quote,
-otherwise in writing and/or a posting on the applicable EMC website, currently
-located at http://www.emc.com/products/warranty_maintenance/index.jsp. The terms
-of the Product Notice in effect as of the date of the EMC quote shall be deemed
-incorporated into and made a part of the relevant Customer purchase order. Each
-Product Notice is dated and is archived when it is superseded by a newer
-version. EMC shall not change any Product Notice retroactively with regard to
-any Software or Support Services listed on an EMC quote issued prior to the date
-of the applicable Product Notice. At Customer&apos;s request, EMC shall without undue
-delay provide Customer with a copy of the applicable Product Notice and/or
-attach it to the relevant EMC quote.
-F.  &quot;Software&quot; means the EMC software product which requires acceptance of this
-Agreement, and any copies made by or on behalf of Customer, Software Releases,
-and all Documentation for the foregoing.
-G.  &quot;Software Release&quot; means any subsequent version of Software provided by EMC
-after initial delivery of Software but does not mean a new item of Software.
-H.  &quot;Support Services&quot; means the annual service available from EMC or its
-designee which provides Software Releases and support services for Software as
-set forth in the Product Notice.
-I.  &quot;Support Tools&quot; means any hardware, software and other tools and/or
-utilities used by EMC to perform diagnostic or remedial activities in connection
-with Software including any software or other tools made available by EMC to
-Customer to enable Customer to perform various self-maintenance activities.
+Bahamas	www.dell.com/learn/bs/en/bscorp1/terms-of-sale
 
-2.  DELIVERY AND INSTALLATION.
-A.  Delivery.  Title and risk of loss to the physical media, if any, which has
-been sold to Customer and contains Software shall transfer to Customer upon
-EMC&apos;s delivery to a carrier at EMC&apos;s designated point of shipment (&quot;Delivery&quot;).
-Unless otherwise agreed, a common carrier shall be specified by EMC. Software
-may be provided by (i) Delivery of physical media; or (ii) electronic means
-(where available from EMC). If the physical media containing Software has not
-been sold (for example - a lease or rental transaction), then risk of loss
-thereto transfers at Delivery, but title does not.
-B.  Installation and Acceptance.  EMC&apos;s obligation, if any, to install Software
-as part of the Software&apos;s licensing fee, is set forth in the Product Notice.
-Acceptance that Software operates in substantial conformity to the Software&apos;s
-Documentation occurs upon Delivery or electronic availability, as applicable.
-Notwithstanding such acceptance, Customer retains all rights and remedies set
-forth in Section 4 (WARRANTY AND DISCLAIMER) below.
+Barbados	www1.la.dell.com/content/default.aspx?c=bb&amp;l=en&amp;s=gen
+Belize	www1.la.dell.com/bz/en/gen/df.aspx?refid=df&amp;s=gen&amp;~ck=cr
+Bolivia	www.dell.com/learn/bo/es/bocorp1/terms-of-sale
 
-3.  LICENSE TERMS.
-A.  General License Grant.  Subject to Customer&apos;s compliance with this
-Agreement, the Product Notice, and payment of all license fees, EMC grants to
-Customer a nonexclusive and nontransferable (except as otherwise permitted
-herein) license (with no right to sublicense) to use (i) Software for Customer&apos;s
-internal business purposes; and (ii) the Documentation related to Software for
-the purpose of supporting Customer&apos;s use of Software. Licenses granted to
-Customer shall, unless otherwise indicated on the Product Notice or quote from
-EMC or Distributor) be perpetual and commence on Delivery of the physical media
-or the date Customer is notified of electronic availability, as applicable.
-Documentation is licensed solely for purposes of supporting Customer&apos;s use of
-Software as permitted in this Section. To the extent applicable to Software,
-Customer may be required to follow EMC&apos;s then current product registration
-process, if any, to obtain and input an authorization key or license file.
-B.  Licensing Models.  Software is licensed for use only in accordance with the
-commercial terms and restrictions of the Software&apos;s relevant licensing model,
-which are stated in the Product Notice and/or quote from EMC or Distributor. For
-example, the licensing model may provide that Software is licensed for use
-solely (i) for a certain number of licensing units; (ii) on or in connection
-with certain hardware, or a CPU, network or other hardware environment; and/or
-(iii) for a specified amount of storage capacity. Microcode, firmware or
-operating system software required to enable the hardware with which it is
-shipped to perform its basic functions, is licensed for use solely on such
-hardware.
-C.  License Restrictions.  All Software licenses granted herein are for use of
-object code only. Customer is permitted to copy Software as necessary to install
-and run it in accordance with the license, but otherwise for back-up purposes
-only. Customer may copy Documentation insofar as reasonably necessary in
-connection with Customer&apos;s authorized internal use of Software. Customer shall
-not, without EMC&apos;s prior written consent (i) use Software in a service bureau,
-application service provider or similar capacity; or (ii) disclose to any third
-party the results of any comparative or competitive analyses, benchmark testing
-or analyses of Software performed by or on behalf of Customer; (iii) make
-available Software in any form to anyone other than Customer&apos;s employees or
-contractors; or (iv) transfer Software to an Affiliate or a third party.
-D.  Software Releases.  Software Releases shall be subject to the license terms
-applicable to Software.
-E.  Audit Rights.  EMC (including its independent auditors) shall have the right
-to audit Customer&apos;s usage of Software to confirm compliance with the agreed
-terms. Such audit is subject to reasonable advance notice by EMC and shall not
-unreasonably interfere with Customer&apos;s business activities. Customer will
-provide EMC with the support required to perform such audit and will, without
-prejudice to other rights of EMC, address any non-compliant situations
-identified by the audit by forthwith procuring additional licenses.
-F.  Termination.  EMC may terminate licenses for cause, if Customer breaches the
-terms governing use of Software and fails to cure within thirty (30) days after
-receipt of EMC&apos;s written notice thereof. Upon termination of a license, Customer
-shall cease all use and return or certify destruction of the applicable Software
-(including copies) to EMC.
-G.  Reserved Rights.  All rights not expressly granted to Customer are reserved.
-In particular, no title to, or ownership of, the Software is transferred to
-Customer. Customer shall reproduce and include copyright and other proprietary
-notices on and in any copies of the Software. Unless expressly permitted by
-applicable mandatory law, Customer shall not modify, enhance, supplement, create
-derivative works from, reverse assemble, reverse engineer, decompile or
-otherwise reduce to human readable form the Software without EMC&apos;s prior written
-consent, nor shall Customer permit any third party to do the same.
+Brazil	www.dell.com/br/TermosCondicoe
 
-4.  WARRANTY AND DISCLAIMER.
-A.  Software Warranty.  EMC warrants that Software will substantially conform to
-the applicable Documentation for such Software and that any physical media
-provided by EMC will be free from manufacturing defects in materials and
-workmanship until the expiration of the warranty period. EMC does not warrant
-that the operation of Software shall be uninterrupted or error free, that all
-defects can be corrected, or that Software meets Customer&apos;s requirements, except
-if expressly warranted by EMC in its quote. Support Services from EMC for
-Software are available for separate purchase and the Support Options are
-identified at the Product Notice.
-B.  Warranty Duration.  Unless otherwise stated on the EMC quote, the warranty
-period for Software shall (i) be as set forth at the Product Notice; and (ii)
-commence upon Delivery of the media or the date Customer is notified of
-electronic availability, as applicable.
-C.  Customer Remedies.  EMC&apos;s entire liability and Customer&apos;s exclusive remedies
-under the warranties described in this section shall be for EMC, at its option,
-to remedy the non-compliance or to replace the affected Software. If EMC is
-unable to effect such within a reasonable time, then EMC shall refund the amount
-received by EMC for the Software concerned. All replaced Software contained on
-physical media supplied by EMC shall be returned to and become the property of
-EMC. EMC shall have no liability hereunder after expiration of the applicable
-warranty period. The foregoing shall not void any supplementary remedies made
-available to Customer by a Distributor, with respect to which EMC shall have no
-liability or obligation.
-D.  Warranty Exclusions.  Warranty does not cover problems that arise from (i)
-accident or neglect by Customer or any third party; (ii) any third party items
-or services with which Software is used or other causes beyond EMC&apos;s control;
-(iii) installation, operation or use not in accordance with EMC&apos;s instructions
-or the applicable Documentation; (iv) use in an environment, in a manner or for
-a purpose for which Software was not designed; or (v) modification, alteration
-or repair by anyone other than EMC or its authorized representatives;. EMC has
-no obligation whatsoever for Software installed or used beyond the licensed use,
-or whose original identification marks have been altered or removed. Removal or
-disablement of remote support capabilities during the warranty period requires
-reasonable notice to EMC. Such removal or disablement, or improper use or
-failure to use applicable Customer Support Tools shall be subject to a surcharge
-in accordance with EMC&apos;s then current standard rates.
-E.  No Further Warranties.  Except for the warranty set forth herein, and to the
-maximum extent permitted by law, EMC (INCLUDING ITS SUPPLIERS) MAKES NO OTHER
-EXPRESS OR IMPLIED WARRANTIES, WRITTEN OR ORAL. INSOFAR AS PERMITTED UNDER
-APPLICABLE LAW, ALL OTHER WARRANTIES ARE SPECIFICALLY EXCLUDED, INCLUDING
-WARRANTIES ARISING BY STATUTE, COURSE OF DEALING OR USAGE OF TRADE.
+Chile	www.dell.com/learn/cl/es/clcorp1/terms-of-sale
 
-5.  SUPPORT SERVICES.
-A.  Support Services.  If Customer has purchased Support Services for Software
-(or its related hardware, if any) directly from EMC, such shall be delivered by
-EMC as specified in the applicable Product Notice. If Customer has purchased
-maintenance and support from a Distributor, then EMC may provide Support
-Services to the extent that the Distributor has contracted with EMC to provide
-Customer with Support Services.
-B.  Reinstatement of Lapsed Support.  If Support Services expire or are
-terminated, and Customer subsequently seeks to reinstate Support Services,
-Customer shall pay: (i) the cumulative Support Services fees applicable for the
-period during which Support Services lapsed; (ii) the annual support fees for
-the then-current current period; and (iii) the then-current reinstatement fee
-and/or certification fees, as quoted by EMC or a Distributor.
-C.  Support Tools.  EMC may use Support Tools or may make certain Support Tools
-available to assist Customer in performing various maintenance or support
-related tasks. Customer shall use Support Tools only in accordance with the
-terms under which EMC makes such available.
-D.  Additional Support Terms.  Unless otherwise indicated in the Product Notice,
-Support Services provided by EMC shall consist of (i) using commercially
-reasonable efforts to remedy failures of Software to perform substantially in
-accordance with EMC&apos;s applicable Documentation; (ii) providing English-language
-(or where available, local language help line service (via telephone or other
-electronic media); and (iii) providing, or enabling Customer to download
-Software Releases and Documentation updates made generally available by EMC at
-no additional charge to other purchasers of Support Service for the applicable
-Software.
-E.  Software Releases.  Upon use of a Software Release, Customer shall remove
-and make no further use of all prior Software Releases, and protect such prior
-Software Releases from disclosure or use by any third party. Customer is
-authorized to retain a copy of each Software Release properly obtained by
-Customer for Customer&apos;s archive purposes and use such as a temporary back-up if
-the current Software Release becomes inoperable. Customer shall use and deploy
-Software Releases strictly in accordance with terms of the original license for
-the Software.
-F.  Support Services for Software affected by Change in Hardware Status.  For
-Software used on or operated in connection with hardware that ceases to be
-covered by Support Services or the EMC hardware warranty, EMC reserves the right
-to send Customer written notice that EMC has either chosen to discontinue or
-change the price for Support Services for such Software (with such price change
-effective as of the date the applicable EMC hardware ceases to be so covered).
-If EMC sends a discontinuation notice, or if Customer rejects or does not
-respond to the notice of a proposed price change within thirty (30) days after
-receipt, Customer will be deemed to have terminated the Support Services for its
-convenience.
-G.  Support Services Exclusions.  Support Services do not cover problems that
-arise from (i) accident or neglect by Customer or any third party; (ii) any
-third party items or services with which the Software is used or other causes
-beyond EMC&apos;s control; (iii) installation, operation or use not in accordance
-with EMC&apos;s instructions or the applicable Documentation; (iv) use in an
-environment, in a manner or for a purpose for which the Software or its related
-hardware was not designed; or (v) modification, alteration or repair by anyone
-other than EMC or its authorized designees. EMC has no obligation whatsoever for
-Software installed or used beyond the licensed use. Removal or disablement of
-Software&apos;s remote support capabilities during the term of Support Services
-requires reasonable notice to EMC. Customer&apos;s removal, disablement of remote
-support capabilities, or improper use of or failure to use Support Tools made
-available to Customer shall subject Customer to a surcharge in accordance with
-EMC&apos;s then current standard rates.
+Colombia	www.dell.com/learn/co/es/cocorp1/terms-of-sale
 
-6.  INDEMNITY.  EMC shall (i) defend Customer against any third party claim that
-Software or Support Services infringes a patent or copyright existing in the
-country in which EMC is located, the United States of America or the European
-Union; and (ii) pay the resulting costs and damages finally awarded against
-Customer by a court of competent jurisdiction or the amounts stated in a written
-settlement negotiated by EMC. The foregoing obligations are subject to the
-following: Customer (a) notifies EMC promptly in writing of such claim; (b)
-grants EMC sole control over the defense and settlement thereof; (c) reasonably
-cooperates in response to an EMC request for assistance; and (d) is not in
-material breach of this Agreement. Should any such Software or Support Service
-become, or in EMC&apos;s opinion be likely to become, the subject of such a claim,
-EMC may, at its option and expense, (1) procure for Customer the right to make
-continued use thereof; (2) replace or modify such so that it becomes non-
-infringing; (3) request return of the Software and, upon receipt thereof; refund
-the price paid by Customer, less straight-line depreciation based on a three (3)
-year useful life for Software; or (4) discontinue the Support Service and refund
-the portion of any pre-paid Support Service fee that corresponds to the period
-of Support Service discontinuation. EMC shall have no liability to the extent
-that the alleged infringement arises out of or relates to: (A) the use or
-combination of Software or Support Service with third party products or
-services; (B) use for a purpose or in a manner for which the Software or Support
-Service was not designed; (C) any modification made by any person other than EMC
-or its authorized representatives; (D) any modifications to Software or Support
-Service made by EMC pursuant to Customer&apos;s specific instructions; (E) any
-technology owned or licensed by Customer from third parties; or (F) use of any
-older version of the Software when use of a newer Software Release made
-available to Customer would have avoided the infringement. THIS SECTION STATES
-CUSTOMER&apos;S SOLE AND EXCLUSIVE REMEDY AND EMC&apos;S ENTIRE LIABILITY FOR THIRD PARTY
-INFRINGEMENT CLAIMS.
+Costa Rica	www1.la.dell.com/cr/es/gen/df.aspx?refid=df&amp;s=gen&amp;~ck=cr
+Ecuador	www.dell.com/learn/ec/es/eccorp1/terms-of-sale
 
-7.  LIMITATION OF LIABILITY.
-A.  Limitation on Direct Damages.  EXCEPT WITH RESPECT TO CLAIMS ARISING UNDER
-SECTION 6 ABOVE, EMC&apos;S TOTAL LIABILITY AND CUSTOMER&apos;S SOLE AND EXCLUSIVE REMEDY
-FOR ANY CLAIM OF ANY TYPE WHATSOEVER, ARISING OUT OF SOFTWARE OR SERVICE
-PROVIDED HEREUNDER, SHALL BE LIMITED TO PROVEN DIRECT DAMAGES CAUSED BY EMC&apos;S
-SOLE NEGLIGENCE IN AN AMOUNT NOT TO EXCEED (i) US$1,000,000, FOR DAMAGE TO REAL
-OR TANGIBLE PERSONAL PROPERTY; AND (ii) THE PRICE PAID BY CUSTOMER TO EMC FOR
-THE SPECIFIC SERVICE (CALCULATED ON AN ANNUAL BASIS, WHEN APPLICABLE) OR
-SOFTWARE FROM WHICH SUCH CLAIM ARISES, FOR DAMAGE OF ANY TYPE NOT IDENTIFIED IN
-(i) ABOVE OR OTHERWISE EXCLUDED HEREUNDER.
-B.  No Indirect Damages.  EXCEPT WITH RESPECT TO CLAIMS REGARDING VIOLATION OF
-EMC&apos;S INTELLECTUAL PROPERTY RIGHTS OR CLAIMS ARISING UNDER SECTION 6 ABOVE,
-NEITHER CUSTOMER NOR EMC SHALL HAVE LIABILITY TO THE OTHER FOR ANY SPECIAL,
-CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, OR INDIRECT DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, LOSS OF PROFITS, REVENUES, DATA AND/OR USE), EVEN IF ADVISED OF THE
-POSSIBILITY THEREOF.
-C.  Special Exclusion.  IN JURISDICTIONS THAT DO NOT ALLOW LIMITATION OR
-EXCLUSION OF CONSEQUENTIAL OR INCIDENTAL DAMAGES, ALL OR A PORTION OF SECTION
-7.A AND/OR 7.B ABOVE MAY NOT APPLY.
-D.  Regular Back-ups.  As part of its obligation to mitigate damages, Customer
-shall take reasonable data back-up measures. In particular, Customer shall back-
-up the relevant data before EMC performs any remedial, upgrade, new Software
-Release or other works on Customer&apos;s production systems. To the extent EMC&apos;s
-liability for loss of data is not anyway excluded under this Agreement, EMC
-shall in case of data losses only be liable for the typical effort to recover
-the data which would have accrued if Customer had appropriately backed up its
-data.
-E.  Limitation Period.  Unless otherwise required by applicable law, the
-limitation period for claims for damages shall be eighteen (18) months after the
-cause of action accrues, unless statutory law provides for a shorter limitation
-period.
-F.  Suppliers.  The foregoing limitations shall also apply in favor of EMC&apos;s
-suppliers.
+El Salvador	www.dell.com/learn/sv/es/svcorp1/terms-of-sale
 
-8.  EVALUATION AND LOANED SOFTWARE.
-A.  This Agreement shall also apply to (i) &quot;Evaluation Software&quot; (meaning the
-copy of Software which contains this Agreement, including any copies made by or
-on behalf of Customer, and all Documentation for the foregoing, which are
-licensed for a limited duration for the specific purpose of evaluation prior to
-making a final decision on procurement; and (ii) &quot;Loaned Software&quot; (meaning the
-copy of Software which contains this Agreement, including any copies made by or
-on behalf of Customer, and all Documentation for the foregoing, which are
-licensed for a limited duration directly  to Customer for a limited period of
-time at no charge), subject to the following:
-B.  The particular Evaluation or Loaned Software, period of use, Installation
-Site and other transaction-specific conditions shall be as mutually agreed
-between EMC and Customer and recorded in the form of an evaluation or loan
-schedule.
-C.  Notwithstanding any deviating terms in this Agreement, all licenses for
-Evaluation and Loaned Software expire at the end of the evaluation or loan
-period.
-D.  Customer shall return Evaluation and Loaned Software at the end of the
-evaluation or loan period or when sooner terminated by EMC for convenience by
-giving thirty (30) days&apos; written notice, whichever occurs first. Customer shall
-bear the risk of loss and damage for return of physical media, if any, and de-
-installation.
-E.  Customer may use Evaluation and Loaned Software free of charge, but, in the
-case of Evaluation Software, solely for the purpose of evaluation and not in a
-production environment.
-F.  Without prejudice to any other limitations on EMC&apos;s liability set forth in
-this Agreement (which shall also apply to Evaluation and Loaned Software),
-Evaluation and Loaned Software are provided &quot;AS IS&quot; and any warranty or damage
-claims against EMC in connection with Evaluation and Loaned Software are hereby
-excluded, except in the event of fraud or willful misconduct of EMC.
-G.  Unless otherwise specifically agreed in writing by EMC, EMC does not provide
-maintenance or support for any Evaluation Software. CUSTOMER RECOGNIZES THAT
-EVALUATION SOFTWARE MAY HAVE DEFECTS OR DEFICIENCIES WHICH CANNOT OR MAY NOT BE
-CORRECTED BY EMC. EMC shall have no liability to Customer for any action (or any
-prior related claims) brought by or against Customer alleging that Customer&apos;s
-sale, use or other disposition of any Evaluation Software infringes any patent,
-copyright, trade secret or other intellectual property right. In event of such
-an action, EMC retains the right to terminate this Agreement and take possession
-of the Evaluation Software. THIS SECTION STATES EMC&apos;S ENTIRE LIABILITY WITH
-RESPECT TO ALLEGED INFRINGEMENTS OF INTELLECTUAL PROPERTY RIGHTS BY EVALUATION
-SOFTWARE OR ANY PART OF IT OR ITS OPERATION.
+Guatemala	www.dell.com/learn/gt/es/gtcorp1/terms-of-sale
 
-9.  CONFIDENTIALITY.  Each party shall (i) use Confidential Information of the
-other party only for the purposes of exercising rights or performing obligations
-in connection with this Agreement; and (ii) use at least reasonable care to
-protect from disclosure to any third parties any Confidential Information
-disclosed by the other party for a period commencing upon the date of disclosure
-until three (3) years thereafter, except with respect to Customer data to which
-EMC may have access in connection with the provision of Services, which shall
-remain Confidential Information until one of the exceptions stated in the above
-definition of Confidential Information applies. Notwithstanding the foregoing,
-either party may disclose Confidential Information (a) to an Affiliate for the
-purpose of fulfilling its obligations or exercising its rights hereunder as long
-as such Affiliate complies with the foregoing; and (b) if required by law
-provided the receiving party has given the disclosing party prompt notice.
+Haiti	www.dell.com/learn/ht/en/htcorp1/terms-of-sale
 
-10.  GOVERNMENT REGULATIONS AND EXPORT CONTROL.  Software and the technology
-included therein provided under this Agreement are subject to governmental
-restrictions on (i) exports from the U.S.; (ii) exports from other countries in
-which such Software and technology included therein may be produced or located;
-(iii) disclosures of technology to foreign persons; (iv) exports from abroad of
-derivative products thereof; and (v) the importation and/or use of such Software
-and technology included therein outside of the United States or other countries
-(collectively, &quot;Export Laws&quot;). Customer shall comply with all Export Laws and
-EMC export policies to the extent such policies are made available to Customer
-by EMC. Diversion contrary to U.S. law or other Export Laws is expressly
-prohibited.
+Honduras	www.dell.com/learn/hn/es/hncorp1/terms-of-sale
 
-11.  TERMINATION.  Customer may terminate this Agreement for its convenience
-upon thirty (30) days&apos; notice to EMC. Either Customer or EMC may terminate this
-Agreement upon written notice due to the other party&apos;s material breach of the
-terms governing use of the Software; provided that such breach is not cured
-within thirty (30) days after the provision of written notice to the breaching
-party specifying the nature of such breach. Upon termination of this Agreement,
-Customer shall cease all use and return or certify destruction of the applicable
-Software (including copies) to EMC. Any provision that by its nature or context
-is intended to survive any termination or expiration, including but not limited
-to provisions relating to payment of outstanding fees, confidentiality and
-liability, shall so survive.
+Mexico	http://www.dell.com/learn/mx/es/mxcorp1/terms-conditions/art-site-commercial-terms-of-sale-mx  
 
-12.  MISCELLANEOUS.
-A.  References.  EMC may identify Customer for reference purposes unless and
-until Customer expressly objects in writing.
-B.  Notices and Language.  Any notices permitted or required under this
-Agreement shall be in writing, and shall be deemed given when delivered (i) in
-person, (ii) by overnight courier, upon written confirmation of receipt, (iii)
-by certified or registered mail, with proof of delivery, (iv) by facsimile
-transmission with confirmation of receipt, or (v) by email, with confirmation of
-receipt (except for routine business communications issued by EMC, which shall
-not require confirmation from Customer). Notices shall be sent to the address,
-facsimile number or email address set forth below, or at such other address,
-facsimile number or email address as provided to the other party in writing.
-Notices shall be sent to: EMC Corporation, 176 South Street, Hopkinton, MA
-01748. Fax for legal notices: 508.293.7780. Email for legal notices:
-legalnotices@emc.com. The parties agree that this Agreement has been written in
-the English language, that the English language version shall govern and that
-all notices shall be in the English language.
-C.  Entire Agreement.  This Agreement (i) is the complete statement of the
-agreement of the parties with regard to the subject matter hereof; and (ii) may
-be modified only by a writing signed by both parties. All terms of any purchase
-order or similar document provided by Customer, including but not limited to any
-pre-printed terms thereon and any terms that are inconsistent or conflict with
-this Agreement, shall be null and void and of no legal force or effect.
-D.  Force Majeure.  Except for the payment of fees, if any, due EMC from
-Customer, neither party shall be liable under this Agreement because of a
-failure or delay in performing its obligations hereunder on account of any force
-majeure event, such as strikes, riots, insurrection, terrorism, fires, natural
-disasters, acts of God, war, governmental action, or any other cause which is
-beyond the reasonable control of such party.
-E.  Assignment.  Customer shall not assign this Agreement or any right or
-delegate any performance without EMC&apos;s prior written consent, which consent
-shall not be unreasonably withheld. Customer shall promptly notify EMC, and EMC
-may terminate this Agreement on thirty days&apos; notice, if Customer merges with or
-is acquired by a third party or otherwise undergoes a change of control.
-F.  Governing Law.  This Agreement is governed by: (i) the laws of the
-Commonwealth of Massachusetts when EMC means EMC Corporation; (ii) the laws of
-the applicable country in which the applicable EMC subsidiary is registered to
-do business when EMC means the local EMC subsidiary, and (iii) the laws of
-Ireland when EMC means EISI. In each case, the applicability of laws shall
-exclude any conflict of law rules. The U.N. Convention on Contracts for the
-International Sale of Goods shall not apply. In the event of a dispute
-concerning this Agreement, Customer consents to the sole and exclusive personal
-jurisdiction of the courts of competency in the location where EMC is domiciled.
-G.  Waiver.  No waiver shall be deemed a waiver of any prior or subsequent
-default hereunder. If any part of this Agreement is held unenforceable, the
-validity of the remaining provisions shall not be affected.
-H.  Partial Invalidity.  If any part of this Agreement, a purchase order or an
-EMC quote is held unenforceable, the validity of the remaining provisions shall
-not be affected.
+Panama	www.dell.com/learn/pa/es/pacorp1/terms-of-sale
 
-13.  COUNTRY SPECIFIC TERMS.
-A.  Canada.  The terms in this subsection A apply only when EMC means the EMC
-sales subsidiary located in Canada (currently EMC Corporation of Canada):
-        1.  Section 2.A (Delivery).  The second sentence is deleted in its
-entirety and replaced with: &quot;Title and risk of loss to physical media, if any,
-transfers to Customer at the time and place that the media clears Canadian
-Customs.&quot;
-        2.  Section 3.A (General License Grant).  The last two sentences are
-deleted and replaced with: &quot;Licenses granted shall commence on the date the
-physical media, if any, clears Canadian Customs or electronic availability of
-such Software to Customer.&quot; Documentation is licensed solely for purposes of
-supporting Customer&apos;s use of the Software as permitted in this Section.
-        3.  Section 12 (MISCELLANEOUS).  Add the following as new subsection I:
-                I.  The parties have required that this Agreement be drawn up in
-English and have also agreed that all notices or other documents required by or
-contemplated in this Agreement be written in English.
-             Les parties ont requis que cette convention soit redigee en anglais
-et ont egalement convenu que tout avis ou autre document exige aux termes des
-presentes ou decoulant de l&apos;une quelconque de ses dispositions sera prepare en
-anglais.
+Paraguay	www.dell.com/learn/py/es/pycorp1/terms-of-sale
 
-B.  United Kingdom.  The terms in this subsection B apply only when EMC means
-the EMC sales subsidiary located in the United Kingdom (currently EMC Computer
-Systems (UK) Limited):
-      1.  Section 4.D (Warranty Exclusions).  The entire section is deleted and
-replaced with:
-                D.  Warranty Exclusions.  Except as expressly stated in the
-applicable warranty set forth in this Agreement, EMC (including its suppliers)
-provides Software &quot;AS IS&quot; and makes no other express or implied warranties,
-written or oral, and ALL OTHER WARRANTIES AND CONDITIONS (SAVE FOR THE
-WARRANTIES AND CONDITIONS IMPLIED BY SECTION 12 OF THE SALE OF GOODS ACT 1979)
-ARE SPECIFICALLY EXCLUDED TO THE FULLEST EXTENT PERMITTED BY LAW, INCLUDING, BUT
-NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-PARTICULAR PURPOSE, TITLE, AND ANY WARRANTY ARISING BY STATUTE, OPERATION OF
-LAW, COURSE OF DEALING OR PERFORMANCE, OR USAGE OF TRADE.
-        2.  Section 7 (LIMITATION OF LIABILITY).  This Section is deleted in its
-entirety and replaced with:
-             7.  LIMITATION OF LIABILITY AND PRESERVATION OF DATA.
-                 A.  The entire aggregate liability of EMC (including its
-suppliers) under or in connection with the supply of the Software or Service,
-whether in tort (including negligence), for breach of contract,
-misrepresentation or otherwise, is limited in respect of each event or a series
-of events: (i) to the amounts actually paid by Customer for the Software or
-Services which give rise to such liability during the twelve (12) month period
-immediately preceding the date of the cause of action giving rise to such claim;
-or (ii) Great British Pounds Sterling one million (1,000,000), whichever is the
-greater amount. In no event shall EMC (including its suppliers) or Customer be
-liable to the other or any other person or entity for loss of profits, loss of
-revenue, loss of use or any indirect, special, incidental, consequential or
-exemplary damages arising out of or in connection with this Agreement, the
-license of the Software or the provision of Services, and the use, performance,
-receipt or disposition of such Software or Services, even if such party has been
-advised of the possibility of such damages or losses. Nothing in this Agreement
-shall operate to exclude or restrict EMC&apos;s liability for: (a) death or personal
-injury resulting from negligence; (b) breach of obligations arising from section
-12 of the Sale of Goods Act 1979; or (c) fraud.
-                B.  CUSTOMER OBLIGATIONS IN RESPECT OF PRESERVATION OF DATA.
-During the Term of the Agreement, the Customer shall:
-                  1) from a point in time prior to the point of failure, (i)
-make full and/or incremental backups of data which allow recovery in an
-application consistent form, and (ii) store such back-ups at an off-site
-location sufficiently distant to avoid being impacted by the event(s) (e.g.
-including but not limited to flood, fire, power loss, denial of access or air
-crash) and affect the availability of data at the impacted site;
-                  2) have adequate processes and procedures in place to restore
-data back to a point in time and prior to point of failure, and in the event of
-real or perceived data loss, provide the skills/backup and outage windows to
-restore the data in question;
-                  3) use anti-virus software, regularly install updates across
-all data which is accessible across the network, and protect all storage arrays
-against power surges and unplanned power outages with Uninterruptible Power
-Supplies; and
-                  4) ensure that all operating system, firmware, system utility
-(e.g. but not limited to, volume management, cluster management and backup) and
-patch levels are kept to EMC recommended versions and that any proposed changes
-thereto shall be communicated to EMC in a timely fashion.
-        3.  Section 12 (MISCELLANEOUS).  Add the following as new subsection I:
-               I.  Each of the parties acknowledges and agrees that in entering
-into this Agreement, it does not rely on, and shall have no remedy in respect
-of, any statement, representation, warranty or understanding (whether
-negligently or innocently made) of any person (whether party to this Agreement
-or not) other than as expressly set out in this Agreement as a warranty. The
-only remedy available to Customer for a breach of the warranties shall be for
-breach of contract under the terms of this Agreement. Nothing in Section 7 shall
-however operate to limit or exclude any liability for fraud. No term of this
-Agreement shall be enforceable under the Contracts (Rights of Third Parties) Act
-1999 by a person that is not a party to this Agreement. If any part of this
-Agreement is held unenforceable, the validity of the remaining provisions shall
-not be affected.
+Peru	www.dell.com/learn/pe/es/pecorp1/terms-of-sale
 
-C.  Ireland.  The terms in this subsection C apply only when EMC means the EMC
-sales subsidiary located in Ireland (currently EMC Information Systems
-International:
-        1. Section 4.D (Warranty Exclusions). The entire section is deleted and
-replaced with:
-                D.  Warranty Exclusions.  Except as expressly stated in the
-applicable warranty set forth in this Agreement and the applicable exhibits, EMC
-including its suppliers) and makes no warranties, and ALL WARRANTIES, TERMS AND
-CONDITIONS, WHETHER ORAL OR WRITTEN, EXPRESS OR IMPLIED BY LAW, CUSTOMER OR
-OTHERWISE, INCLUDING, BUT NOT LIMITED TO, ANY WARRANTIES, TERMS AND CONDITIONS,
-OF FITNESS FOR PURPOSE, DESCRIPTION, AND QUALITY ARE HEREBY EXCLUDED TO THE
-MAXIMUM EXTENT PERMITTED UNDER APPLICABLE LAW.
-        2.  Section 7 (LIMITATION OF LIABILITY). This section is deleted in its
-entirety and replaced with the following:
-                7.  LIMITATION OF LIABILITY.
-                    A. EMC does not exclude or limit its liability to the
-Customer for death or personal injury, or, breach of obligations implied by
-Section 12 of the Sale of Goods Act, 1893, as amended by the Sale of Goods and
-Supply of Services Act, 1980, or, due to the fraud or fraudulent
-misrepresentation of EMC, its employees or agents.
-                    B. Subject always to subsection 7.A, the liability of EMC
-(including its suppliers) to the Customer under or in connection with an order,
-whether arising from negligent error or omission, breach of contract, or
-otherwise (&quot;Defaults&quot;) shall be: (i) the aggregate liability of EMC for all
-Defaults resulting in direct loss of or damage to the tangible property of the
-Customer shall be limited to damages which shall not exceed the greater of two
-hundred per cent (200%) of the applicable price paid and/or payable for the
-Software or Service, or one million euros (1,000,000); or (ii) the aggregate
-liability of EMC for all Defaults, other than those governed by subsection
-7.B(i) shall be limited to damages which shall not exceed (a) in respect of the
-Software, the greater of one hundred and fifty per cent (150%) of the applicable
-price paid and/or payable or five hundred thousand euro (500,000); or (b) in
-respect of the services, if any, the greater of one hundred and fifty per cent
-(150%) of the applicable charges paid and/or payable or five hundred thousand
-euro (500,000).
-                   C. In no event shall EMC (including its suppliers) be liable
-to Customer for (i) loss of profits, loss of business, loss of revenue, loss of
-use, wasted management time, cost of substitute services or facilities, loss of
-goodwill or anticipated savings, loss of or loss of use of any software or data;
-and/or (ii) indirect, consequential or special loss or damage; and/or (iii)
-damages, costs and/or expenses due to third party claims; and/or (iv) loss or
-damage due to the Customer&apos;s failure to comply with obligations under this
-Agreement, failure to do back-ups of data or any other matter under the control
-of the Customer. For the purposes of this Section 7, the term &quot;loss&quot; shall
-include a partial loss, as well as a complete or total loss.
-                   D. The parties expressly agree that should any limitation or
-provision contained in this Section 7 be held to be invalid under any applicable
-statute or rule of law, it shall to that extent be deemed omitted, but if any
-party thereby becomes liable for loss or damage which would otherwise have been
-excluded such liability shall be subject to the other limitations and provisions
-set out in this Section 7.
-                   E. The parties expressly agree that any order for specific
-performance made in connection with this Agreement in respect of EMC shall be
-subject to the financial limitations set out in sub-section 7.B.
-                   F. The parties expressly agree that the provisions of Section
-6 (INDEMNITY) shall not be subject to the limitations and exclusions of
-liability set out in this Section 7.
-                   G. CUSTOMER OBLIGATIONS IN RESPECT OF PRESERVATION OF DATA.
-During the Term of the Agreement the Customer shall:
-                        1)  from a point in time prior to the point of failure,
-(i) make full and/or incremental backups of data which allow recovery in an
-application consistent form, and (ii) store such back-ups at an off-site
-location sufficiently distant to avoid being impacted by the event(s) (e.g.
-including but not limited to flood, fire, power loss, denial of access or air
-crash) and affect the availability of data at the impacted site;
-                        2)  have adequate processes and procedures in place to
-restore data back to a point in time and prior to point of failure, and in the
-event of real or perceived data loss, provide the skills/backup and outage
-windows to restore the data in question;
-                        3)  use anti-virus software, regularly install updates
-across all data which is accessible across the network, and protect all storage
-arrays against power surges and unplanned power outages with Uninterruptible
-Power Supplies; and
-                        4)  ensure that all operating system, firmware, system
-utility (e.g. but not limited to, volume management, cluster management and
-backup) and patch levels are kept to EMC recommended versions and that any
-proposed changes thereto shall be communicated to EMC in a timely fashion.
-        3.  Section 7.D (Limitation Period).  This Section is deleted in its
-entirety and replaced with the following as a totally separate section:
-       WAIVER OF RIGHT TO BRING ACTIONS: The Customer waives the right to bring
-any claim arising out of or in connection with this Agreement more than twenty-
-four (24) months after the date of the cause of action giving rise to such
-claim.
+Uruguay	www.dell.com/learn/uy/es/uycorp1/terms-of-sale
 
-D.  European Union. The terms in this subsection D apply only when EMC means an
-EMC sales subsidiary located in the European Union:
-        1.  Section 3.A (General License Grant).  The following is added at the
-end of this section:
-             Customer shall not, and Customer shall not permit any third party
-to, modify, enhance, supplement, create derivative works from, reverse assemble,
-reverse engineer, reverse compile or otherwise reduce to human readable form the
-Software without EMC&apos;s prior written consent, except to the extent that local,
-mandatory law grants Customer the right to decompile such Software in order to
-obtain information necessary to render such interoperable with other software.
-In such event, Customer shall first inform EMC of its intention and request EMC
-to provide Customer with the necessary information. EMC may impose reasonable
-conditions on the provision of the requested information, including the payment
-of a reasonable fee.
-
-E.  Australia. The terms in this subsection E apply only when EMC means the EMC
-sales subsidiary located in Australia (currently EMC Global Holdings Company
-(Australian Branch) ABN 86 669 010 6895:
-        1.  Section 7 (LIMITATION OF LIABILITY). This section is deleted in its
-entirety and replaced with the following:
-                7.  LIMITATION OF LIABILITY.
-                       A. Limitation on Direct Damages. EXCEPT WITH RESPECT TO
-CLAIMS ARISING UNDER SECTION 6 OF THIS AGREEMENT, EMC&apos;S AND ITS SUPPLIERS&apos; TOTAL
-LIABILITY AND CUSTOMER&apos;S SOLE AND EXCLUSIVE REMEDY FOR ANY CLAIM OF ANY TYPE
-WHATSOEVER, ARISING OUT OF SOFTWARE OR SERVICE PROVIDED HEREUNDER, SHALL BE
-LIMITED TO PROVEN DIRECT DAMAGES CAUSED BY EMC&apos;S SOLE NEGLIGENCE IN AN AMOUNT
-NOT TO EXCEED (i) AUD$2,000,000, FOR DAMAGE TO REAL OR TANGIBLE PERSONAL
-PROPERTY; AND (ii) THE PRICE PAID BY CUSTOMER TO EMC FOR THE SPECIFIC SERVICE
-(CALCULATED ON AN ANNUAL BASIS, WHEN APPLICABLE) OR SOFTWARE FROM WHICH SUCH
-CLAIM ARISES, FOR DAMAGE OF ANY TYPE NOT IDENTIFIED IN (i) ABOVE OR OTHERWISE
-EXCLUDED HEREUNDER.
-                       B. No Indirect Damages.  EXCEPT WITH RESPECT TO CLAIMS
-REGARDING VIOLATION OF EMC&apos;S INTELLECTUAL PROPERTY RIGHTS OR CLAIMS ARISING
-UNDER SECTION 6 ABOVE, NEITHER CUSTOMER NOR EMC (INCLUDING EMC&apos;S SUPPLIERS)
-SHALL (a) HAVE LIABILITY TO THE OTHER FOR ANY SPECIAL, CONSEQUENTIAL, EXEMPLARY,
-INCIDENTAL, OR INDIRECT DAMAGES (INCLUDING, BUT NOT LIMITED TO, LOSS OF PROFITS,
-REVENUES, DATA AND/OR USE), EVEN IF ADVISED OF THE POSSIBILITY THEREOF; AND (b)
-BRING ANY CLAIM BASED ON SOFTWARE OR SERVICE PROVIDED HEREUNDER MORE THAN
-EIGHTEEN (18) MONTHS AFTER THE CAUSE OF ACTION ACCRUES.
-                       C. Trade Practices Legislation: EMC&apos;s liability under any
-statutory right or any condition or warranty, including any implied by any State
-Fair Trading Act or the Trade Practices Act, 1974 (Cth) is, to the maximum
-extent permitted by law, excluded. To the extent that such liability cannot be
-excluded, EMC&apos;s liability is limited at the option of EMC to: (a) in the case of
-Software, any one or more of the following: (i) the replacement thereof or the
-supply of its equivalent; (ii) the repair thereof; (iii) the payment of the cost
-of replacement thereof or of acquiring its equivalent; or (iv) the payment of
-the cost of having such repaired, and (b) in the case of any Services performed
-by EMC under or in connection with this Agreement: (i) the supply of those
-Services again; or (ii) the payment of the cost of having those Services
-supplied again.
-
-F.  New Zealand - The terms in this subsection F apply only when EMC means the
-EMC sales subsidiary located in New Zealand (currently EMC CORPORATION (NEW
-ZEALAND BRANCH) AKOS. 1188883:
-        1.  Section 7 (LIMITATION OF LIABILITY). This section is deleted in its
-entirety and replaced with the following:
-                7.  LIMITATION OF LIABILITY.
-                        A. Limitation on Direct Damages. EXCEPT WITH RESPECT TO
-CLAIMS ARISING UNDER SECTION 6 OF THIS AGREEMENT, EMC&apos;S AND ITS SUPPLIERS&apos; TOTAL
-LIABILITY AND CUSTOMER&apos;S SOLE AND EXCLUSIVE REMEDY FOR ANY CLAIM OF ANY TYPE
-WHATSOEVER, ARISING OUT OF SOFTWARE OR SERVICE PROVIDED HEREUNDER, SHALL BE
-LIMITED TO PROVEN DIRECT DAMAGES CAUSED BY EMC&apos;S SOLE NEGLIGENCE IN AN AMOUNT
-NOT TO EXCEED (i) NZ$2,000,000, FOR DAMAGE TO REAL OR TANGIBLE PERSONAL
-PROPERTY; AND (ii) THE PRICE PAID BY CUSTOMER TO EMC FOR THE SPECIFIC SERVICE
-(CALCULATED ON AN ANNUAL BASIS, WHEN APPLICABLE) OR SOFTWARE FROM WHICH SUCH
-CLAIM ARISES, FOR DAMAGE OF ANY TYPE NOT IDENTIFIED IN (i) ABOVE OR OTHERWISE
-EXCLUDED HEREUNDER.
-                        B. No Indirect Damages. EXCEPT WITH RESPECT TO CLAIMS
-REGARDING VIOLATION OF EMC&apos;S INTELLECTUAL PROPERTY RIGHTS OR CLAIMS ARISING
-UNDER SECTION 6 ABOVE, NEITHER CUSTOMER NOR EMC (INCLUDING EMC&apos;S SUPPLIERS)
-SHALL (a) HAVE LIABILITY TO THE OTHER FOR ANY SPECIAL, CONSEQUENTIAL, EXEMPLARY,
-INCIDENTAL, OR INDIRECT DAMAGES (INCLUDING, BUT NOT LIMITED TO, LOSS OF PROFITS,
-REVENUES, DATA AND/OR USE), EVEN IF ADVISED OF THE POSSIBILITY THEREOF; AND (b)
-BRING ANY CLAIM BASED ON SOFTWARE OR SERVICE PROVIDED HEREUNDER MORE THAN
-EIGHTEEN (18) MONTHS AFTER THE CAUSE OF ACTION ACCRUES.
-                        C. Fair Trading Legislation. EMC&apos;s liability under any
-statutory right or any condition or warranty, including any implied by the Fair
-Trading Act 1986 or Consumer Guarantees Act 1993 (&quot;FTA&quot;) or any similar law is,
-to the maximum extent permitted by law, excluded. To the extent that such
-liability cannot be excluded, EMC&apos;s liability is limited at the option of EMC
-to: (a) in the case of any Software, any one or more of the following: (i) the
-replacement thereof or the supply of its equivalent; (ii) the repair thereof;
-(iii) the payment of the cost of replacement thereof or of acquiring its
-equivalent; or (iv) the payment of the cost of having such repaired, and (b) in
-the case of any Services performed by EMC under or in connection with this
-Agreement: (i) the supply of those Services again; or (ii) the payment of the
-cost of having those Services supplied again.
+Venezuela	www.dell.com/learn/ve/es/vecorp1/terms-of-sale
 
 
-CLCK WRP Rev 20090813
+ 
+EUROPE
+Austria	www.dell.at/Geschaeftsbedingungen
+
+Belgium (Dutch)	www.dell.be/voorwaarden
+
+Belgium (French)	www.dell.be/ConditionsGeneralesdeVente
+
+Czech	www.dell.cz/podminky
+
+Denmark	www.dell.dk/salgsbetingelser
+
+Finland	www.dell.fi/myyntiehdot
+
+France	www.dell.fr/ConditionsGeneralesdeVente
+
+Germany	www.dell.de/Geschaeftsbedingungen
+
+Greece	www.dell.gr/terms
+
+Ireland	www.dell.ie/terms
+
+Italy	www.dell.it/condizionigeneralidivendita
+
+Luxembourg	www.dell.lu/ConditionsGeneralesdeVente
+
+Netherlands	www.dell.nl/voorwaarden
+
+Norway	www.dell.no/salgsbetingelser
+
+Poland	www.dell.pl/warunki
+
+Portugal	www.dell.pt/ClausulasContratuaisGerais
+
+Slovakia	www.dell.sk/podmienky
+
+South Africa	www.dell.co.za/terms
+
+Spain	www.dell.es/CondicionesGeneralesdeContratacion
+
+Sweden	www.dell.se/forsaljningsvillkor
+
+Switzerland (French)	www.dell.ch/termesetconditions
+
+Switzerland (German)	www.dell.ch/Geschaeftsbedingungen
+
+UK	www.dell.co.uk/terms
+
+ASIA and OCEANIA
+Mainland China	www.dell.com/learn/cn/zh/cncorp1/terms-of-sale?s=corp
+
+Hong Kong	http://www.dell.com/learn/hk/en/hkcorp1/terms-of-sale?s=corp&amp;c=hk&amp;l=en&amp;redirect=1.
+
+Taiwan	http://www.dell.com/learn/tw/zh/twcorp1/terms-of-sale-commercial-and-public-sector
+Singapore	http://www.dell.com/learn/sg/en/sgcorp1/terms-of-sale-commercial-and-public-sector
+
+Malaysia	http://www.dell.com/learn/my/en/mycorp1/terms-of-sale-commercial-and-public-sector 
+
+Thailand	http://www.dell.com/learn/th/en/thcorp1/terms-of-sale-commercial-and-public-sector 
+
+Australia	http://www.dell.com/learn/au/en/aucorp1/terms-conditions-of-sale
+
+New Zealand	http://www.dell.com/learn/nz/en/nzcorp1/terms-of-sale
+
+India	http://www.dell.com/learn/in/en/incorp1/terms-of-sale-commercial-and-public-sector 
+
+Korea	http://www.dell.com/learn/kr/ko/krcorp1/terms-of-sale-commercial-and-public-sector
+
+Japan	http://www.dell.com/learn/jp/ja/jpcorp1/terms-of-sale-commercial-and-public-sector (Japan)
+
+
+
+END USER LICENSE AGREEMENT
+This Software (meaning application, microcode, firmware, and operating system software in object code format) and associated materials contain proprietary and confidential information, and its use is subject to, and expressly conditioned upon acceptance of, this End User License Agreement and the documents incorporated by reference below (“E-EULA”).
+This E-EULA is a legally binding agreement between the entity that has obtained the Software (“End User”) and Licensor (which may be a Dell Inc. Affiliate or an authorized reseller (“Reseller”), as explained below). If End User has a written, signed agreement with a Dell Inc. Affiliate that expressly provides for the licensing of this Software, then that agreement, and not this E-EULA, will govern.
+End User may have an employee or an employee of a vendor (“You”) download and install the software on End User’s behalf.  This E-EULA becomes binding on End User when You click on the “Agree” or “Accept” or a similar button below, proceed with the installation, download, use, or reproduction of this Software, or otherwise agree to be bound by this E-EULA.  By accepting the E-EULA, as set out in the prior sentence, You represent to Licensor that:
+i.	You have authority to bind the End User to this E-EULA; 
+ii.	You agree on behalf of the End User that the terms of this E-EULA govern the relationship of the parties with regard to the subject matter in this E-EULA; and
+iii.	You waive on behalf of End User any rights, to the maximum extent permitted by applicable law, to any claim anywhere in the world concerning the enforceability or validity of this E-EULA.
+If one or more of these representations are not true, then You must do all of the following actions:
+a.	Do not accept the terms of this E-EULA on behalf of the End User by clicking on the “Cancel” or “Decline” or other similar button below;
+b.	Cease any further attempt to install, download, or use this Software and Documentation for any purpose; and
+c.	Remove any partial or full copies made from this Software and Documentation.
+HOW TO DETERMINE THE LICENSOR
+Buying Directly from a Dell Inc. Affiliate. If End User procured the Software licenses directly from a Dell Inc. Affiliate, then the “Licensor” under this E-EULA is provided at www.dell.com/swlicensortable. This E-EULA governs End User’s use of the Software.
+Buying From a Reseller.  If End User procured the Software licenses from a Reseller, then the Reseller may do one of the following to establish the Licensor and the license terms governing the Software and Documentation:
+Refer to the Manufacturer’s License Terms or Remain Silent on Licensing Terms.  When the Reseller refers End User to a direct license agreement with the software manufacturer, or Reseller says nothing about terms governing the licensing and use of the Software and Documentation, then this E-EULA applies and the applicable Dell Inc. Affiliate identified at www.dell.com/swlicensortable is the “Licensor.”
+Sublicense the Software Rights using the Manufacturer’s Terms.  When the Reseller sublicenses the Software to End User by referring to the software manufacturer’s license terms as the governing terms, then the terms of this E-EULA are deemed incorporated into Reseller’s license agreement with the End User by reference.  If this is case, Reseller is deemed the “Licensor” under this E-EULA. 
+1.	DEFINITIONS
+A.	“Affiliate” of End User means a legal entity that is controlled by, controls, or is under common control with End User.  “Control” means more than 50% of the voting power or ownership interests.  “Affiliate” of Dell Inc. means any of Dell Inc.’s direct or indirect subsidiaries.
+B.	“Documentation” means Licensor’s then current, generally available End User manuals and online help for Software.
+C.	“Product Notice” means the information related to Software posted at a Dell Inc. Affiliate website, currently located at http://www.EMC.com/products/warranty_maintenance/index.jsp.  The Product Notice informs End User of Software-specific use rights, restrictions, and definitions of units of measure. The Software-related terms of the Product Notice in effect as of the date of the Quote will apply to the Software and are deemed incorporated into this E-EULA.
+D.	“Quote” means the offer to purchase Software licenses to End User stated in a written quotation or other proposal for providing licenses to Software.  Reseller or a Dell Inc. Affiliate may issue a Quote to End User.
+2.	SOFTWARE LICENSE TERMS
+A.	General License Grant.  Subject to and conditioned on End User’s compliance with the terms of the E-EULA and the Quote, Licensor grants to End User a revocable (according to Section 4 (“Termination”) below), non-exclusive, non-transferable license to use the Software and Documentation during the license term stated on the Quote for End User’s internal business operations. If the Quote does not state a license term, then licenses for Software are perpetual (subject to paragraph B (“Licensing Models”) and Section 4 (“Termination”) below). Use of Software may require End User to complete a product registration process and input a license key.  End User may copy the Software and Documentation as necessary to install and run the Software in the quantity of licensing units licensed, and otherwise only for reasonable back-up and archival purposes.
+B.	Licensing Models.  Licensor licenses Software for use only in accordance with the commercial terms and restrictions of the Software’s relevant software licensing model stated in the Product Notice, the Quote, or both. For example, the licensing model may provide that End User may only use the Software for a certain number of licensing units (e.g., storage capacity, instances, users), in connection with a certain piece of equipment, CPU, network, or other hardware environment, or both. Unless expressly agreed otherwise in writing, Licensor licenses microcode, firmware, and operating system software shipped with equipment for use solely on that equipment; the same applies to Software licensed together with the sale of equipment and designed to enable the equipment to perform enhanced functions.
+C.	License Restrictions.  Licensor reserves all rights not expressly granted to End User and does not transfer any ownership rights in any Software. Without Licensor’s prior written consent, End User must not, and must not allow any third party to, do any of the following:
+(1).	use Software in an application services provider, service bureau, or similar capacity; 
+(2).	disclose to any third party the results of any comparative or competitive analyses of Software done by or on behalf of End User;
+(3).	make available Software to anyone other than End User’s employees or contractors who will use the Software on behalf of End User in a manner permitted by this E-EULA and the Quote (“Authorized Users”); 
+(4).	except to the extent transfer may not legally be restricted under applicable law, transfer or sublicense Software or Documentation to an End User Affiliate or other third party; 
+(5).	use Software in conflict with the terms and restrictions specified in this E-EULA or the Quote; 
+(6).	except to the extent permitted by applicable mandatory law (meaning laws that parties cannot change by contract), modify, translate, enhance, or create derivative works from the Software, or reverse assemble, disassemble, reverse engineer, decompile, or otherwise attempt to derive source code from the Software; 
+(7).	remove any copyright or other proprietary notices on or in any copies of Software or Documentation; 
+(8).	violate or circumvent any technological use restrictions in the Software;
+(9).	use the Software or Documentation to create other software, products or technologies; or
+(10).	create Internet “links” to the Software or “frame” or “mirror” the Software.
+D.	Records and Audit.  During the Software license term and for two years after its expiration or termination, End User must maintain accurate records of its use of the Software and Documentation sufficient to show compliance with this E-EULA and the Quotes. During this period, Licensor or its auditors may request that End User certify in writing that End User’s use of the Software and Documentation complies with this E-EULA and the Quotes, audit End User’s use of Software and Documentation to confirm compliance, or both. Licensor will provide End User with reasonable notice and conduct the audit during End User’s normal business hours and will not interfere unreasonably with End User’s business activities when performing the audit.  End User must reasonably cooperate with the audit and must, without prejudice to Licensor’s other rights, promptly buy additional licenses needed to put End User in compliance with the E-EULA and applicable Quotes.  End User must also promptly reimburse Licensor for all reasonable costs of the audit if the audit reveals either that End User used Software in excess of the licenses that End User purchased when the excess usage is more than five percent in license value, or that End User did not maintain substantially accurate Software use records.
+E.	Third Party Software License Terms.  Third party software contained in or with the Software that provides its own terms of use is governed by those provided terms.
+3.	WARRANTIES AND SUPPORT.  Dell Inc. and its Affiliates do not provide any warranties for the Software and do not provide support and maintenance services under this E-EULA.  End User’s rights under any warranties and any support service entitlements for the Software are solely between End User and the entity from whom End User purchased the Software licenses, and are defined under the commercial terms agreed between End User and that selling entity.  If End User purchases support and maintenance from a Reseller in the United States and Canada, then the Dell Inc. Affiliate’s delivery of the maintenance and support services is subject to the applicable terms set forth in the End User License and Support Services Agreement located at the Product Notice website, unless otherwise defined in a separate sublicense, warranty and support, or related services terms agreed between End User and the selling entity.  Subject to the prior sentence, Dell Inc. and its Affiliates and their suppliers provide the Software “As Is” without any warranties or conditions. To the maximum extent permitted by applicable law, Dell Inc. and its Affiliates and their supplier: (i) make no express warranties or conditions; (ii) disclaim all implied warranties and conditions, including merchantability, fitness for a particular purpose, title, and non-infringement; and (iii) disclaim any warranty or condition arising by statute, operation of law, course of dealing or performance, or usage of trade.
+4.	TERMINATION.  Licensor may terminate licenses if End User: (i) breaches the license terms and fails to cure within thirty days after receipt of Licensor’s written notice of breach; (ii) declares bankruptcy or is adjudicated bankrupt or a receiver or trustee is appointed for substantially all of End User’s assets.  Dell Inc. or its Affiliates may terminate licenses on ten days’ written notice if End User fails to pay for the Software when payment is not subject to a good faith dispute. Dell Inc. or its Affiliates may terminate the licenses immediately if End User is acquired by or merged with a competitor of Dell Inc. or any of its Affiliates.  If Licensor terminates Software licenses, End User must cease all use of those Software licenses and associated Documentation, and return or certify destruction of Documentation and Software pertaining to the terminated licenses. The provisions of this E-EULA relating to records and audit, confidentiality, and liability will survive termination, along with any other provisions of this E-EULA that, by their nature and context, are intended to survive.
+5.	LIMITATION OF LIABILITY
+A.	Limitations on Damages.  Licensor does not license End User to use Software in situations in which the failure of the Software could lead directly to death, personal injury, or severe physical injury or property damage. Neither party seeks to exclude or limit liability under this E-EULA for death or personal injury resulting from negligence or any other liability that cannot be excluded by law.
+(1).	Limitation on Direct Damages.  Licensor’s total liability to End User is limited to the lower of: (i) the net license fees End User paid for the applicable Software license(s) that gave rise to the liability; or (ii) USD 100,000.
+(2).	No Indirect Damages.  Licensor has no liability for special, consequential, exemplary, punitive, incidental, or indirect damages, or for lost profits, income, revenue, data (including corruption or damage to data), goodwill, reputation, or use of systems, networks, programs, or media.
+B.	Regular Back-ups.  End User is solely responsible for its data.  End User must back up its data before Licensor or a third party performs any remedial, upgrade, or other work on End User’s production systems. If applicable law prohibits exclusion of liability for lost data, then Licensor will only be liable for the cost of the typical effort to recover the lost data from End User’s last available back up.
+C.	Applicability. Even when the Reseller is the Licensor, the limitation of liability stated above will apply in favor of Dell Inc. and its Affiliates, and it will apply to all End User claims, regardless of the course of action (including tort).
+6.	CONFIDENTIALITY. The Software and related materials, including the Documentation, are Dell Inc. and its Affiliates’ “Confidential Information”.  End User must treat the Confidential Information as confidential in perpetuity unless and until the Confidential Information is or becomes part of the public domain through no breach of confidentiality. End User must not use the Confidential Information beyond the scope of the rights granted, and may only share it with Authorized Users who are subject to legal obligations consistent with this E-EULA to protect the confidentiality of the Confidential Information. End User is liable to Dell Inc. and its Affiliates for all use of the Confidential Information by Authorized Users.
+7.	MISCELLANEOUS
+A.	Notices. The parties will provide all notices under this E-EULA in writing.  Unless provided otherwise in the Quote or on the invoice to End User, End User must provide notices to Dell Inc. and its Affiliates as follows: by mail to: [Licensing Dell Entity Name], Attn: Contracts Manager, One Dell Way, Round Rock, Texas 78682, or by e-mail to: Dell_Legal_Notices@dell.com.  When the Licensor is a Reseller, End User must provide notice to Reseller as stated in the agreement between End User and Reseller or as stated on Reseller’s Quote to End User.
+B.	Assignment.  End User may not assign this E-EULA or a Quote or any right or obligation under this E-EULA or Quote, or delegate any performance, without Licensor’s prior written consent.  Even if Licensor consents to an assignment, End User remains responsible for all obligations to Licensor under this E-EULA and each Quote that End User incurred prior to the effective date of the assignment.  End User attempts to assign or delegate without Licensor’s prior written consent are void.  This section does not prohibit End User from transferring Software and Documentation in accordance with Section 2.C.(4) above.  In case of such transfer, End User must notify Licensor of the transfer in writing and impose all obligations under this E-EULA on the transferee.
+C.	Governing Law and Venue.  This E-EULA and any dispute, claim, or controversy (whether in contract, tort, or otherwise) related to or arising out of this E-EULA or any Quotes (“Dispute”) is governed by the law of the applicable jurisdiction stated in www.dell.com/swlicensortable (“Governing Jurisdiction”). The U.N. Convention on Contracts for the International Sale of Goods does not apply.  Any Disputes between End User and Dell Inc. or its Affiliates must be brought in the courts of the Governing Jurisdiction.  The parties agree to submit to the personal jurisdiction of the courts within the Governing Jurisdiction in connection with any Disputes.  The parties further waive all objections to the exercise of personal jurisdiction over the parties by those courts, and to venue in those courts, with respect to any such Disputes. The parties agree to waive, to the maximum extent permitted by law, any right to a jury trial with respect to any Dispute.  Neither party is entitled to join or consolidate claims by or against other users, or pursue any claim as a representative or class action, or in private attorney general capacity, in connection with a Dispute.
+D.	Informal Dispute Resolution.  As a condition precedent to filing any lawsuit, a party must first provide written notice of any Dispute to the other party. The parties will attempt to resolve any Dispute through negotiation with persons fully authorized to resolve the Dispute, or through mediation utilizing a mutually agreeable mediator before proceeding with litigation. The parties to a Dispute must treat the existence or results of any negotiation or mediation as confidential.  If the parties are unable to resolve the Dispute within thirty days of notice of the Dispute to the other party (or other mutually agreed period), the parties will be free to pursue all remedies available at law or in equity in accordance with Section 7C above.  Notwithstanding the foregoing, a party may immediately file a lawsuit for injunctive relief to protect intellectual property rights, preserve the status quo, or prevent irreparable harm.
+E.	Waiver. Failure to enforce a provision of this E-EULA will not constitute a waiver of that or any other provision of this E-EULA.
+F.	Independent Contractors. The parties are independent contractors for all purposes under this E-EULA and cannot obligate any other party without prior written approval. The parties do not intend anything in this E-EULA to allow any party to act as an agent or representative of a party, or the parties to act as joint venturers or partners for any purpose. No party is responsible for the acts or omissions of any other.
+G.	Severability.  If a court of competent jurisdiction determines any part of this E-EULA or document that incorporates this E-EULA by reference is unenforceable, that ruling will not affect the validity of all remaining parts.
+H.	Trade Compliance.   Customer’s purchase of licenses for Software and access to related technology (“Materials”) are for its own use, not for resale, export, re-export, or transfer.  End User is subject to and responsible for compliance with the export control and economic sanctions laws of the United States and other applicable jurisdictions.  Materials may not be used, sold, leased, exported, imported, re-exported, or transferred except with prior written authorization by Dell Inc. or its Affiliates and in compliance with such laws, including, without limitation, export licensing requirements, end-user, end-use, and end-destination restrictions, and prohibitions on dealings with sanctioned individuals and entities, including but not limited to persons on the Office of Foreign Assets Control's Specially Designated Nationals and Blocked Persons List or the U.S. Department of Commerce Denied Persons List.  End User represents and warrants that it is not the subject or target of, and that End User is not located in a country or territory (including without limitation, North Korea, Cuba, Iran, Syria, and Crimea) that is the subject or target of, economic sanctions of the United States or other applicable jurisdictions.  End User understands and will comply with all applicable provisions of the U.S. Arms Export Control Act (AECA) and the U.S. International Traffic in Arms Regulations (ITAR) in End User’s receipt, use, transfer, modification, or disposal of Software.  End User acknowledges that any use, modification, or integration of the Software in or with defense articles or in the provision of defense services is not authorized by any Licensor, and that Licensors will not provide warranty, repair, customer support, or other services in connection with such end uses.  End User certifies that any software, disk images, or other data provided to Licensor in connection with the purchase of the Software will not contain technical data, software, or technology controlled by the ITAR or AECA, and that if End User later returns the Software to Licensor or grants Licensor access to the Software, End User will not include or otherwise make available to Licensor any such technical data, software, or technology.  End User agrees to indemnify and hold Licensor harmless for any liability, loss, damage, cost, expense, or penalty arising from End User’s non-compliance with the AECA, ITAR, or the provisions of this Section.
+I.	Purchases from Reseller; Third Party Beneficiaries.  When a Reseller is the Licensor, End User acknowledges that the sublicense it receives from Reseller is conditional on the license grant from Dell Inc. or its Affiliates to Reseller, and that Reseller cannot grant to End User license rights greater than Reseller received from such entity. The applicable Dell Inc. Affiliate is a third party beneficiary to the license agreement between the Reseller and End User and is entitled to exercise and enforce all of Reseller’s rights and benefits under such license agreement (including the terms of this E-EULA).
+J.	Entire Agreement.  This E-EULA comprise the complete statement of the agreement of the parties with regard to its subject matter and may be modified only in a writing signed by both parties. Regardless of the prior sentence, Dell may, in its sole discretion, update the Licensor table and Product Notice incorporated by reference into this E-EULA.  Any changes that Dell Inc. makes to the Licensor table and Product Notice will apply only to transactions that occur after Licensor posts those changes online. The E-EULA excludes all terms of any End User purchase order or similar End User document, such as any preprinted terms, and any terms that supplement, are inconsistent or that conflict with this E-EULA, the Quote, or both.  These excluded terms have no legal effect and do not modify or supplement the E-EULA, even if Licensor does not expressly object to those terms when accepting an End User purchase order or similar document.  Any claims by any party of fraud in the inducement of this E-EULA or any Quote or End User purchase order based on any statements, representations, understandings, or omissions, whether oral or written, that are not fully expressed in this E-EULA, the applicable Quote, or purchase order are expressly waived and released.  End User represents that it did not rely on any representations or statements that do not appear in this E-EULA when accepting this E-EULA. 
+
+

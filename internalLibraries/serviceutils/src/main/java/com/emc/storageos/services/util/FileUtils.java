@@ -271,7 +271,7 @@ public class FileUtils {
      * @param directory the directory which file resides in
      */
     private static File[] listAllFiles(File directory) {
-        if (directory == null || !directory.exists()) {
+        if (directory == null || !directory.exists() || directory.listFiles() == null) {
             return new File[0];
         }
         List<File> fileList = new ArrayList<File>();

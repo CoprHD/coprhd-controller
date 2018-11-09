@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -166,6 +167,14 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void doExpandSnapshot(StorageSystem storage, StoragePool pool,
+            BlockSnapshot snapshot, Long size, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }    
 
     @Override
     public void doActivateSnapshot(StorageSystem storage,

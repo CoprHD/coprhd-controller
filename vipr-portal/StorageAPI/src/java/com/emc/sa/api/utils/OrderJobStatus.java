@@ -149,6 +149,11 @@ public class OrderJobStatus implements CoordinatorSerializable {
     }
 
     @JsonIgnore
+    public void addToDownloadedNumber(long n) {
+        nCompleted += n;
+    }
+
+    @JsonIgnore
     public boolean isFinished() {
         return (getCompletedNumber() + nFailed) == total;
     }

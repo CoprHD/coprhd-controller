@@ -8,6 +8,7 @@ scripts {
         maxMemoryFactor = "0.0106"
         jvmArgs += " -DentityExpansionLimit=-1"
         jvmArgs += " -DbuildType=" + buildType
+        jvmArgs += " -Dcom.sun.jndi.ldap.object.disableEndpointIdentification=true"
         startupTimeoutSec = "180"
     }
 }

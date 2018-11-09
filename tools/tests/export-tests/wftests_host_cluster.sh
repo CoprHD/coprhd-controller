@@ -2400,7 +2400,7 @@ test_vblock_provision_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2409,7 +2409,6 @@ test_vblock_provision_bare_metal_host() {
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
         #sleep 5
-        # will be externalising the hardcoded values to properties file.
         run vblockcatalog provisionbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_BARE_METAL_CLUSTER
 
         # Verify injected failures were hit
@@ -2452,7 +2451,7 @@ test_vblock_add_bare_metal_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2461,7 +2460,6 @@ test_vblock_add_bare_metal_host() {
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
         sleep 5
-        # will be externalising the hardcoded values to properties file.
         run vblockcatalog addbaremetalhost $TENANT $VBLOCK_BARE_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_BARE_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_BARE_METAL_HOSTS_TO_CLUSTER
 
         # Verify injected failures were hit
@@ -2502,7 +2500,7 @@ test_vblock_add_host_withOS_to_cluster() {
         secho "Running test_vblock_add_host_withOS_to_cluster with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2511,7 +2509,6 @@ test_vblock_add_host_withOS_to_cluster() {
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
         sleep 5
-        # will be externalising the hardcoded values to properties file.
         run vblockcatalog addhosttocluster $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_ADD_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_ADD_HOSTS_TO_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_ADD_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
 
         # Verify injected failures were hit
@@ -2538,8 +2535,8 @@ test_vblock_add_host_withOS_to_cluster() {
 }
 
 test_vblock_provision_cluster_with_host() {
-    test_name="test_vblock_provision_bare_metal_host"
-    echot "Test vblock_provision_bare_metal_host Begins"
+    test_name="test_vblock_provision_cluster_with_host"
+    echot "Test test_vblock_provision_cluster_with_host Begins"
     vblock_failure_injections="failure_070_ComputeDeviceControllerImpl.addStepsPreOsInstall_setLanBootTargetStep \
                                failure_071_ComputeDeviceControllerImpl.addStepsPreOsInstall_prepareOsInstallNetworkStep \
                                failure_072_ComputeDeviceControllerImpl.addStepsPostOsInstall_setSanBootTargetStep"
@@ -2551,7 +2548,7 @@ test_vblock_provision_cluster_with_host() {
         secho "Running test_vblock_provision_bare_metal_host with failure scenario: ${failure}..."
         TEST_OUTPUT_FILE=test_output_${RANDOM}.log
         reset_counts
-        column_family="Host Volume ExportGroup ExportMask Cluster"
+        column_family="Host Volume ExportMask Cluster"
         random_number=${RANDOM}
         mkdir -p results/${random_number}
         run computesystem discover $VBLOCK_COMPUTE_SYSTEM_NAME
@@ -2560,7 +2557,6 @@ test_vblock_provision_cluster_with_host() {
         # Turn on failure at a specific point
         set_artificial_failure ${failure}
         #sleep 5
-        # will be externalising the hardcoded values to properties file.
         run vblockcatalog provisionclusterwithhost $TENANT $VBLOCK_PROVISION_CLUSTER_NAME $VBLOCK_BOOT_VOL_SIZE $VBLOCK_PROVISION_HOST_NAME $PROJECT $NH $VPOOL_BASE $VBLOCK_COMPUTE_VIRTUAL_POOL_NAME $VBLOCK_BOOT_VOL_HLU $VBLOCK_CATALOG_PROVISION_CLUSTER $VBLOCK_COMPUTE_IMAGE_NAME $VBLOCK_PROVISION_HOST_IP $VBLOCK_NETMASK $VBLOCK_GATEWAY $VBLOCK_MGMT_NETWORK $VBLOCK_NTPSERVER $VBLOCK_DNS $VBLOCK_HOST_ENC_PWD $VBLOCK_VCENTER_NAME $VBLOCK_VCENTER_DATACENTER_NAME
 
         # Verify injected failures were hit
@@ -2683,7 +2679,8 @@ test_expand_volume_and_datastore() {
             # Add a break in the output
             echo " "
         done    
-        
+        # Expand volume to a smaller size to verfiy Precheck works
+        fail expand_volume_and_datastore_for_host ${TENANT} ${volume1} ${datastore1} ${PROJECT} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST} 1
         # Cleanup volume and datastore
         delete_datastore_and_volume_for_host ${TENANT} ${datastore1} ${vcenter} ${VCENTER_DATACENTER} ${VCENTER_HOST}
     else 

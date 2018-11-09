@@ -46,11 +46,23 @@ public class ExpandBlockVolumeHelper {
         this.hpuxSupport = hpuxSupport;
     }
 
-    public void precheck(BlockObjectRestRep volume) {
+    private void precheck(BlockObjectRestRep volume) {
         usePowerPath = hpuxSupport.checkForPowerPath();
         mountPoint = hpuxSupport.findMountPoint(volume);
         rdisk = hpuxSupport.findRDisk(volume, usePowerPath);
         hpuxSupport.verifyMountedDevice(mountPoint, rdisk);
+    }
+
+    /**
+     * precheck method.
+     * @param volume {@link BlockObjectRestRep} instance
+     * @param newSizeInGB {@link Double} new size of volume in GB.
+     */
+    public void precheck(BlockObjectRestRep volume, Double newSizeInGB) {
+        if (BlockStorageUtils.isViprVolumeExpanded(volume, newSizeInGB)) {
+            ExecutionUtils.fail("hpux.expand.fail", new Object[] {}, volume.getName(), BlockStorageUtils.getCapacity(volume));
+        }
+        precheck(volume);
     }
 
     public void expandVolume(BlockObjectRestRep volume, Double newSizeInGB) {
@@ -110,5 +122,4 @@ public class ExpandBlockVolumeHelper {
         hpuxSupport.setVolumeMountPointTag(volume, mountPoint.getPath());
         ExecutionUtils.clearRollback();
     }
-
 }

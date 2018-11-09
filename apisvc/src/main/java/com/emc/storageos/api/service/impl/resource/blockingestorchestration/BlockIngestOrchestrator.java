@@ -591,7 +591,7 @@ public abstract class BlockIngestOrchestrator {
         if (!DiscoveryUtils.checkVPoolValidForUnManagedVolumeAutoTieringPolicy(vPool, autoTierPolicyId, system)) {
             _logger.warn(String.format(UnManagedVolumeService.AUTO_TIERING_NOT_CONFIGURED, new Object[] {
                     unManagedVolume.getId(), autoTierPolicyId, vPool.getAutoTierPolicyName(), vPool.getLabel() }));
-            return "POLICY_NOT_MATCH";
+            return POLICY_NOT_MATCH;
         }
         return autoTierPolicyId;
     }

@@ -567,6 +567,11 @@ public class XtremIOV1Client extends XtremIOClient {
             deleteInitiatorGroupFolder(XtremIOConstants.V1_ROOT_FOLDER.concat(tagName), clusterName);
         }
     }
+    
+    @Override
+    public void deleteEntityTag(String tagName, String tagEntityType, String entityDetails, String clusterName) throws Exception {
+         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("deleteEntityTagDetails");
+    }
 
     @Override
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception {
@@ -622,4 +627,10 @@ public class XtremIOV1Client extends XtremIOClient {
         log.info(volume.toString());
         return volume;
     }
+    
+    @Override
+    public void expandBlockSnapshot(String snapshotName, String size, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("expandXtremIOBlockSnapshot");
+    }
+    
 }

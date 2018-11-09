@@ -80,9 +80,12 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StorageGroupPolicyLimitsParam;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddPathsCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemoveInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskRemovePathsCompleter;
@@ -308,6 +311,23 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // have stuff the task with the error message/code. We're just going to
                 // return from here.
                 return;
+            }
+
+            //Reset the HLU if the host is HPUX and discovered as Others and VSA is enabled on IG.
+            if (ExportUtils.hasInitiatorOther(initiatorList, _dbClient)) {
+                boolean enableVSA = hasIGWithVSASet(storage, Lists.newArrayList(cascadedIG));
+                if (enableVSA) {
+                    Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
+                    // verify the volumeURIHLUs has invalid HLUs
+                    // reset volume hlus to -1, if there is any invalid hlu
+                    if(validateAndUpdateHlu(volumeURIHLUs, volumeMap)) {
+                        // Update the taskCompleter volumemap as the volume hlu been modified.
+                        // So that the completer would update the hlus from array appropriately.
+                        if(taskCompleter instanceof ExportMaskCreateCompleter) {
+                            ((ExportMaskCreateCompleter)taskCompleter).setVolumeMap(volumeMap);
+                        }
+                    }
+                }
             }
 
             // 2. StorageGroup (SG)
@@ -840,6 +860,26 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             boolean isVmax3 = storage.checkIfVmax3();
             ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            Collection<URI> inits = StringSetUtil.stringSetToUriList(mask.getInitiators());
+            List<Initiator> iniList = _dbClient.queryObject(Initiator.class, inits);
+            
+            if (ExportUtils.hasInitiatorOther(iniList, _dbClient)) {
+                boolean enableVSA = hasVSAenabledIg(storage, iniList);
+                if (enableVSA) {
+                    _log.info("Found VSA enabled IG. HLU will be validated and reset.");
+                    Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
+                    // verify the volumeURIHLUs has invalid HLUs
+                    // reset volume hlus to -1, if there is any invalid hlu
+                    if(validateAndUpdateHlu(volumeURIHLUs, volumeMap)) {
+                        // Update the taskCompleter volumemap as the volume hlu been modified.
+                        // So that the completer would update the hlus from array appropriately.
+                        if(taskCompleter instanceof ExportMaskAddVolumeCompleter) {
+                            ((ExportMaskAddVolumeCompleter)taskCompleter).setVolumeMap(volumeMap);
+                        }
+                    }
+                }
+            }
+            
             ExportOperationContext context = new VmaxExportOperationContext();
             // Prime the context object
             taskCompleter.updateWorkflowStepContext(context);
@@ -1203,7 +1243,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             childGroupName, parentGroupName);
                 }
             }
-
+            
             // Test mechanism to invoke a failure. No-op on production systems.
             InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
@@ -2014,7 +2054,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             StoragePortGroup portGroup = null;
                             _log.info("Setting port group for the export mask");
                             String portGroupName = _helper.getPortGroupForGivenMaskingView(name, storage);
-                            String guid = String.format("%s+%s", storage.getNativeGuid(), portGroupName);
+                            String guid = NativeGUIDGenerator.generateNativeGuidForStoragePortGroup(storage, portGroupName);
                             URIQueryResultList result = new URIQueryResultList();
                             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                                     .getPortGroupNativeGuidConstraint(guid), result);
@@ -2301,6 +2341,22 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) throws DeviceControllerException {
+        return refreshExportMask(storage, mask, null);
+    }
+    
+    /**
+     * This call will be used to update the ExportMask with the latest data from the
+     * array.
+     * 
+     * @param storage [in] - StorageSystem object representing the array
+     * @param mask [in] - ExportMask object to be refreshed
+     * @return instance of ExportMask object that has been refreshed with data from the array.
+     * @param userRemovedInitiators optional field can be null. List of user removed initiator for this refresh operation
+     * @throws DeviceControllerException TODO
+     */
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask, List<String> userRemovedInitiators)
+            throws DeviceControllerException {
+
         long startTime = System.currentTimeMillis();
         try {
             CIMInstance instance = _helper.getSymmLunMaskingView(storage, mask);
@@ -2533,7 +2589,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _networkDeviceController.refreshZoningMap(mask,
                         transform(initiatorsToRemoveFromUserAddedAndInitiatorList, CommonTransformerFunctions.FCTN_URI_TO_STRING),
                         Collections.EMPTY_LIST,
-                        (addInitiators || removeInitiators), true);
+                        (addInitiators || removeInitiators), true, userRemovedInitiators);
                 _log.info(builder.toString());
             }
         } catch (Exception e) {
@@ -2736,7 +2792,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         portGroupName, targetURIList);
                 // Create port group
                 StoragePortGroup portGroup = new StoragePortGroup();
-                String guid = String.format("%s+%s", storage.getNativeGuid(), portGroupName);
+                String guid = NativeGUIDGenerator.generateNativeGuidForStoragePortGroup(storage, portGroupName);
                 portGroup.setId(URIUtil.createId(StoragePortGroup.class));
                 portGroup.setLabel(portGroupName);
                 portGroup.setNativeGuid(guid);
@@ -2765,23 +2821,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return targetPortGroupPath;
     }
 
-    private boolean hasInitiatorHPUX(List<Initiator> initiatorList) {
-        boolean initiatorIsHPUX = false;
-        if (!initiatorList.isEmpty()) {
-            Initiator ini = initiatorList.get(0);
-            URI hostURI = ini.getHost();
-            if (hostURI == null) {
-                return false;
-            }
-            Host host = _dbClient.queryObject(Host.class, hostURI);
-            String hostType = host.getType();
-            if (hostType.equals(Host.HostType.HPUX.toString())) {
-                initiatorIsHPUX = true;
-            }
-        }
-        return initiatorIsHPUX;
-    }
-
+    /**
+     * Return true if one of the IG has VSA flag is set.
+     * @param storage
+     * @param initiatorGroupPaths
+     * @return
+     * @throws Exception
+     */
     private boolean hasIGWithVSASet(StorageSystem storage,
             List<CIMObjectPath> initiatorGroupPaths) throws Exception {
         boolean foundIGWithVSASet = false;
@@ -2794,18 +2840,28 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return foundIGWithVSASet;
     }
 
+    /**
+     * Fetches the given IG and return true if the IG has VSA flag is set.
+     * @param storage
+     * @param initiatorGroupPath
+     * @return
+     * @throws Exception
+     */
     private boolean igHasVSASet(StorageSystem storage,
             CIMObjectPath initiatorGroupPath) throws Exception {
-        boolean vsaSet = false;
         CIMInstance initiatorGroupInstance = _helper.getInstance(storage, initiatorGroupPath, false, false, null);
         String emcVSAEnabled = CIMPropertyFactory.getPropertyValue(initiatorGroupInstance,
                 SmisConstants.CP_EMC_VSA_ENABLED);
-        if (emcVSAEnabled != null) {
-            vsaSet = emcVSAEnabled.equalsIgnoreCase("true");
-        }
-        return vsaSet;
+        return "true".equalsIgnoreCase(emcVSAEnabled);
     }
 
+    /**
+     * SEt the VSA flag on the given IG.
+     * @param storage
+     * @param initiatorGroupPath
+     * @param VSAFlag
+     * @throws Exception
+     */
     private void setVSAFlagForIG(StorageSystem storage,
             CIMObjectPath initiatorGroupPath,
             boolean VSAFlag) throws Exception {
@@ -2874,7 +2930,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
                 return initiatorGroupPath;
             }
-            if (hasInitiatorHPUX(initiatorList)) {
+            if (ExportUtils.hasInitiatorHPUX(initiatorList, _dbClient)) {
+                _log.info("Setting the VSA flag for the initiator group path - {}", initiatorGroupPath);
                 setVSAFlagForIG(storage, initiatorGroupPath, true);
             }
         } catch (WBEMException we) {
@@ -2961,6 +3018,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             }
 
             if (enableVSA) {
+                _log.info("Setting the VSA flag for the initiator group path - {}", initiatorGroupPath);
                 setVSAFlagForIG(storage, initiatorGroupPath, true);
                 // Now go ahead and add the members..
                 for (CIMObjectPath childIGPath : initiatorGroupPaths) {
@@ -5675,4 +5733,47 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         return exportMask;
     }
+    
+    /**
+     * Validate the given HLUs and reset if the given HLUs are not in valid range.
+     * Currently this is applicable to HP-UX host discovered as other host.
+     * 
+     * @param volumeURIHLUs
+     * @param volumeMap
+     */
+    private boolean validateAndUpdateHlu(VolumeURIHLU[] volumeURIHLUs, Map<URI, Integer> volumeMap) {
+        boolean resetAllHlu = false;
+        for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
+            String hexNot = volumeUriHLU.getHLU();
+            if (!ExportUtils.isValidHpuxHlu(hexNot)) {
+                _log.warn("Found HLU in hexadecimal format as {} and the IG is VSA enabled. So we would be resetting the HLU.", hexNot);
+                resetAllHlu = true;
+            }
+        }
+        if (resetAllHlu) {
+            for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
+                volumeUriHLU.setHLU(ExportGroup.LUN_UNASSIGNED_STR);
+                volumeMap.put(volumeUriHLU.getVolumeURI(), ExportGroup.LUN_UNASSIGNED);
+            }
+        }
+        return resetAllHlu;
+    }
+
+    /**
+     * Return true if the IG has VSA flag set. 
+     * 
+     * 1. It fetches the IG in which the given initiators belongs to.
+     * 2. Verify whether the IG has VSA flag set or not.
+     * 
+     * @param storage
+     * @param initiatorList
+     * @return
+     * @throws Exception
+     */
+    private boolean hasVSAenabledIg(StorageSystem storage, List<Initiator> initiatorList) throws Exception {
+        ListMultimap<CIMObjectPath, String> igToInitiators = ArrayListMultimap.create();
+        mapInitiatorsToInitiatorGroups(igToInitiators, storage, initiatorList);
+        return hasIGWithVSASet(storage, Lists.newArrayList(igToInitiators.keySet()));
+    }
+
 }

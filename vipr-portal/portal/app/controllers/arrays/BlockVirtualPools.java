@@ -117,6 +117,8 @@ public class BlockVirtualPools extends ViprResourceController {
     private static final String VP_XIO_DIAMOND = "xio-diamond";
     private static final String VP_UNITY_DIAMOND = "unity-diamond";
     private static final String DEFAULT_AUTO_TIER = "Diamond SLO (0.8ms)";
+    private static final String DIAMOND_SLO = "Diamond";
+    
 
     private static List<String> getSupportAutoTierTypes() {
         List<String> result = new ArrayList<String>();
@@ -414,8 +416,24 @@ public class BlockVirtualPools extends ViprResourceController {
         }
         addStaticOptions();
         addDynamicOptions(vpool);
+        
         renderArgs.put("storagePoolsDataTable", createStoragePoolDataTable());
-
+        // Virtual Pool has policy, but the policy is not present on given storage system,
+        // means, the system been upgraded and the old policy might have have removed.
+        // VMAX Cypress to Elm, SLO workload has been dropped
+        // Diamond + any WL --> Diamond in Elm
+        
+        // As the new set of SLO policies on ELM does not have Diamond + WL SLO
+        // Add the vPool policy to autoTierPolicyOptions list, 
+        // so that the vpool policy would be selected in edit page!!!
+        renderArgs.get("autoTierPolicyOptions");
+        if(vpool.autoTierPolicy != null && vpool.autoTierPolicy.contains(DIAMOND_SLO)) {
+            List<StringOption> options = (List<StringOption>) renderArgs.get("autoTierPolicyOptions");
+            StringOption vPoolPolicyName = new StringOption(vpool.autoTierPolicy);
+            if(!options.contains(vPoolPolicyName)) {
+                options.add(vPoolPolicyName);
+            }
+        }
         copyRenderArgsToAngular();
         angularRenderArgs().put("vpool", vpool);
 

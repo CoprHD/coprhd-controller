@@ -64,6 +64,10 @@ public class CreateBlockVolumeForHostHelper extends CreateBlockVolumeHelper {
 
     public void precheck() {
 
+        if (hlu == null) {
+            hlu = -1;
+        }
+
         ExportBlockVolumeHelper.precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
         ExportBlockVolumeHelper.precheckPortGroupParameter(virtualPool, hostId, project, virtualArray, portGroup);
         if (BlockStorageUtils.isHost(hostId)) {

@@ -698,7 +698,7 @@ public class OrderService extends CatalogTaggedResourceService {
                         tids, tid, uid, orderStatus);
 
         List<URI> orderIDs = toIDs(SearchConstants.ORDER_IDS, orderIDsStr);
-        status.setOrderIDs(orderIDs);
+        status.setTotal(orderIDs.size());
 
         if (!orderIDs.isEmpty()) {
             status.setStartTime(0);
@@ -715,18 +715,18 @@ public class OrderService extends CatalogTaggedResourceService {
         StreamingOutput out = new StreamingOutput() {
             @Override
             public void write(OutputStream outputStream) {
-                exportOrders(tids, startTimeInMS, endTimeInMS, outputStream, status);
+                exportOrders(tids, orderIDsStr, startTimeInMS, endTimeInMS, outputStream, status);
             }
         };
 
         return Response.ok(out).build();
     }
 
-    private void exportOrders(List<URI> tids, long startTime, long endTime, OutputStream outputStream, OrderJobStatus status) {
+    private void exportOrders(List<URI> tids, String orderIDsStr, long startTime, long endTime, OutputStream outputStream, OrderJobStatus status) {
         PrintStream out = new PrintStream(outputStream);
         out.println("ORDER DETAILS");
         out.println("-------------");
-        List<URI> orderIDs = status.getOrderIDs();
+        List<URI> orderIDs = toIDs(SearchConstants.ORDER_IDS, orderIDsStr);
 
         if (!orderIDs.isEmpty()) {
             dumpOrders(out, orderIDs, status);
@@ -785,7 +785,7 @@ public class OrderService extends CatalogTaggedResourceService {
             }
 
             dumpOrder(out, order);
-            status.addCompleted(1);
+            status.addToDownloadedNumber(1);
             saveJobInfo(status);
         } catch (Exception e) {
             log.error("Failed to download order {} e=", id, e);

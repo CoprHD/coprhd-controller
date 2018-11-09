@@ -87,6 +87,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException eventCannotBeApproved(final String eventState);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException newPGcannotBeUsedAsEGwithOldPGexists(String portgroupname);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException eventCannotBeDeclined(final String eventState);
@@ -2021,6 +2024,18 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeNotExpandable(final String volumeName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotNotExpandable(final String vpoolName, final String snapshotName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotExpansionNotSupported(final String snapshotName, final String systemType);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSourceVolumeSizeMismatch(final String snapshotName, final String sourceVolumeLabel, final Double sourceVolSize);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotNewSizeSameAsCurrentSize();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unsupportedUnManagedVolumeDiscovery(final String systemSerialNumber);

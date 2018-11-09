@@ -187,6 +187,23 @@ public class VPlexMigrationJob extends Job implements Serializable {
                     (migration != null ? migration.getId() : "null"),
                     (vplexSystem != null ? vplexSystem.getId() : "null"),
                     _errorDescription), e);
+
+            // If migration job was cancelled by another ViPR task,VPLEX give could not find the migration Error/Exception.
+            // Check the ViPR DB current MigrationStatus is cancel or not.
+            if (migration != null) {
+                String currentMigrationStatus = migration.getMigrationStatus();
+                s_logger.debug("Migration {} with id {} and current known status: {}", migration.getLabel(), migration.getId(),
+                        currentMigrationStatus);
+                if (VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue().equals(currentMigrationStatus)) {
+                    s_logger.info("Migration: {} was cancelled prior to completion by another task.", migration.getId());
+                    // update the job status and error description in poll result
+                    _status = JobStatus.FAILED;
+                    _errorDescription = "The migration was cancelled by another task.";
+                    _pollResult.setJobStatus(_status);
+                    _pollResult.setErrorDescription(_errorDescription);
+                }
+            }
+
             if (++_retryCount > _maxRetries) {
                 _errorDescription = e.getMessage();
                 _status = JobStatus.FAILED;

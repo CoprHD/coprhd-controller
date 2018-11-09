@@ -17,7 +17,6 @@ import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-ExpandVmfsDatastore")
@@ -33,12 +32,16 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
     protected Double sizeInGb;
 
     private Datastore datastore;
+    private BlockObjectRestRep volume;
 
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        BlockStorageUtils.getVolume(volumeId);
         acquireHostLock();
+        volume = BlockStorageUtils.getVolume(volumeId);
+        if (BlockStorageUtils.isViprVolumeExpanded(volume, sizeInGb)) {
+            ExecutionUtils.fail("expand.vmfs.datastore.fail", new Object[] {}, volume.getName(), BlockStorageUtils.getCapacity(volume));
+        }
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
 
         vmware.verifyVolumesBackingDatastore(host, hostId, datastore);
@@ -48,14 +51,13 @@ public class ExpandVmfsDatastoreService extends VMwareHostService {
 
     @Override
     public void execute() throws Exception {
-    	BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
-    	
-    	// Skip the expand if the current volume capacity is larger than the requested expand size
-    	if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
-    		logWarn("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
-    	} else {
-    		BlockStorageUtils.expandVolume(volumeId, sizeInGb);
-    	}
+
+        // Skip the expand if the current volume capacity is larger than the requested expand size
+        if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
+                logWarn("expand.vmfs.datastore.skip", volumeId, BlockStorageUtils.getCapacity(volume));
+        } else {
+                BlockStorageUtils.expandVolume(volumeId, sizeInGb);
+        }
 
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);

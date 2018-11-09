@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 public class StoragePortGroupCreateCompleter extends TaskCompleter {
     private static final Logger log = LoggerFactory.getLogger(StoragePortGroupCreateCompleter.class);
@@ -31,7 +32,7 @@ public class StoragePortGroupCreateCompleter extends TaskCompleter {
             if (status == Status.ready && portGroup != null) {
                 URI systemURI = portGroup.getStorageDevice();
                 StorageSystem storage = dbClient.queryObject(StorageSystem.class, systemURI);
-                portGroup.setNativeGuid(String.format("%s+%s", storage.getNativeGuid(), portGroup.getLabel()));
+                portGroup.setNativeGuid(NativeGUIDGenerator.generateNativeGuidForStoragePortGroup(storage, portGroup.getLabel()));
                 portGroup.setInactive(false);
                 dbClient.updateObject(portGroup);
                 dbClient.ready(StoragePortGroup.class, getId(), getOpId());

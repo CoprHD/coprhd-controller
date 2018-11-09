@@ -55,6 +55,12 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
         _volumeMap.putAll(volumes);
         _forgetStepId = null;
     }
+    
+    public void setVolumeMap(Map<URI, Integer> volumes) {
+        if(_volumeMap != null) {
+            _volumeMap.putAll(volumes);
+        }
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {

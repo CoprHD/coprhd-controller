@@ -148,8 +148,8 @@ public class RestoreHandler {
             tmpDir.renameTo(viprDataDir);
 
             //if there are more files in the data dir, chown may take more than 10 seconds to complete,
-            //so set timeout to 1 minute
-            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP,60*1000);
+            //so set timeout to 5 minute
+            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP,60*5000);
 
             restoreDrivers();
         } finally {
@@ -232,19 +232,26 @@ public class RestoreHandler {
             return;
         }
         if (!bootModeFile.exists()) {
-            setDbStartupModeAsRestoreReinit(rootDir);
+        	setDbStartupMode(Constants.STARTUPMODE_RESTORE_REINIT);
         }
         chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         log.info("Startup mode file({}) has been created", bootModeFile.getAbsolutePath());
     }
 
-    private void setDbStartupModeAsRestoreReinit(File dir) throws IOException {
-        File bootModeFile = new File(dir, Constants.STARTUPMODE);
+    /**
+     * Persist startup mode into rootDir
+     *
+     * @param targetMode
+     * @throws IOException
+     */
+    public void setDbStartupMode(String targetMode) throws IOException {
+        File bootModeFile = new File(rootDir, Constants.STARTUPMODE);
         try (OutputStream fos = new FileOutputStream(bootModeFile)) {
             Properties properties = new Properties();
-            properties.setProperty(Constants.STARTUPMODE, Constants.STARTUPMODE_RESTORE_REINIT);
+            properties.setProperty(Constants.STARTUPMODE, targetMode);
             properties.store(fos, null);
-            log.info("Set startup mode as restore reinit under {} successful", dir);
+            chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            log.info("Set startup mode as {} under {} successful", targetMode, rootDir);
         }
     }
 

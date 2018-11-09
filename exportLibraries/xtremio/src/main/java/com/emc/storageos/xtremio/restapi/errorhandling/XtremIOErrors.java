@@ -25,4 +25,13 @@ public interface XtremIOErrors {
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     public ServiceError operationFailed(final String string, final String message);
+    
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    public ServiceError expandSnapshotFailure(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    public ServiceError restoreSnapshotFailureSourceSizeMismatch(final String message);
+    
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    public ServiceError resyncSnapshotFailureSourceSizeMismatch(final String message);
 }

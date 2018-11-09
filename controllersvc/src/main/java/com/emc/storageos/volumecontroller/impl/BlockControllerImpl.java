@@ -178,6 +178,12 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
             throws InternalException {
         blockRMI("createSnapshot", storage, snapshotList, createInactive, readOnly, opId);
     }
+    
+    @Override
+    public void expandBlockSnapshot(URI storage, URI snapshot, Long size, String opId) throws InternalException {
+        blockRMI("expandBlockSnapshot", storage, snapshot, size, opId);
+    }
+    
 
     @Override
     public void activateSnapshot(URI storage, List<URI> snapshotList, String opId)

@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -558,7 +559,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
         String portGroupName = unmanagedMask.getPortGroup();
         if (NullColumnValueGetter.isNotNullValue(portGroupName)) {
             // Port group name is set in the UnManagedMask
-            String guid = String.format("%s+%s", system.getNativeGuid(), portGroupName);
+            String guid = NativeGUIDGenerator.generateNativeGuidForStoragePortGroup(system, portGroupName);
+
             URIQueryResultList result = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getPortGroupNativeGuidConstraint(guid), result);

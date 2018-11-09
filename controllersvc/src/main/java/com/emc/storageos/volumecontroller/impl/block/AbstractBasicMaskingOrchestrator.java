@@ -126,7 +126,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
      * @param initiatorURIs the initiator uris
      * @return the used HLUs
      */
-    private Set<Integer> findHLUsForClusterHosts(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs) {
+    protected Set<Integer> findHLUsForClusterHosts(StorageSystem storage, ExportGroup exportGroup, List<URI> initiatorURIs) {
         Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
         Set<Integer> usedHlus = new HashSet<Integer>();
         for (Entry<String, List<URI>> entry : computeResourceToInitiators.entrySet()) {

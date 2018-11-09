@@ -3928,8 +3928,8 @@ resources.migrations.resumeButton=Resume
 resources.migrations.pauseConfirm=Are you sure you want to pause this migration?
 resources.migrations.cancelConfirm=Are you sure you want to cancel this migration?
 resources.migrations.resumeConfirm=Are you sure you want to resume this migration?
-resources.migrations.pause=Created task to stop migration.
-resources.migrations.cancel=Created task to pause migration.
+resources.migrations.pause=Created task to pause migration.
+resources.migrations.cancel=Created task to cancel migration.
 resources.migrations.resume=Created task to resume migration.
 
 resources.migrations.name=Name
@@ -4064,6 +4064,7 @@ tasks.actions=Actions
 tasks.orderId=Order
 tasks.viewOrder=View Order
 tasks.warningMessages=Warning Messages
+tasks.warning=Based on the current filter, %s tasks were found in the database. A maximum of latest %s tasks will be displayed here.
 
 tasks.maxTasks=Number of tasks to display
 tasks.100tasks=100 Tasks
@@ -4071,7 +4072,6 @@ tasks.1000tasks=1000 Tasks
 tasks.2000tasks=2000 Tasks
 tasks.5000tasks=5000 Tasks
 tasks.10000tasks=10000 Tasks
-tasks.-1tasks=All Tasks
 tasks.nTasks=%d Tasks
 
 taskLogs.time=Time

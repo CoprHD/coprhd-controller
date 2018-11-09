@@ -2890,4 +2890,10 @@ public class VNXeStorageDevice extends VNXeOperations
     public void refreshPortGroup(URI portGroupURI) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public void doExpandSnapshot(StorageSystem storage, StoragePool pool, BlockSnapshot snapshot, Long size, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();   
+    }
 }

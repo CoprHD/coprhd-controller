@@ -323,5 +323,7 @@ public class Constants {
     public static final String CIM_PROTOCOL_ENDPOINT = "CIM_ProtocolEndpoint";
     public static final String[] PS_NAME = new String[] { _Name };
     public static final String SYMM_LUNMASKINGVIEW = "Symm_LunMaskingView";
+    
+    public static final String EXPORTMASK ="ExportMask";
 
 }

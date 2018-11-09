@@ -119,6 +119,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotEstablishGroupTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionCreateCompleter;
@@ -2106,6 +2107,39 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
     }
+    
+    @Override
+    public void expandBlockSnapshot(URI storageURI, URI snapshotURI, Long newSize, String opId)
+            throws ControllerException {
+        Volume volumeObj = null;
+        try {
+            StorageSystem storageObj = _dbClient
+                    .queryObject(StorageSystem.class, storageURI);
+            BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            
+            volumeObj = _dbClient.queryObject(Volume.class, snapObj.getParent().getURI());
+            _log.info("expandBlockSnapshot start - Array: {} Pool:{} BlockSnapshot:{}, OldSize: {}, NewSize: {}",
+                    storageURI.toString(), volumeObj.getPool().toString(), snapshotURI.toString(), snapObj.getProvisionedCapacity(), newSize);
+            StoragePool poolObj = _dbClient.queryObject(StoragePool.class, volumeObj.getPool());
+            BlockSnapshotExpandCompleter completer = new BlockSnapshotExpandCompleter(snapshotURI, newSize, opId);
+
+            // expand as regular BlockSnapshot
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_080);
+            getDevice(storageObj.getSystemType()).doExpandSnapshot(storageObj, poolObj,
+                    snapObj, newSize, completer);
+
+            _log.info("expandBlockSnapshot end - Array: {} Pool:{} BlockSnapshot:{}",
+                    storageURI.toString(), volumeObj.getPool().toString(), snapshotURI.toString());
+        } catch (Exception e) {
+            _log.error("expandBlockSnapshot Failed - Array:{} Pool:{} BlockSnapshot:{}",
+                    storageURI.toString(), (volumeObj == null)? "" : volumeObj.getPool().toString(), snapshotURI.toString(), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            List<URI> snapshotURIs = Arrays.asList(snapshotURI);
+            doFailTask(BlockSnapshot.class, snapshotURIs, opId, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+
 
     @Override
     public void activateSnapshot(URI storage, List<URI> snapshotList, String opId)

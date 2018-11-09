@@ -51,7 +51,8 @@ public abstract class StartupMode {
         DB_REINIT_MODE,
         OBSOLETE_PEERS_CLEANUP_MODE,
         HIBERNATE_MODE,
-        RESTORE_MODE
+        RESTORE_MODE,
+        RESTORE_INCOMPLETE_MODE
     }
 
     protected StartupMode(Configuration config) {
@@ -294,6 +295,22 @@ public abstract class StartupMode {
             super.onPostStart();
             DbServiceImpl.instance.removeStartupModeOnDisk();
             removeFlag(Constants.STARTUPMODE_RESTORE_REINIT);
+        }
+    }
+
+    /**
+     *  When restore from an incomplete backup, nodes being offline at that time should reinit itself.
+     */
+    static class RestoreIncompleteMode extends NormalMode {
+
+        RestoreIncompleteMode(Configuration config) {
+            super(config);
+            type = StartupModeType.RESTORE_INCOMPLETE_MODE;
+        }
+
+        void onPostStart() throws Exception {
+            super.onPostStart();
+            DbServiceImpl.instance.removeStartupModeOnDisk();
         }
     }
 }

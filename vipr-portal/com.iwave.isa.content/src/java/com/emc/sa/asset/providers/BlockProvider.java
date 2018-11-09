@@ -653,9 +653,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             try {
             	// Remove the PG name from the native GUID.
                 // Ex: 
-                // From -> SYMMETRIX+000196801518+lglw7136_pg
+                // From -> SYMMETRIX+000196801518+PORTGROUP+lglw7136_pg
                 // To -> SYMMETRIX+000196801518
-                nativeGuid = nGuid.substring(0, nGuid.lastIndexOf("+", nGuid.length()));
+                nativeGuid = nGuid.replaceAll("\\+PORTGROUP.*$", "");
             } catch (Exception e) {
                 nativeGuid = nGuid;
                 warn("Issue encountered parsing native guid %s, exception: %s", nativeGuid, e.getMessage());
@@ -1430,34 +1430,96 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("exportCurrentPortGroup")
-    @AssetDependencies({ "host", "exportPathExport", "exportPathStorageSystem", "exportPathVirtualArray" })
+    @AssetDependencies({ "host", "exportPathExport", "exportPathVirtualArray" })
     public List<AssetOption> getCurrentExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
-            URI exportId, URI storageSystemId, URI varrayId) {
+            URI exportId, URI varrayId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
-            StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
-                    exportId, storageSystemId, null, null, false);
-            return createPortGroupOptions(portGroups.getStoragePortGroups());
+
+            ExportGroupRestRep exportGroup = client.blockExports().get(exportId);
+            List<StoragePortGroupRestRep> storagePortGroups = new ArrayList<StoragePortGroupRestRep>();
+            List<ExportBlockParam> blockParams = exportGroup.getVolumes();
+            Set<URI> storageSystemURISet = new HashSet<URI>();
+            if (!CollectionUtils.isEmpty(blockParams)) {
+                for (ExportBlockParam blockParam : blockParams) {
+                    // Get each volume in the export group to get the storage system ID
+                    if (blockParam != null) {
+                        URI resourceId = blockParam.getId();
+                        URI storageDeviceURI = null;
+                        if (ResourceType.isType(ResourceType.VOLUME, resourceId)) {
+                            VolumeRestRep volume = client.blockVolumes().get(resourceId);
+                            storageDeviceURI = volume.getStorageController();
+                        } else if (ResourceType.isType(ResourceType.BLOCK_SNAPSHOT, resourceId)) {
+                            BlockSnapshotRestRep snapshot = client.blockSnapshots().get(resourceId);
+                            storageDeviceURI = snapshot.getStorageController();
+                        }
+                        if (storageDeviceURI != null) {
+                            storageSystemURISet.add(storageDeviceURI);
+                        }
+                    } else {
+                        log.error("Block param not found in export group: {}", exportId);
+                    }
+                }
+            }
+
+            if (!CollectionUtils.isEmpty(storageSystemURISet)) {
+                Set<URI> portGroupSet = new HashSet<URI>();
+                for (URI storageSystemURI : storageSystemURISet) {
+                    // Now use the storage system ID as well to query the storage port groups
+                    StoragePortGroupRestRepList portGroups = client.varrays().getStoragePortGroups(varrayId,
+                            exportId, storageSystemURI, null, null, false);
+                    List<StoragePortGroupRestRep> portGroupList = portGroups.getStoragePortGroups();
+                    if (!CollectionUtils.isEmpty(portGroupList)) {
+                        for (StoragePortGroupRestRep portGroup : portGroupList) {
+                            if (portGroupSet.add(portGroup.getId())) {
+                                storagePortGroups.add(portGroup);
+                            }
+                        }
+                    }
+                }
+            }
+            return createPortGroupOptions(storagePortGroups);
         }
         return options;
     }
     
     @Asset("exportChangePortGroup")
-    @AssetDependencies({ "host", "exportPathStorageSystem", "exportPathVirtualArray" , "exportCurrentPortGroup" })
-    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, 
-            URI storageSystemId, URI varrayId, URI exportCurrentPortGroupId) {
+    @AssetDependencies({ "host", "exportPathVirtualArray", "exportCurrentPortGroup" })
+    public List<AssetOption> getExportPortGroups(AssetOptionsContext ctx, URI hostOrClusterId, URI varrayId, URI exportCurrentPortGroupId) {
         final ViPRCoreClient client = api(ctx);
         List<AssetOption> options = Lists.newArrayList();
         SimpleValueRep value = client.customConfigs().getCustomConfigTypeValue(VMAX_PORT_GROUP_ENABLED, VMAX);
         if (value.getValue().equalsIgnoreCase("true")) {
             StoragePortGroupRestRepList portGroupsRestRep = client.varrays().getStoragePortGroups(varrayId,
-                    null, storageSystemId, null, null, true);
+                    null, null, null, null, true);
 
             // Get a handle of the actual port group list
             List<StoragePortGroupRestRep> portGroups = portGroupsRestRep.getStoragePortGroups();
             
+            // Get the storage system of existing port group
+            URI currrentPortGroupStorageSystem = null;
+            if (!CollectionUtils.isEmpty(portGroups)) {
+                for (StoragePortGroupRestRep storagePortGroup : portGroups) {
+                    if (exportCurrentPortGroupId.equals(storagePortGroup.getId())) {
+                        currrentPortGroupStorageSystem = storagePortGroup.getStorageDevice().getId();
+                        break;
+                    }
+                }
+            }
+
+            // Retain the port groups of the storage system which belongs to current PG
+            if (!CollectionUtils.isEmpty(portGroups)) {
+                for (Iterator<StoragePortGroupRestRep> iterator = portGroups.iterator(); iterator.hasNext();) {
+                    StoragePortGroupRestRep storagePortGroup = iterator.next();
+                    if (currrentPortGroupStorageSystem != null
+                            && !currrentPortGroupStorageSystem.equals(storagePortGroup.getStorageDevice().getId())) {
+                        iterator.remove();
+                    }
+                }
+            }
+
             // Filter out the current port group as we do not want the user to see this an a valid option
             ResourceFilter<StoragePortGroupRestRep> filterExistingPG = new DefaultResourceFilter<StoragePortGroupRestRep>() {
                 @Override
@@ -1738,6 +1800,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         debug("getting volumes (project=%s)", project);
         ViPRCoreClient client = api(ctx);
         return createVolumeOptions(client, listVolumes(client, project));
+    }
+    
+    @Asset("sourceBlockSnapshot")
+    @AssetDependencies("project")
+    public List<AssetOption> getSnapshotsToExpand(AssetOptionsContext ctx, URI project) {
+        debug("getting Snapshots (project=%s)", project);
+        return getSnapshotOptionsForProject(ctx, project);
     }
 
     @Asset("blockVolumeByType")
@@ -2067,6 +2136,22 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                         }
                     });
 
+            return constructSnapshotOptions(snapshots);
+        } else {
+            return getConsistencyGroupSnapshots(ctx, volumeId);
+        }
+    }
+    
+    @Asset("snapshotAvailableForExpand")
+    @AssetDependencies({ "blockVolumeWithSnapshot", "blockVolumeOrConsistencyType" })
+    public List<AssetOption> getSnapshotExpand(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
+        final ViPRCoreClient client = api(ctx);
+        if (isVolumeType(volumeOrConsistencyType)) {
+            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId);
             return constructSnapshotOptions(snapshots);
         } else {
             return getConsistencyGroupSnapshots(ctx, volumeId);

@@ -34,6 +34,10 @@ public class VolumeURIHLU extends StorageGroupPolicyLimitsParam implements Seria
         return _hlu;
     }
 
+    public void setHLU(String hlu) {
+        this._hlu = hlu;
+    }
+
     public String toString() {
         String label = (_label != null) ? _label : "No Label";
         String hlu = (_hlu != null) ? _hlu : "Unassigned";

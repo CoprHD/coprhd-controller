@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -362,6 +363,20 @@ public interface BlockStorageDevice {
      */
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    
+    /**
+     * Expand the snapshot.
+     * 
+     * @param storage
+     * @param pool
+     * @param snapshot
+     * @param size
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doExpandSnapshot(StorageSystem storage, StoragePool pool,
+            BlockSnapshot snapshot, Long size, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * Activate a snapshot. Activation means that the source and target synchronization will be

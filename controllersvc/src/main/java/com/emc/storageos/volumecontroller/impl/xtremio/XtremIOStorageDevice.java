@@ -56,6 +56,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.collect.Lists;
 
@@ -601,6 +602,36 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
         _log.info("SnapShot Creation..... End");
     }
+    
+    @Override
+    public void doExpandSnapshot(StorageSystem storage, StoragePool pool, BlockSnapshot snapshot,
+            Long sizeInBytes, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("Expand BlockSnapshot..... Started");
+        try {
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            Long sizeInGB = new Long(sizeInBytes / (1024 * 1024 * 1024));
+            String capacityInGBStr = String.valueOf(sizeInGB).concat("g");
+            client.expandBlockSnapshot(snapshot.getDeviceLabel(), capacityInGBStr, clusterName);
+            XtremIOVolume snapshotExpandResp = client.getSnapShotDetails(snapshot.getDeviceLabel(), clusterName);
+            snapshot.setProvisionedCapacity(Long.parseLong(snapshotExpandResp
+                    .getAllocatedCapacity()) * 1024);
+            snapshot.setAllocatedCapacity(Long.parseLong(snapshotExpandResp.getAllocatedCapacity()) * 1024);
+            dbClient.updateObject(snapshot);
+            // update StoragePool capacity
+            try {
+                XtremIOProvUtils.updateStoragePoolCapacity(client, dbClient, pool);
+            } catch (Exception e) {
+                _log.warn("Error while updating pool capacity", e);
+            }
+            taskCompleter.ready(dbClient);
+            _log.info("Expand BlockSnapshot..... End");
+        } catch (Exception e) {
+            _log.error("Error while expanding BlockSnapshot", e);
+            ServiceError error = DeviceControllerErrors.xtremio.expandSnapshotFailure(e);
+            taskCompleter.error(dbClient, error);
+        }
+    }
 
     @Override
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
@@ -683,13 +714,20 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
                 Project cgProject = dbClient.queryObject(Project.class, consistencyGroup.getProject());
 
+                XtremIOTag tagDetails = XtremIOProvUtils.isTagAvailableInArray(client, cgProject.getLabel(), 
+                        XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+                
+                // If the tag has no references, delete the tag completely
+                if (null != tagDetails && Integer.parseInt(tagDetails.getNumberOfDirectObjs()) == 0) {
+                    _log.info("Deleting the CG tag {} as no references found.", cgProject.getLabel());
+                    client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+                } else if (null != tagDetails && Integer.parseInt(tagDetails.getNumberOfDirectObjs()) > 0) {
+                    deleteEntityTag(client, cgProject.getLabel(), groupName, clusterName);
+                }
+                
+                // Finally remove the CG.
                 if (null != XtremIOProvUtils.isCGAvailableInArray(client, groupName, clusterName)) {
                     client.removeConsistencyGroup(groupName, clusterName);
-                }
-
-                if (null != XtremIOProvUtils.isTagAvailableInArray(client, cgProject.getLabel(),
-                        XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName)) {
-                    client.deleteTag(cgProject.getLabel(), XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
                 }
 
                 if (keepRGName) {
@@ -908,5 +946,27 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 CustomConfigConstants.XTREMIO_VOLUME_FOLDER_NAME, storage.getSystemType(), dataSource);
 
         return volumeGroupFolderName;
+    }
+    
+    /**
+     * Untag the given entity and also deletes the tag if no more referring objects.
+     * 
+     * @param client     - XtremIO client.
+     * @param tagName    - Tag to unset.
+     * @param entityName - Entity in which untagging.
+     * @param clusterName - XtremIO cluster name
+     * @throws Exception
+     */
+    private void deleteEntityTag(XtremIOClient client, String tagName, String entityName, String clusterName) throws Exception {
+        _log.info("Untagging the CG tag: {} on entity: {}", tagName, entityName);
+        client.deleteEntityTag(tagName, XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), entityName, clusterName);
+        XtremIOTag tagDetails = XtremIOProvUtils.isTagAvailableInArray(client, tagName, 
+                XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+        //If the last entity got untagged, then delete the tag completely.
+        if (null != tagDetails && Integer.parseInt(tagDetails.getNumberOfDirectObjs()) == 0) {
+            _log.info("Deleting the CG tag {} as no references found.", tagName);
+            client.deleteTag(tagName, XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName);
+        }
+        
     }
 }

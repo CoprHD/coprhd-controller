@@ -339,15 +339,15 @@ class ExportGroup(object):
 
     def exportgroup_add_volumes(self, sync, exportgroupname, tenantname,
                                 maxpaths, minpaths, pathsperinitiator,
-                                projectname, volumenames, storage_device_name, serial_number,
-                                storage_device_type, portgroupname, snapshots=None,
-                                cg=None, blockmirror=None,synctimeout=0, varray=None):
+                                projectname, volumenames, varray,
+                                portgroup_native_guid, snapshots=None,
+                                cg=None, blockmirror=None,synctimeout=0):
 
-        varrayuri = None
+        varrayuri=None
         if(varray):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
-
+        
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname, varrayuri)
 
@@ -408,22 +408,11 @@ class ExportGroup(object):
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
         
-        if(portgroupname):
-            storage_system = StorageSystem(self.__ipAddr, self.__port)
-            storage_system_uri = None
-
-            if(serial_number):
-                storage_system_uri \
-                    = storage_system.query_by_serial_number_and_type(
-                    serial_number, storage_device_type)
-            elif(storage_device_name):
-                storage_system_uri = storage_system.query_by_name_and_type(
-                    storage_device_name, storage_device_type)
-            portgroupObj = Storageportgroup(self.__ipAddr, self.__port)
-            pguri = portgroupObj.storageportgroup_query(storage_system_uri, portgroupname)
+        if(portgroup_native_guid):
+            pguri = varrayObject.query_storageport_group_uri_in_export_group_by_native_guid(portgroup_native_guid, varrayuri, exportgroup_uri)
             path_parameters['port_group'] = pguri
             
-        if(maxpaths or portgroupname):
+        if(maxpaths or portgroup_native_guid):
             parms['path_parameters'] = path_parameters
         parms['volume_changes'] = volChanges
        
@@ -865,8 +854,7 @@ class ExportGroup(object):
         output = common.json_decode(s)
         return output
 
-    def exportgroup_changeportgroup(self, name, project, tenant, varray, storagesystem,
-                   serialnumber, type, portgroupname, currentportgroupname, exportmask, verbose, wait):
+    def exportgroup_changeportgroup(self, name, project, tenant, varray, new_portgroup_native_guid, current_portgroup_native_guid, exportmask, verbose, wait):
         parms = {}
         varrayuri = None
         if(varray):
@@ -874,17 +862,15 @@ class ExportGroup(object):
             varrayuri = varrayObject.varray_query(varray)
 
         exportgroup_uri = self.exportgroup_query(name, project, tenant, varrayuri)
-        storageportgroupobj = Storageportgroup(self.__ipAddr, self.__port)
-        ssuri = storageportgroupobj.storagesystem_query(storagesystem, serialnumber, type)
-        spguri = storageportgroupobj.storageportgroup_query(ssuri, portgroupname)
+        new_portgroup_uri = varrayObject.query_storageport_group_uri_by_native_guid(new_portgroup_native_guid, varrayuri)
               
         if (wait):
             parms['wait_before_remove_paths'] = "true"
-        parms['new_port_group'] = spguri
+        parms['new_port_group'] = new_portgroup_uri
         
-        if (currentportgroupname):
-            cpguri = storageportgroupobj.storageportgroup_query(ssuri, currentportgroupname)
-            parms['current_port_group'] = cpguri
+        if (current_portgroup_native_guid):
+            current_port_group_uri = varrayObject.query_storageport_group_uri_in_export_group_by_native_guid(current_portgroup_native_guid, varrayuri, exportgroup_uri)
+            parms['current_port_group'] = current_port_group_uri
         if (exportmask):
             parms['export_mask'] = exportmask
 
@@ -1025,37 +1011,28 @@ def exportgroup_changeportgroup_parser(subcommand_parsers, common_parser):
                                help='container project name',
                                required=True)
         mandatory_args.add_argument('-portgroup', '-pg',
-                               help='Name of the new Storageportgroup',
-                               metavar='<portgroupname>',
-                               dest='portgroupname',
+                               help='Name of the new storage port group',
+                               metavar='<new_portgroup_name>',
+                               dest='newportgroupname',
                                required=True)
-        mandatory_args.add_argument('-t', '-type',
-                               choices=StorageSystem.SYSTEM_TYPE_LIST,
-                               dest='type',
-                               metavar="<storagesystemtype>",
-                               help='Type of storage system',
+        mandatory_args.add_argument('-varray', '-va',
+                               metavar='<varray>',
+                               dest='varray',
+                               help='virtual array for export',
+                               required=True)
+        mandatory_args.add_argument('-sn', '-serialnumber',
+                               dest='serialnumber',
+                               metavar='<serialnumber>',
+                               help='Serial number of the storage system',
                                required=True)
         change_port_group_parser.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant')
-        change_port_group_parser.add_argument('-varray', '-va',
-                               metavar='<varray>',
-                               dest='varray',
-                               help='virtual array for export')
-        system_arggroup = change_port_group_parser.add_mutually_exclusive_group(required=True)
-        system_arggroup.add_argument('-storagesystem', '-ss',
-                               help='Name of Storagesystem',
-                               dest='storagesystem',
-                               metavar='<storagesystemname>')
-        system_arggroup.add_argument('-serialnumber', '-sn',
-                               metavar="<serialnumber>",
-                               help='Serial Number of the storage system',
-                               dest='serialnumber')
         change_port_group_parser.add_argument('-currentportgroup', '-cpg',
-                                metavar='<currentportgroup>',
+                                metavar='<current_portgroup_name>',
                                 dest='currentportgroupname',
-                                help='current port group name')
+                                help='Name of the current port group')
         change_port_group_parser.add_argument('-exportmask', '-em',
                             metavar='<exportmask>',
                             dest='exportmask',
@@ -1074,13 +1051,16 @@ def exportgroup_changeportgroup_parser(subcommand_parsers, common_parser):
 def exportgroup_changeportgroup(args):
     try:
         obj = ExportGroup(args.ip, args.port)
+        newPortGroupNativeGuidSuffix = args.serialnumber + "+PORTGROUP+" + args.newportgroupname
+        currentPortGroupNativeGuidSuffix = None
+        if(args.currentportgroupname):
+            currentPortGroupNativeGuidSuffix = args.serialnumber + "+PORTGROUP+" + args.currentportgroupname
         obj.exportgroup_changeportgroup(args.name, args.project, args.tenant,
-                                        args.varray, args.storagesystem,
-                                        args.serialnumber, args.type, args.portgroupname,
-                                        args.currentportgroupname, args.exportmask,
-                                        args.verbose, args.wait)
+                                        args.varray, newPortGroupNativeGuidSuffix,
+                                        currentPortGroupNativeGuidSuffix,
+                                        args.exportmask, args.verbose, args.wait)
     except SOSError as e:
-        raise common.format_err_msg_and_raise("changeportgroup", "exportgroup",
+        raise common.format_err_msg_and_raise("change_port_group", "exportgroup",
                                                e.err_text, e.err_code)
                           
 
@@ -1384,7 +1364,7 @@ def add_volume_parser(subcommand_parsers, common_parser):
                                         "format <block_mirror_name>:<lun_id>",
                                    default=None)
     add_volume_parser.add_argument('-consistencygroup', '-cg',
-                                   metavar='<consistencygroup>',
+                                   metavar='<consistency_group>',
                                    dest='consistencygroup',
                                    help='name of consistencygroup',
                                    default=None)
@@ -1396,48 +1376,34 @@ def add_volume_parser(subcommand_parsers, common_parser):
         '-maxpaths', '-mxp',
         help='The maximum number of paths that can be ' +
         'used between a host and a storage volume',
-        metavar='<MaxPaths>',
+        metavar='<max_paths>',
         dest='maxpaths',
         type=int)
     add_volume_parser.add_argument(
         '-minpaths', '-mnp',
         help='The minimum  number of paths that can be used ' +
         'between a host and a storage volume',
-        metavar='<MinPaths>',
+        metavar='<min_paths>',
         dest='minpaths',
         type=int)
     add_volume_parser.add_argument('-pathsperinitiator', '-ppi',
                                help='The number of paths per initiator',
-                               metavar='<PathsPerInitiator>',
+                               metavar='<paths_per_initiator>',
                                dest='pathsperinitiator',
                                type=int)
     
-    add_volume_parser.add_argument('-portgroup', '-pgname',
-                                   help='Name of Storageportgroup',
-                                   metavar='<portgroupname>',
-                                   dest='portgroupname')
-    
-    add_volume_parser.add_argument('-storagesystem', '-ss',
-                                  help='Name of Storagesystem',
-                                  dest='storagesystem',
-                                  metavar='<storagesystemname>')
-    
-    add_volume_parser.add_argument('-serialnumber', '-sn',
-                                  metavar="<serialnumber>",
-                                  help='Serial Number of the storage system',
-                                  dest='serialnumber')
-    
-    add_volume_parser.add_argument('-t', '-type',
-                                   choices=StorageSystem.SYSTEM_TYPE_LIST,
-                                   dest='type',
-                                   metavar="<storagesystemtype>",
-                               help='Type of storage system')
-    
+    add_volume_parser.add_argument('-portgroup', '-pg',
+                                   help='Name of storage port group',
+                                   metavar='<port_group_name>',
+                                   dest='portgroupnaname')
+    add_volume_parser.add_argument('-sn', '-serialnumber',
+                               dest='serialnumber',
+                               metavar='<serialnumber>',
+                               help='Serial number of the storage system')
     add_volume_parser.add_argument('-synchronous', '-sync',
                                    dest='sync',
                                    help='Execute in synchronous mode',
                                    action='store_true')
-
     add_volume_parser.add_argument('-synctimeout','-syncto',
                                help='sync timeout in seconds ',
                                dest='synctimeout',
@@ -1452,15 +1418,19 @@ def exportgroup_add_volumes(args):
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
         objExGroup = ExportGroup(args.ip, args.port)
-        if(args.portgroupname):
-            if(not (args.type and (args.storagesystem or args.serialnumber))):
-                raise SOSError(SOSError.CMD_LINE_ERR, 'error: Please enter either Serial Number or Storage Device Name for PortGroupName. Also give the Type of device')
+        portGroupNativeGuidSuffix = None
+        if (args.portgroupnaname):
+            if (not (args.varray and args.serialnumber)):
+                raise SOSError(SOSError.CMD_LINE_ERR, 'The name of the varray and the serial number of the storage system must be provided when the port group name (-pg) is specified.')
+            else:
+                portGroupNativeGuidSuffix = args.serialnumber + "+PORTGROUP+" + args.portgroupnaname
+
         objExGroup.exportgroup_add_volumes(
             args.sync, args.name, args.tenant,
             args.maxpaths,
             args.minpaths, args.pathsperinitiator,
-            args.project, args.volume, args.storagesystem,
-            args.serialnumber, args.type, args.portgroupname, args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout, args.varray)
+            args.project, args.volume, args.varray, portGroupNativeGuidSuffix,
+            args.snapshot, args.consistencygroup, args.blockmirror,args.synctimeout)
     except SOSError as e:
         raise common.format_err_msg_and_raise("add_vol", "exportgroup",
                                               e.err_text, e.err_code)

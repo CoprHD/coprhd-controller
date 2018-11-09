@@ -1308,6 +1308,16 @@ public class RecoverPointClient {
     }
 
     /**
+     * Utility method to get the Copy name
+     * 
+     * @param copy
+     * @return copy name
+     */
+    private String getCopyName(CreateCopyParams copy) {
+    	    return copy.getName();
+    }
+    
+    /**
      * Utility method used to get the full CG copy policy.
      *
      * @param fullConsistencyGroupPolicy the full consistency group policy
@@ -3582,7 +3592,7 @@ public class RecoverPointClient {
      * @throws FunctionalAPIValidationException_Exception
      * @throws RecoverPointException
      */
-    private List<ConsistencyGroupLinkSettings> getStandbyCopyLinkSettings(ConsistencyGroupCopyUID activeProdCopy, ConsistencyGroupCopyUID standbyProdCopy)
+    private List<ConsistencyGroupLinkSettings> getStandbyCopyLinkSettings(ConsistencyGroupCopyUID activeProdCopy, ConsistencyGroupCopyUID standbyProdCopy, String standbyCgCopyName)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
             FunctionalAPIValidationException_Exception {
 
@@ -3590,7 +3600,6 @@ public class RecoverPointClient {
         ConsistencyGroupLinkSettings standByCopyLinkSettings = new ConsistencyGroupLinkSettings();
         List<ConsistencyGroupLinkSettings> cgLinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
         String activeCgCopyName = functionalAPI.getGroupCopyName(activeProdCopy);
-        String standbyCgCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
         String cgName = functionalAPI.getGroupName(activeProdCopy.getGroupUID());
 
         ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(activeProdCopy.getGroupUID());
@@ -3743,7 +3752,7 @@ public class RecoverPointClient {
             }
         }
     }
-
+    
     /**
      * In a metropoint environment, adds the standby production and CDP copies to the CG after failover
      * and set as production back to the original vplex metro
@@ -3767,7 +3776,10 @@ public class RecoverPointClient {
                     .getCopyVolumeInfo());
             ConsistencyGroupUID cgUID = activeProdCopyUID.getGroupUID();
             cgName = functionalAPI.getGroupName(cgUID);
-
+            
+            String standByProdCopyName = getCopyName(standbyProdCopy);
+            
+            
             logger.info(String.format("Adding Standby production and local volumes to Metropoint CG %s", cgName));
 
             activeCgCopyName = functionalAPI.getGroupCopyName(activeProdCopyUID);
@@ -3785,7 +3797,7 @@ public class RecoverPointClient {
                         
             // fetch the link Settings between to be added standby prod copy and the remote copy
             List<ConsistencyGroupLinkSettings> standbyProductionlinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
-            standbyProductionlinkSettings = getStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
+            standbyProductionlinkSettings = getStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID, standByProdCopyName);
             
             // add the standby production copy
             addCopyToCG(cgUID, allSites, standbyProdCopy, null, RecoverPointCGCopyType.PRODUCTION, 
@@ -3793,12 +3805,13 @@ public class RecoverPointClient {
 
             // add the standby local copies if we have any
             if (standbyLocalCopyParams != null) {
+            	String standByLocalCopyName = getCopyName(standbyLocalCopyParams);
             	//fetch the ConsistencyGroupCopyUID for standby local Copy 
                 standbyLocalCopyUID = createCgCopyUid(cgUID, clusterUid, RecoverPointCGCopyType.LOCAL);
                 
                 // fetch the link Settings between to be added standby local copy and the standby Production copy
                 List<ConsistencyGroupLinkSettings> standbyLocallinkSettings = new ArrayList<ConsistencyGroupLinkSettings>();
-                standbyLocallinkSettings = getStandbyCopyLinkSettings(standbyProdCopyUID, standbyLocalCopyUID);
+                standbyLocallinkSettings = getStandbyCopyLinkSettings(standbyProdCopyUID, standbyLocalCopyUID, standByLocalCopyName);
                 
             	addCopyToCG(cgUID, allSites, standbyLocalCopyParams, 
                         rSets, RecoverPointCGCopyType.LOCAL, standbyLocallinkSettings, standbyLocalCopyUID);

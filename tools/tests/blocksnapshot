@@ -42,6 +42,14 @@ def snapshot_delete(args):
         m = task['message']
         print "     " + name + ' ' + id + " status is " + s + ", " + m
 
+def snapshot_expand(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    start = time.time()
+    (o, s, m) = bourne.block_snapshot_expand(uri, args.size)
+    total = time.time() - start
+    print "Expand snapshot completed in", "{0:.2f}".format(total), "seconds, status is " + s + "\n" + m
+
 def snapshot_list(args):
     bourne.connect(args.ip)
     volume_uri = bourne.volume_query(args.name)
@@ -160,7 +168,7 @@ except:
 
 # snap cmd cmd_args [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne snapshot cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | delete | list | query | show | restore | activate)')
+parser.add_argument('cmd', help = 'cmd = (create | expand| delete | list | query | show | restore | activate)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # snapshot create fsuri snaplabel [--ip ipaddr]
@@ -174,6 +182,11 @@ create.add_argument('--create_inactive', help = 'This option allows the snapshot
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name', help = 'name of snapshot')
 delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
+
+# snapshot expand uri [--ip ipaddr]
+expand = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+expand.add_argument('name', help = 'name of snapshot')
+expand.add_argument('size', help = 'New size to expand snapshot')
 
 # snapshot list   fsuri [--ip ipaddr]
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -242,6 +255,9 @@ try:
     if (cmd == "create"):
         args = create.parse_args()
         snapshot_create(args)
+    elif (cmd == "expand"):
+        args = expand.parse_args()
+        snapshot_expand(args)
     elif (cmd == "delete"):
         args = delete.parse_args()
         snapshot_delete(args)

@@ -34,11 +34,11 @@ public class ExtendBlockVolumeService extends WindowsService {
     public void precheck() throws Exception {
         super.precheck();
         boolean clusteredVolumeSuccess = false;
-
+        acquireHostAndClusterLock();
         List<BlockObjectRestRep> volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.setVolumes(volumes);
-            extendDriveHelper.precheck();
+            extendDriveHelper.precheck(sizeInGb);
 
             if (isClustered() && !clusteredVolumeSuccess) {
                 clusteredVolumeSuccess = extendDriveHelper.foundClusteredVolume();
@@ -54,14 +54,16 @@ public class ExtendBlockVolumeService extends WindowsService {
     public void execute() throws Exception {
         for (URI volumeId : uris(volumeIds)) {
             BlockObjectRestRep volume = BlockStorageUtils.getVolume(volumeId);
-            // Skip the expand if the current volume capacity is larger than the requested expand size
+            // Skip the expand if the current volume capacity is larger than the
+            // requested expand size
             if (BlockStorageUtils.isVolumeExpanded(volume, sizeInGb)) {
                 logWarn("expand.win.skip", volumeId, BlockStorageUtils.getCapacity(volume));
             } else {
                 BlockStorageUtils.expandVolume(volumeId, sizeInGb);
             }
+
         }
-        acquireHostAndClusterLock();
+
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.extendDrives();
         }

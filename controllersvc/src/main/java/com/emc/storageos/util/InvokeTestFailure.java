@@ -305,11 +305,11 @@ public final class InvokeTestFailure {
      * @param syncWrapperTimeOut 200 minutes, default.
      * @return an override value in seconds if the failure invocation is set.
      */
-    public static int internalOnlyOverrideSyncWrapperTimeOut(int syncWrapperTimeOut) {
+    public static Long internalOnlyOverrideSyncWrapperTimeOut(Long syncWrapperTimeOut) {
         String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
         if (invokeArtificialFailure != null && invokeArtificialFailure.contains(ARTIFICIAL_FAILURE_015)) {
             log("Temporarily setting sync wait time to 15 seconds because failure_015 is being used.");
-            return 15000;
+            return 15000L;
         }
         return syncWrapperTimeOut;
     }

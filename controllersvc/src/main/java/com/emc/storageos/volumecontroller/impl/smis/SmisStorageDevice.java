@@ -103,6 +103,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVolumeExpandJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -1092,6 +1093,27 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) throws DeviceControllerException {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
+    }
+
+    /**
+     * This call will be used to update the ExportMask with the latest data from the array.
+     * 
+     * @param storage
+     *            [in] - StorageSystem object representing the array
+     * @param mask
+     *            [in] - ExportMask object to be refreshed
+     * @param userRemovedInitators optional field can be null. List of user removed initiator for this refresh operation
+     * 
+     * @return instance of ExportMask object that has been refreshed with data from the array.
+     * @throws DeviceControllerException
+     */
+    public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask, List<String> initiatorNames)
+            throws DeviceControllerException {
+        if (_exportMaskOperationsHelper instanceof VmaxExportOperations) {
+            return ((VmaxExportOperations) _exportMaskOperationsHelper).refreshExportMask(storage, mask, initiatorNames);
+        } else {
+            return refreshExportMask(storage, mask);
+        }
     }
 
     @Override

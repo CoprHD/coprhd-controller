@@ -6,14 +6,12 @@ package com.emc.cloud.platform.clientlib;
 
 import javax.xml.bind.JAXBContext;
 
-import org.apache.http.impl.client.AbstractHttpClient;
-import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
 import com.emc.cloud.http.common.BaseHttpClientFactory;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 
 /**
  * Factory for creation of ClientHttpRequest objects
@@ -26,8 +24,7 @@ import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 public class ClientHttpRequestFactory implements InitializingBean {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientHttpRequestFactory.class);
     private BaseHttpClientFactory httpClientFactory;
-    private CoordinatorClientImpl coordinator;
-    private AbstractHttpClient httpClient;
+    private CloseableHttpClient httpClient;
     private JAXBContext marshallingJaxbContext;
     private JAXBContext unmarshallingJaxbContext;
 
@@ -63,17 +60,18 @@ public class ClientHttpRequestFactory implements InitializingBean {
         return new ClientHttpRequest(httpClient, marshallingJaxbContext, unmarshallingJaxbContext);
     }
 
-    private AbstractHttpClient createUnconfiguredClient() throws ClientGeneralException {
-        AbstractHttpClient httpClient = null;
+    private CloseableHttpClient createUnconfiguredClient() throws ClientGeneralException {
+        CloseableHttpClient httpClient = null;
         try {
             httpClient = httpClientFactory.createHTTPClient();
-            HttpProtocolParams.setUseExpectContinue(httpClient.getParams(), true);
-            return httpClient;
-
         } catch (Exception ex) {
             LOGGER.error("Error initializing new HttpClient instance");
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, new String[] { ex.getMessage() });
         }
+        if(httpClient == null) {
+            throw new RuntimeException("Unable to initialize http client, closeable http client instance is null.");
+        }
+        return httpClient;
     }
 
     @Override

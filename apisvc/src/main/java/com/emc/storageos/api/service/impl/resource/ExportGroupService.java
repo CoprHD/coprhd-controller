@@ -3853,18 +3853,31 @@ public class ExportGroupService extends TaskResourceService {
 
                     }
                 } else if (exportGroup != null) {
-                    // update export group. check if export mask exists. if not, need to specify port group if using
-                    // existing port group
-                    List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storage.getId());
-                    if (masks.isEmpty() && portGroup == null) {
-                        throw APIException.badRequests.portGroupNotSpecified();
-                    } else if (!masks.isEmpty() && portGroup != null) {
-                        StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
-                        if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
-                            throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
+                	// update export group. check if export mask exists. if not, need to specify port group if using
+                	// existing port group
+                	List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storage.getId());
+                	if (masks.isEmpty() && portGroup == null) {
+                		throw APIException.badRequests.portGroupNotSpecified();
+                	} else if (!masks.isEmpty() && portGroup != null) {
+                	    StoragePortGroup pgObject = queryObject(StoragePortGroup.class, portGroup, true);
+                	    if (!storage.getId().equals(pgObject.getStorageDevice()) || systems.size() > 1) {
+                	        throw APIException.badRequests.cannotExportVolumesFromDifferentSystems(pgObject.getNativeGuid());
 
-                        }
-                    }
+                	    }
+                	    boolean foundPortGroup = false;
+                	    for(ExportMask exmask : masks) {
+                            if (exmask.getPortGroup() != null && exmask.getPortGroup().equals(portGroup)) {
+                	            foundPortGroup = true;
+                	            break;
+                	        }
+                	    }
+                	    if(!foundPortGroup) {
+                            _log.info(String.format(
+                                    "The PG specified %s can't be used as use existing PortGroup flag is set and the host has existing export group. Please use existing PGs",
+                                    pgObject.getLabel()));
+                            throw APIException.badRequests.newPGcannotBeUsedAsEGwithOldPGexists(pgObject.getLabel());
+                	    }
+                	}
                 }
 
             }
@@ -3878,6 +3891,15 @@ public class ExportGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep changePortGroup(@PathParam("id") URI id, ChangePortGroupParam param)
             throws ControllerException {
+
+        // Make sure the user is having TENANT_ADMIN alone
+        StorageOSUser user = getUserFromContext();
+        if (!(_permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()),
+                Role.TENANT_ADMIN))) {
+            _log.error("This operation is forbidden for the user who is not having: {}", Role.TENANT_ADMIN.name());
+            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+        }
+
          // Basic validation of ExportGroup and the request
         param.logParameters(_log);
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
@@ -3888,7 +3910,11 @@ public class ExportGroupService extends TaskResourceService {
         validateExportGroupNoPendingEvents(exportGroup);
         Boolean wait = new Boolean(param.getWaitBeforeRemovePaths());
         validateSuspendSetForNonDiscoverableHosts(exportGroup, wait, true);
-
+        if (RPHelper.validateForRPVolumes(exportGroup, _dbClient)) {
+            _log.error(String.format("Export Group %s has RP-tagged volume, unable to perform change-port group operation.",
+                    exportGroup.getLabel()));
+            throw APIException.badRequests.operationNotAllowedOnRPVolumes();
+        }
         ArgValidator.checkUri(param.getNewPortGroup());
         StoragePortGroup newPortGroup = queryObject(StoragePortGroup.class, param.getNewPortGroup(), true);
         if (!newPortGroup.isUsable()) {
@@ -3955,11 +3981,6 @@ public class ExportGroupService extends TaskResourceService {
                     if (volumeWithHostIO != null) {
                         throw APIException.badRequests.changePortGroupNotSupportedforHostIOLimit(volumeWithHostIO);
                     }
-                }
-                // Check if there is any existing volumes in the export mask
-                if (exportMask.getExistingVolumes() != null && !exportMask.getExistingVolumes().isEmpty()) {
-                    throw APIException.badRequests.changePortGroupExistingVolumes(exportMask.getMaskName(),
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet()));
                 }
                 if (exportMask.getExistingInitiators() != null && !exportMask.getExistingInitiators().isEmpty()) {
                     throw APIException.badRequests.changePortGroupExistingInitiators(exportMask.getMaskName(),

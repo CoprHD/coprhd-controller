@@ -15,6 +15,7 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
+import com.emc.storageos.model.block.BlockSnapshotExpandParam;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
@@ -176,6 +177,15 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
     }
 
     /**
+     * Gets the URL for expanding block snapshot: <tt>/block/snapshots/{snapshotId}/expand</tt>
+     * 
+     * @return the URL snapshot expand operation.
+     */
+    protected String getExpandBlockSnapshotUrl() {
+        return PathConstants.BLOCK_SNAPSHOT_URL + "/{snapshotId}/expand";
+    }
+    
+    /**
      * Lists the block snapshots for a given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{volumeId}/protection/snapshots</tt>
@@ -232,6 +242,21 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
      */
     public Tasks<BlockSnapshotRestRep> createForVolume(URI volumeId, VolumeSnapshotParam input) {
         return postTasks(input, getByVolumeUrl(), volumeId);
+    }
+    
+    /**
+     * Begins expanding a snapshot (or snapshots) of a given block snapshot by ID.
+     * <p>
+     * API Call: <tt>POST /block/snapshots/{snapshotId}/expand</tt>
+     * 
+     * @param snapshotId
+     *            the ID of the block snapshot.
+     * @param input
+     *            the snapshot expand param.
+     * @return tasks for monitoring the progress each snapshot expansion.
+     */
+    public Task<BlockSnapshotRestRep> expand(URI snapshotId, BlockSnapshotExpandParam input) {
+        return postTask(input, getExpandBlockSnapshotUrl(), snapshotId);
     }
 
     /**

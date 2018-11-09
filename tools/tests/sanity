@@ -1266,6 +1266,7 @@ xtremio_cos_setup()
                          --protocols FC                         \
                          --numpaths 1 \
                          --max_snapshots 10 \
+                         --expandable true \
                          --system_type xtremio \
                          --provisionType 'Thin' \
                          --neighborhoods $NH
@@ -1275,6 +1276,7 @@ xtremio_cos_setup()
 	--description 'Virtual-Pool-for-XtremIO-block-FC' false      \
                          --protocols FC                         \
                          --numpaths 1 \
+                         --expandable true \
                          --max_snapshots 10 \
                          --system_type xtremio \
                          --provisionType 'Thin' \
@@ -1758,6 +1760,9 @@ xtremio_blockconsistencygroup_snapshot_tests()
     
     blockconsistencygroup_setup_snapshot $cg_name $cg_cos
     blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
+    volume expand $PROJECT/volume-${cg_name} $BLK_SIZE_EXPAND
+    blockconsistencygroup_expand_snapshot $PROJECT/volume-${cg_name}/$cg_snapshot $BLK_SIZE_EXPAND
+    
     if [ "$XIO_QUICK_PARAM" != "quick" ]; then
         blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
     fi
@@ -1800,6 +1805,10 @@ xtremio_block_tests()
     run volume create ${volume}2 $PROJECT $NH $cos2 $BLK_SIZE --thinVolume true
     run blocksnapshot create $PROJECT/${volume}1 ${snap1_label}
     run blocksnapshot create $PROJECT/${volume}2 ${snap2_label}
+    
+    run volume expand $PROJECT/${volume}2 $BLK_SIZE_EXPAND
+    
+    run blocksnapshot expand $PROJECT/${volume}2/${snap2_label} $BLK_SIZE_EXPAND
     
     xtremio_export_test ${export_name}1 ${volume}1 ${volume}2 ${snap1_label} ${snap2_label}
 
@@ -10251,6 +10260,13 @@ blockconsistencygroup_restore_snapshot()
     ### restore blockconsistencygroup snapshot
     echo "Restoring consistency group snapshot"
     run blockconsistencygroup restore_snapshot $1 $2
+}
+
+blockconsistencygroup_expand_snapshot()
+{
+    ### expand snapshot
+    echo "Expanding the consistency group snapshot"
+    run blocksnapshot expand $1 $2
 }
 
 blockconsistencygroup_show_snapshot()

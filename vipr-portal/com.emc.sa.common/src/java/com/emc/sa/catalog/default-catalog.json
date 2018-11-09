@@ -202,6 +202,10 @@
           "baseService": "CreateBlockSnapshot"
         },
         {
+          "image": "icon_db_expand.png",
+          "baseService": "ExpandBlockSnapshot"
+        },
+        {
           "image": "Service_Restore_Block_Snapshot.png",
           "baseService": "RestoreBlockSnapshot"
         },

@@ -28,6 +28,9 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.isilon.restapi.IsilonOneFS8Event.Events;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
@@ -87,6 +90,7 @@ public class IsilonApi {
     private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
     private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
     private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules/");
+    private static final int sessionTimeoutthreshold = 600;
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -158,6 +162,43 @@ public class IsilonApi {
     public void close() {
         _client.close();
     }
+
+    /**
+     * Validates the session and checks absolute timeout is below the threshold
+     * 
+     * @param isilonApi
+     * @return
+     */
+    public boolean validateSession() {
+    	if (IsilonApiConstants.AuthType.CSRF.name().equals(_client.get_authType())) {
+    		ClientResponse clientResp = _client.get(_baseUrl.resolve(IsilonApiConstants.URI_SESSION));
+    		try {
+		        if (clientResp.getStatus() == 401) {				//Indicates the session has expired due to inactivity
+		        	sLogger.info("Isilon Rest client session is invalid for the management server {}", _baseUrl);
+		        	return false;
+		        } else if (clientResp.getStatus() == 200) {			//Indicates the session is still valid
+		        	String strObj = clientResp.getEntity(String.class);
+		    	    JsonParser parser = new JsonParser();
+		    	    JsonElement parsed = parser.parse(strObj);
+		    	    JsonObject asJsonObject = parsed.getAsJsonObject();
+		    	    int sessionTimeout = asJsonObject.get("timeout_absolute").getAsInt();
+		    	    if (sessionTimeout <= sessionTimeoutthreshold) {	//Check if session timeout <= threshold which is 10 minutes
+		    	    	sLogger.info("Isilon Rest client session is about to expire in {} minutes for the management server {}", 
+		    	    			sessionTimeout/60, _baseUrl);
+		    	    	return false;
+		    	    }
+		        }
+            } catch (Exception e) {
+            	sLogger.error("Unable to validate the Isilon session for the management server {}", _baseUrl);
+                return false;
+            } finally {
+                if (clientResp != null) {
+                    clientResp.close();
+                }
+            }
+    	}
+		return true;
+	}
 
     /**
      * Get cluster info from the isilon array

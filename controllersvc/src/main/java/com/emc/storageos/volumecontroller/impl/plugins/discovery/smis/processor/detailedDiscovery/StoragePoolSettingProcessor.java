@@ -4,6 +4,18 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -13,18 +25,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.PoolProcessor;
 import com.google.common.base.Strings;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Each StoragePool will be associated with multiple Storage PoolSettings.
@@ -115,18 +115,23 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
     private void processVMAX3SLO(StorageSystem storageSystem, CIMInstance settingInstance, Set<String> sloNames) {
         String emcFastSetting = (String) settingInstance.getPropertyValue(Constants.EMC_FAST_SETTING);
         if (!Strings.isNullOrEmpty(emcFastSetting)) {
+            _logger.info("Setting {} has non-null EMCFastSetting property = '{}'", settingInstance.getObjectPath().toString(),
+                    emcFastSetting);
             String slo = (String) settingInstance.getPropertyValue(Constants.EMC_SLO);
             Float avgResponseTimeValue = (Float) settingInstance.getPropertyValue(Constants.EMC_AVG_RESPONSE_TIME);
-            if (!Strings.isNullOrEmpty(slo) && !checkForNull(avgResponseTimeValue)) {
-                String avgResponseTime = avgResponseTimeValue.toString();
+            if (!Strings.isNullOrEmpty(slo)) {
+                String avgResponseTime = Constants.NOT_AVAILABLE;
+                if (!checkForNull(avgResponseTimeValue)) {
+                    avgResponseTime = avgResponseTimeValue.toString();
+                } else {
+                    _logger.info("EMCApproxAverageResponseTime property is null or empty for SLO: {}.", slo);
+                }
                 String workload = (String) settingInstance.getPropertyValue(Constants.EMC_WORKLOAD);
                 workload = Strings.isNullOrEmpty(workload) ? Constants.NONE : workload;
                 String sloName = generateSLOPolicyName(slo, workload, avgResponseTime);
                 sloNames.add(sloName);
             } else {
-                _logger.warn(String.format("Setting %s had non-null EMCFastSetting property = '%s', " +
-                        "but its EMCSLO and/or EMCApproxAverageResponseTime property is null/empty.",
-                        settingInstance.getObjectPath().toString(), emcFastSetting));
+                _logger.warn("EMCSLO property is null or empty.");
             }
         }
     }

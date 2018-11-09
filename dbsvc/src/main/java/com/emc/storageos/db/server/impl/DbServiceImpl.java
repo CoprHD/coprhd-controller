@@ -5,8 +5,8 @@
 
 package com.emc.storageos.db.server.impl;
 
-import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 import static com.emc.storageos.security.dbInfo.DbInfoUtils.checkDBOfflineInfo;
+import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,11 +15,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.services.util.*;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.service.StorageService;
@@ -35,8 +35,8 @@ import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -53,7 +53,13 @@ import com.emc.storageos.db.server.impl.StartupMode.GeodbRestoreMode;
 import com.emc.storageos.db.server.impl.StartupMode.HibernateMode;
 import com.emc.storageos.db.server.impl.StartupMode.NormalMode;
 import com.emc.storageos.db.server.impl.StartupMode.ObsoletePeersCleanupMode;
+import com.emc.storageos.db.server.impl.StartupMode.RestoreIncompleteMode;
+import com.emc.storageos.db.server.impl.StartupMode.StartupModeType;
 import com.emc.storageos.db.task.TaskScrubberExecutor;
+import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.services.util.JmxServerWrapper;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
+import com.emc.storageos.services.util.TimeUtils;
 
 /**
  * Default database service implementation
@@ -567,8 +573,11 @@ public class DbServiceImpl implements DbService {
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
             int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
-            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+            List <StartupModeType> ignoreDBcheckTypes = Arrays.asList(StartupModeType.HIBERNATE_MODE, StartupModeType.RESTORE_INCOMPLETE_MODE);
+            if (nodeCount != 1 && !ignoreDBcheckTypes.contains(mode.type)) {
                 checkDBOfflineInfo(_coordinator, _serviceInfo.getName(), dbDir, true);
+            } else {
+            	_log.info("Skipping db offline info check on mode {} and node count {}", mode, nodeCount);
             }
 
             // this call causes instantiation of a seed provider instance, so the check*Configuration
@@ -701,6 +710,11 @@ public class DbServiceImpl implements DbService {
                     mode.setDbDir(dbDir);
                     return mode;
                 }
+            } else if (Constants.STARTUPMODE_RESTORE_INCOMPLETE.equalsIgnoreCase(modeType)) {
+                RestoreIncompleteMode mode = new RestoreIncompleteMode(config);
+                mode.setCoordinator(_coordinator);
+                mode.setSchemaUtil(_schemaUtil);
+                return mode;
             } else {
                 throw new IllegalStateException("Unexpected startup mode " + modeType);
             }

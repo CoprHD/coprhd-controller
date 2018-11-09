@@ -22,6 +22,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class TasksDataTable extends DataTable {
+    //Maximum latest tasks to be displayed in the table
+    public static final int TASK_MAX_COUNT = 10000;
+
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MINIMUM_TASK_PROGRESS = 10;
 

@@ -75,6 +75,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
@@ -106,6 +107,7 @@ public class ControllerUtils {
     private static final int SMIS_MAJOR_VERSION = 8;
     private static final int SMIS_MINOR_VERSION = 1;
     public static final Long MINUTE_TO_MILLISECONDS = 60000L;
+    private static final String DIAMONDSLO = "Diamond";
 
     /**
      * Gets the URI of the tenant organization for the project with the passed
@@ -662,6 +664,31 @@ public class ControllerUtils {
 
         return policyName;
     }
+    
+    
+    /*
+     * In Elm, there is no workload in SLO policy,
+     * old policy with Diamond + any workload is tread as Diamod + None
+     */
+    public static URI getElmDiamondPolicy(URI storage, String oldPolicyName, DbClient dbClient) {
+        // Look for only Diamond SLO
+        if(!oldPolicyName.contains(DIAMONDSLO)){
+            return null;
+        }
+        StorageSystem   storageSystem = dbClient.queryObject(StorageSystem.class, storage);
+        if(storageSystem != null && !storageSystem.getInactive() && storageSystem.isV3ElmCodeOrMore()) {
+            // Get all policies existing on storage system!!
+            List<AutoTieringPolicy> systemDbPolicies = DiscoveryUtils.getAllVMAXSloPolicies(dbClient, storageSystem);
+            for (AutoTieringPolicy policy: systemDbPolicies) {
+                // Get the Elm Diamond SLO policy 
+                if(policy.getVmaxSLO() != null && policy.getVmaxSLO().equalsIgnoreCase(DIAMONDSLO)){
+                    return policy.getId();
+                }
+            }
+        }
+
+        return null;
+    }
 
     /**
      * Gets the URI of auto tiering policy associated with from virtual pool.
@@ -711,6 +738,15 @@ public class ControllerUtils {
                 if (policy.getStorageSystem().equals(storage.getId())) {
                     return policyURI;
                 }
+            }
+            // Virtual Pool has policy, but the policy is not present on given storage system,
+            // means, the system been upgraded and the old policy might have have removed.
+            // VMAX Cypress to Elm, SLO workload has been dropped
+            // Diamond + any WL --> Diamond in Elm
+            URI elmPolicy = ControllerUtils.getElmDiamondPolicy(storage.getId(), policyNameInVpool, dbClient);
+            if ( elmPolicy != null) {
+                s_logger.info("Found Elm SLO policy {} for vPool old policy {}", elmPolicy, policyNameInVpool);
+                return elmPolicy;
             }
         }
         return null;

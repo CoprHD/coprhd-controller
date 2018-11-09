@@ -592,6 +592,7 @@
 
     <bean id="vmaxSmisCommandHelper" class="com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper">
         <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
         <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
         <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
@@ -602,6 +603,7 @@
 
     <bean id="vnxSmisCommandHelper" class="com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper">
         <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
         <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
         <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>

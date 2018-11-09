@@ -15,6 +15,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.ArtificialFailures;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -33,6 +34,7 @@ public class ExtendDriveHelper {
 
     private URI hostId;
     private boolean foundClusteredVolume = false;
+    private Double volumeExpandSizeGB;
 
     public static List<ExtendDriveHelper> createHelpers(URI hostId, List<WindowsSystemWinRM> windowsSystems, long volumeSizeInBytes) {
         List<ExtendDriveHelper> helpers = Lists.newArrayList();
@@ -66,7 +68,9 @@ public class ExtendDriveHelper {
         for (Map.Entry<? extends BlockObjectRestRep, DiskDrive> entry : volume2disk.entrySet()) {
             BlockObjectRestRep volume = entry.getKey();
             DiskDrive disk = entry.getValue();
-
+            if (volumeExpandSizeGB != null && BlockStorageUtils.isViprVolumeExpanded(volume, volumeExpandSizeGB)) {
+                ExecutionUtils.fail("expand.win.fail", new Object[] {}, volume.getName(), BlockStorageUtils.getCapacity(volume));
+            }
             logInfo("extendDrive.diskVolumeOnHost", disk.getNumber(), windows.getHostName());
             Disk detail = windows.getDiskDetail(disk);
 
@@ -86,6 +90,15 @@ public class ExtendDriveHelper {
             volume2mountPoint.put(volume, mountPoint);
         }
         WindowsUtils.verifyMountPoints(hostId, volume2mountPoint);
+    }
+
+    /**
+     * percheck method
+     * @param sizeInGb {@link Double} new volume size
+     */
+    public void precheck(Double sizeInGb) {
+        volumeExpandSizeGB = sizeInGb;
+        precheck();
     }
 
     /**

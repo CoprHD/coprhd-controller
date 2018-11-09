@@ -312,9 +312,9 @@ def create_parser(subcommand_parsers, common_parser):
                                 help='Name of the storage port group',
                                 required=True)
     
-    mandatory_args.add_argument('-p', '-storageports',
+    mandatory_args.add_argument('-sp', '-storageports',
                                  dest='storageports',
-                                 help='Storage ports members',
+                                 help='Storage port members',
                                  nargs='+',
                                 required=True)
 

@@ -8,10 +8,12 @@ import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.cim.CIMInstance;
@@ -38,30 +40,43 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 
 public class VmaxPortGroupProcessor extends StorageProcessor {
     private Logger log = LoggerFactory.getLogger(VmaxPortGroupProcessor.class);
     private Set<String> allPortGroupNativeGuids = new HashSet<String>();
+    private List<StoragePortGroup> toBeCreated = new ArrayList<StoragePortGroup>();
+    private List<StoragePortGroup> toBeUpdated = new ArrayList<StoragePortGroup>();
+    private String STORAGE_PORTGROUP = "StoragePortGroup";
+    private PartitionManager partitionManager;  
+
+    public void setPartitionManager(PartitionManager partitionManager) {
+        this.partitionManager = partitionManager;
+    }
+
     private DbClient dbClient;
 
     @SuppressWarnings("unchecked")
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
-        log.info("Process port group");
+
         try {
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             String serialID = (String) keyMap.get(Constants._serialID);
             dbClient = (DbClient) keyMap.get(Constants.dbClient);
+            log.info("Processing port groups for {}", serialID);
             WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
             StorageSystem device = dbClient.queryObject(StorageSystem.class, profile.getSystemId());
             boolean hasVolume = hasAnyVolume(device.getId());
 
             final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
+            List<ExportMask> masksToUpdate = new ArrayList<ExportMask>();
             while (it.hasNext()) {
                 CIMInstance groupInstance = it.next();
                 CIMObjectPath groupPath = groupInstance.getObjectPath();
@@ -80,18 +95,18 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         String portName = CIMPropertyFactory.getPropertyValue(cimInstance,
                                 Constants._Name);
                         String fixedName = Initiator.toPortNetworkId(portName);
-                        log.debug("Storage Port: {}", fixedName);
+                        log.debug("Storage Port: {} found on pg: {}", fixedName, portGroupName);
                         storagePorts.add(fixedName);
                     }
                     if (!storagePorts.isEmpty()) {
+                        // Check if PG already exists in DB, PG's created by ViPR will be marked UNREGISTERED.
                         StoragePortGroup portGroup = getPortGroupInDB(portGroupName, device);
+
                         if (portGroup == null) {
-                            // Check if the port group is used in any export mask. If the port group is not in the DB,
-                            // but
-                            // it is used by any existing ExportMask, then this is a upgrade case, and this is the first
-                            // time
-                            // discovery after the upgrade.
                             if (hasVolume) {
+                                // Check if the port group is used in any export mask. If the port group is not in the DB,
+                                // but it is used by any existing ExportMask, then this is a upgrade case, and this is the first
+                                // time discovery after the upgrade.
                                 List<ExportMask> masks = getExportMasksForPortGroup(client, groupPath, portGroupName, device);
                                 boolean viprCreated = (!masks.isEmpty());
                                 portGroup = createPortGroup(portGroupName, device, viprCreated);
@@ -99,10 +114,14 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                                 for (ExportMask mask : masks) {
                                     mask.setPortGroup(portGroup.getId());
                                 }
-                                dbClient.updateObject(masks);
+                                masksToUpdate.addAll(masks);
+                                
                             } else {
                                 portGroup = createPortGroup(portGroupName, device, false);
-                            }
+                            }                             
+                            toBeCreated.add(portGroup);                           
+                        } else {
+                            toBeUpdated.add(portGroup);
                         }
                         allPortGroupNativeGuids.add(portGroup.getNativeGuid());
                         List<URI> storagePortURIs = new ArrayList<URI>();
@@ -113,15 +132,45 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                         } else {
                             portGroup.setStoragePorts(StringSetUtil.uriListToStringSet(storagePortURIs));
                         }
-
-                        dbClient.updateObject(portGroup);
                     } else {
                         // no storage ports in the port group, remove it
                         log.info(String.format("The port group %s does not have any storage ports, ignore", portGroupName));
                     }
-
+                }
+                
+                if (toBeCreated.size() > BATCH_SIZE) {
+                    // persist the new portgroups
+                    partitionManager.insertInBatches(toBeCreated, Constants.DEFAULT_PARTITION_SIZE, dbClient, STORAGE_PORTGROUP);
+                    toBeCreated.clear();
+                }
+                
+                if (toBeUpdated.size() > BATCH_SIZE) {
+                    // update existing portgroups
+                    partitionManager.updateInBatches(toBeUpdated, Constants.DEFAULT_PARTITION_SIZE, dbClient, STORAGE_PORTGROUP);
+                    toBeUpdated.clear();
+                }
+                
+                if (masksToUpdate.size() > BATCH_SIZE) {
+                    partitionManager.updateInBatches(masksToUpdate, Constants.DEFAULT_PARTITION_SIZE, dbClient, Constants.EXPORTMASK);
+                    masksToUpdate.clear();
                 }
             }
+            
+            if (!toBeCreated.isEmpty()) {
+                partitionManager.insertInBatches(toBeCreated, Constants.DEFAULT_PARTITION_SIZE, dbClient, STORAGE_PORTGROUP);
+                toBeCreated.clear();
+            }
+            
+            if (!toBeUpdated.isEmpty()) {
+                partitionManager.updateInBatches(toBeUpdated, Constants.DEFAULT_PARTITION_SIZE, dbClient, STORAGE_PORTGROUP);
+                toBeUpdated.clear();
+            }
+            
+            if (!masksToUpdate.isEmpty()) {
+                partitionManager.updateInBatches(masksToUpdate, Constants.DEFAULT_PARTITION_SIZE, dbClient, Constants.EXPORTMASK);
+                masksToUpdate.clear();
+            }
+
             if (!allPortGroupNativeGuids.isEmpty()) {
                 doBookKeeping(device.getId());
             } else {
@@ -144,7 +193,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
      * @return - the existing or newly created port group
      */
     private StoragePortGroup getPortGroupInDB(String pgName, StorageSystem storage) {
-        String guid = String.format("%s+%s", storage.getNativeGuid(), pgName);
+        String guid = NativeGUIDGenerator.generateNativeGuidForStoragePortGroup(storage, pgName);
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getPortGroupNativeGuidConstraint(guid), result);
@@ -168,7 +217,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
      * @return created storage port group
      */
     private StoragePortGroup createPortGroup(String pgName, StorageSystem storage, boolean viprCreated) {
-        String guid = String.format("%s+%s", storage.getNativeGuid(), pgName);
+        String guid = NativeGUIDGenerator.generateNativeGuidForStoragePortGroup(storage, pgName);
         StoragePortGroup portGroup = new StoragePortGroup();
         portGroup.setId(URIUtil.createId(StoragePortGroup.class));
         portGroup.setLabel(pgName);
@@ -181,7 +230,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
             portGroup.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
         }
         portGroup.setMutable(viprCreated);
-        dbClient.createObject(portGroup);
+
         return portGroup;
     }
 
@@ -217,17 +266,13 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
      * @return if the storage system has any volumes
      */
     private boolean hasAnyVolume(URI systemUri) {
-        boolean result = false;
         URIQueryResultList queryList = new URIQueryResultList();
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(systemUri),
                 queryList);
 
         Iterator<URI> volumeIter = queryList.iterator();
-        if (volumeIter.hasNext()) {
-            result = true;
-        }
-        return result;
+        return volumeIter.hasNext();
     }
 
     /**
@@ -279,7 +324,7 @@ public class VmaxPortGroupProcessor extends StorageProcessor {
                 }
             }
         } catch (Exception e) {
-            log.warn("Exception while getting port gorup association:", e);
+            log.warn("Exception while getting port group association:", e);
         } finally {
             if (null != iterator) {
                 iterator.close();

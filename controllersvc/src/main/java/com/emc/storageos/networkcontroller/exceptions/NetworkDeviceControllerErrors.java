@@ -123,4 +123,13 @@ public interface NetworkDeviceControllerErrors {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError zoneExportAddPathsFailed(final String message, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError createFCZoneReferenceFailed(final String message);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError createFCZoneReferenceFailedExc(final String message, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public ServiceError removeFCZoneReferenceFailedExc(final String message, final Throwable cause);
 }

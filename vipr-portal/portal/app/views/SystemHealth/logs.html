@@ -2,150 +2,233 @@
 #{set navSelected: ['nav.settings', 'nav.systemHealthLogs'] /}
 
 <div id="system-logs" ng-controller="SystemLogsCtrl">
-  <div class="page-header">
-    <h3>&{'system.logs.title'}</h3>
-  </div>
-
-  <div id="log_info_box" class="alert alert-danger" ng-show="error">
-    <button type="button" class="close" ng-click="error = null">&times;</button>
-    {{error.details}}
-  </div>
-  
-  <div class="filter-text">
-    <div class="buttons">
-      <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#filter-dialog" data-type="filter">
-        <span v-icon="filter"></span> {{'system.logs.changefilter' | t}}
-      </button>
-      <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#filter-dialog" data-type="download">
-        <span v-icon="download"></span> {{'system.logs.download' | t}}
-      </button>
+    <div class="page-header">
+        <h3>&{'system.logs.title'}</h3>
     </div>
-    <div class="description" ng-bind-html="filterText"></div>
-    <div class="clearfix"></div>
-  </div>
-  
-  <table class="table table-condensed dataTable">
-    <thead>
-      <tr>
-        <th class="expandable">&nbsp;</th>
-        <th class="time" 
-            ng-class="{'sorting_asc': !descending, 'sorting_desc':descending}" 
-            ng-click="toggleSort()">
-          <div class="th-wrapper">{{"systemLogs.time" | t}}</div>
-        </th>
-        <th class="severity">{{"systemLogs.severity" | t}}</th>
-        <th class="message">{{"systemLogs.message" | t}}</th>
-        <th class="service">{{"systemLogs.service" | t}}</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr ng-if="descending" ng-click="moreLogs()">
-        <td class="load-more" colspan="5" ng-class="{'loading': loading}">
-          <span ng-show="!loading">{{'systemLogs.loadMore' | t}}</span>
+
+    <div id="log_info_box" class="alert alert-danger" ng-show="error">
+        <button type="button" class="close" ng-click="error = null">&times;</button>
+        {{error.details}}
+    </div>
+
+    <div class="filter-text">
+        <div class="buttons">
+            <button type="button" class="btn btn-sm btn-primary" data-toggle="modal" data-target="#filter-dialog"
+                    data-type="filter">
+                <span v-icon="filter"></span> {{'system.logs.changefilter' | t}}
+            </button>
+            <button type="button" class="btn btn-sm btn-default" data-toggle="modal" data-target="#filter-dialog"
+                    data-type="download">
+                <span v-icon="download"></span> {{'system.logs.download' | t}}
+            </button>
+        </div>
+        <div class="description" ng-bind-html="filterText"></div>
+        <div class="clearfix"></div>
+    </div>
+
+    <table class="table table-condensed dataTable">
+        <thead>
+        <tr>
+            <th class="expandable">&nbsp;</th>
+            <th class="time"
+                ng-class="{'sorting_asc': !descending, 'sorting_desc':descending}"
+                ng-click="toggleSort()">
+                <div class="th-wrapper">{{"systemLogs.time" | t}}</div>
+            </th>
+            <th class="severity">{{"systemLogs.severity" | t}}</th>
+            <th class="message">{{"systemLogs.message" | t}}</th>
+            <th class="service">{{"systemLogs.service" | t}}</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-if="descending" ng-click="moreLogs()">
+            <td class="load-more" colspan="5" ng-class="{'loading': loading}">
+                <span ng-show="!loading">{{'systemLogs.loadMore' | t}}</span>
           <span class="loading" ng-show="loading">
             {{'systemLogs.loading' | t}}
             <span class="glyphicon glyphicon-refresh rotate"></span>
           </span>
-        </td>
-      </tr>
-      <tr class="log" 
-          ng-repeat-start="log in logs | reverse:descending" 
-          ng-click="log.expanded = !log.expanded">
-        <td class="expandable" ng-class="{'expanded': log.expanded}">
-          <span class="expand-indicator"></span>
-        </td>
-        <td class="time" bind-once>{{getLocalDateTime($('#start'),log.time_ms)}}</td>
-        <td class="severity" bind-once>
-          <span  class="label" ng-class="{
+            </td>
+        </tr>
+        <tr class="log"
+            ng-repeat-start="log in logs | reverse:descending"
+            ng-click="log.expanded = !log.expanded">
+            <td class="expandable" ng-class="{'expanded': log.expanded}">
+                <span class="expand-indicator"></span>
+            </td>
+            <td class="time" bind-once>{{getLocalDateTime($('#start'),log.time_ms)}}</td>
+            <td class="severity" bind-once>
+          <span class="label" ng-class="{
             'label-danger': log.severity == 'ERROR',
             'label-warning': log.severity == 'WARN',
             'label-info': log.severity == 'INFO',
             'label-default': log.severity == 'DEBUG',
             'label:empty': ['ERROR', 'WARN', 'INFO', 'DEBUG'].indexOf(log.severity) == -1 
             }">{{log.severity}}</span>
-        </td>
-        <td class="message" bind-once>{{log.message}}</td>
-        <td class="service" bind-once>{{log.service}}</td>
-      </tr>
-      <tr ng-repeat-end ng-if="log.expanded" class="openedRow">
-        <td colspan="5" class="expandedRow" bind-once>
-          <dl class="dl-horizontal">
-            <dt>{{'system.logs.nodeId' | t}}</dt>
-            <dd>{{log.node}}</dd>
-            <dt>{{'system.logs.nodeName' | t}}</dt>
-            <dd>{{log.node_name}}</dd>
-            <dt ng-if="log.thread">{{'system.logs.thread' | t}}</dt>
-            <dd ng-if="log.thread">{{log.thread}}</dd>
-            <dt ng-if="log.class">{{'system.logs.class' | t}}</dt>
-            <dd ng-if="log.class">{{log.class}}:{{log.line}}</dd>
-          </dl>
-          <pre>{{log.message}}</pre>
-        </td>
-      </tr>
-      <tr ng-if="logs.length == 0">
-        <td colspan="5">{{'systemLogs.noLogs' | t}}</td>
-      <tr>
-      <tr ng-if="!descending" ng-click="moreLogs()">
-        <td class="load-more" colspan="5" ng-class="{'loading': loading}">
-          <span ng-show="!loading">{{'systemLogs.loadMore' | t}}</span>
+            </td>
+            <td class="message" bind-once>{{log.message}}</td>
+            <td class="service" bind-once>{{log.service}}</td>
+        </tr>
+        <tr ng-repeat-end ng-if="log.expanded" class="openedRow">
+            <td colspan="5" class="expandedRow" bind-once>
+                <dl class="dl-horizontal">
+                    <dt>{{'system.logs.nodeId' | t}}</dt>
+                    <dd>{{log.node}}</dd>
+                    <dt>{{'system.logs.nodeName' | t}}</dt>
+                    <dd>{{log.node_name}}</dd>
+                    <dt ng-if="log.thread">{{'system.logs.thread' | t}}</dt>
+                    <dd ng-if="log.thread">{{log.thread}}</dd>
+                    <dt ng-if="log.class">{{'system.logs.class' | t}}</dt>
+                    <dd ng-if="log.class">{{log.class}}:{{log.line}}</dd>
+                </dl>
+                <pre>{{log.message}}</pre>
+            </td>
+        </tr>
+        <tr ng-if="logs.length == 0">
+            <td colspan="5">{{'systemLogs.noLogs' | t}}</td>
+        <tr>
+        <tr ng-if="!descending" ng-click="moreLogs()">
+            <td class="load-more" colspan="5" ng-class="{'loading': loading}">
+                <span ng-show="!loading">{{'systemLogs.loadMore' | t}}</span>
           <span class="loading" ng-show="loading">
             {{'systemLogs.loading' | t}}
             <span class="glyphicon glyphicon-refresh rotate"></span>
           </span>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-  
-  <div class="modal fade" id="filter-dialog">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-          <h4 class="modal-title">{{('systemLogs.'+filterDialog.type+'.title') | t}}</h4>
-      </div>
-      <div class="modal-body">
-        <form class="form form-horizontal">
-          <control-group v-field="filterDialog.nodeId" width="9">
-            <select-one options="nodeIdOptions"></select-one>
-          </control-group>
-          <control-group v-field="filterDialog.service" width="9"  type="array" >
-            <select-many class="max-height-5" options="serviceOptions"></select-many>
-          </control-group>
-          <control-group v-field="filterDialog.severity" width="9">
-            <select-one options="severityOptions"></select-one>
-          </control-group>
-          <control-group v-field="filterDialog.startTime" width="9">
-            <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
-            <time-picker ng-model="filterDialog.startTime_time"></time-picker>
-          </control-group>
-          <control-group v-field="filterDialog.endTime" width="9" ng-show="filterDialog.type == 'download'">
-            <date-picker ng-model="filterDialog.endTime_date" ng-hide="filterDialog.endTimeCurrentTime" close="true"></date-picker>
-            <time-picker ng-model="filterDialog.endTime_time" ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
-            <div class="checkbox current-time-toggle">
-              <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime"> {{'filterDialog.currentTime' | t}}</label>
-            </div>
-          </control-group>
-          <control-group v-field="filterDialog.searchMessage" width="9">
-            <input-text onkeydown="updateFilter(event.keyCode)"></input-text>
-          </control-group>
-          <control-group v-field="filterDialog.orderTypes" width="9" ng-show="filterDialog.type == 'download'">
-            <select-one options="orderTypeOptions"></select-one>
-          </control-group>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" ng-click="downloadLogs()" ng-show="filterDialog.type == 'download'">
-          <span v-icon="download"></span> {{'system.logs.download' | t}}
-        </button>
-        <button type="button" id="filterButton" class="btn btn-primary" ng-click="applyFilter()" ng-show="filterDialog.type == 'filter'">
-          <span v-icon="filter"></span> {{'system.logs.update' | t}}
-        </button>
-        <button type="button" class="btn btn-default" data-dismiss="modal">
-          <span v-icon="remove"></span> {{'button.close' | t}}
-        </button>
-      </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="modal fade" id="filter-dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{{('systemLogs.'+filterDialog.type+'.title') | t}}</h4>
+                </div>
+                <div class="modal-body">
+                    <form class="form form-horizontal">
+						<control-group v-field="filterDialog.type" width="9" 
+						ng-show="filterDialog.type == 'download'">
+						<div class="radio">
+							<label> <input type="radio" ng-checked="true"
+								value="1" ng-model="diagnostic.type"/> &{"filterDialog.type.full"}
+							</label>
+						</div>
+
+						<div class="radio">
+							<label> <input type="radio"
+								value="0" ng-model="diagnostic.type"/> &{"filterDialog.type.only"}
+							</label>
+						</div>
+						</control-group>
+						<control-group v-field="filterDialog.nodeId" width="9">
+                            <select-one options="nodeIdOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
+                        </control-group>
+                        <control-group v-field="filterDialog.service" width="9" type="array">
+                            <select-many class="max-height-5" options="serviceOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-many>
+                        </control-group>
+                        <control-group v-field="filterDialog.severity" width="9">
+                            <select-one options="severityOptions" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></select-one>
+                        </control-group>
+                        <control-group v-field="filterDialog.startTime" width="9">
+                            <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
+                            <time-picker ng-model="filterDialog.startTime_time"></time-picker>
+                        </control-group>
+                        <control-group v-field="filterDialog.endTime" width="9"
+                                       ng-show="filterDialog.type == 'download'">
+                            <date-picker ng-model="filterDialog.endTime_date" ng-hide="filterDialog.endTimeCurrentTime"
+                                         close="true"></date-picker>
+                            <time-picker ng-model="filterDialog.endTime_time"
+                                         ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
+                            <div class="checkbox current-time-toggle">
+                                <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1">
+                                    {{'filterDialog.currentTime' | t}}</label>
+                            </div>
+                        </control-group>
+                        <control-group v-field="filterDialog.searchMessage" width="9">
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="isDiagutilJobRunning() && diagnostic.type == 1"></input-text>
+                        </control-group>
+                        <control-group v-field="filterDialog.orderTypes" width="9"
+                                       ng-show="filterDialog.type == 'download'" ng-if="diagnostic.type != 1">
+                            <select-one options="orderTypeOptions" ng-if="diagnostic.type != 1"></select-one>
+                        </control-group>
+                    </form>
+                    <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
+                    <legend><small>&{'diagnostic.title'}</small></legend>
+                        <control-group v-field="filterDialog.options" width="9" type="array">
+                            <select-many class="max-height-5" options="diagnosticOptions" ng-disabled="isDiagutilJobRunning()"></select-many>
+                        </control-group>
+                        <control-group v-field="diagnostic.ftp" width="9">
+                            <select-one options="ftpOptions" ng-disabled="isDiagutilJobRunning()"></select-one>
+                        </control-group>
+                        <control-group v-field="diagnostic.url" width="9">
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
+                        </control-group>
+                        <control-group v-field="diagnostic.user" width="9">
+                            <input-text onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-text>
+                        </control-group>
+                        <control-group v-field="diagnostic.pw" width="9">
+                            <input-password onkeydown="updateFilter(event.keyCode)" ng-disabled="diagnostic.ftp == 'download' || isDiagutilJobRunning()"></input-password>
+                        </control-group>
+                    </form>
+                    <form class="form form-horizontal" ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
+                    <legend><small>&{'diagnostic.status.title'}</small></legend>
+                        <div>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp;<b>&{'diagnostic.status'}:</b> 
+                            <span class="vdc-task-progress" id="diagutilStatus">&emsp;&nbsp;&nbsp;&nbsp;{{diagutilStatusDesc}}</span>
+                        </div>
+                        <br>
+                        <div id="validation_sucess" class="alert alert-success" ng-show="validation == 1 && diagnostic.type == 1 && diagnostic.ftp != 'download'">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            {{validationSuccess}}
+                        </div>
+                        <div id="validation_error" class="alert alert-danger" ng-show="validation == 2 && diagnostic.type == 1 && diagnostic.ftp != 'download'">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            {{validationError}}
+                        </div>
+                    </form>
+                </div>
+				<div class="modal-footer">
+					<button id="validateButtonExternal" type="button"
+						ng-show="filterDialog.type == 'download'  && diagnostic.type == 1 && diagnostic.ftp != 'download'"
+                            ng-disabled="isDiagutilJobRunning() || isValidationDisabled()"
+                            ng-click="validateServer()" class="btn btn-info" >#{icon 'envelope'/}
+						&{'diagnostic.ftp.test'}</button>
+					<button type="button" class="btn btn-primary"
+						ng-click="uploadDiagutilData()"
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp != 'download'"
+                            ng-disabled="isDiagutilJobRunning() || isValidationDisabled()">
+						<span v-icon="upload"></span> {{'diagnostic.ftp.upload' | t}}
+					</button>
+					<button type="button" class="btn btn-primary"
+						ng-click="triggerDownload()"
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 'download' && isDownloadReady()">
+						<span v-icon="download"></span> {{'system.logs.download' | t}}
+					</button>
+					<button type="button" class="btn btn-default"
+						ng-click="uploadDiagutilData()"
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1 && diagnostic.ftp == 'download'"
+                            ng-disabled="isDiagutilJobRunning()">
+						<span v-icon="download"></span> {{'system.logs.collect' | t}}
+					</button>					
+                    <button type="button" class="btn btn-primary"
+                            ng-click="downloadLogs()"
+                            ng-show="filterDialog.type == 'download' && diagnostic.type == 0">
+                        <span v-icon="download"></span> {{'system.logs.download' | t}}
+                    </button>
+					<button type="button" id="filterButton" class="btn btn-primary"
+						ng-click="applyFilter()" ng-show="filterDialog.type == 'filter'">
+						<span v-icon="filter"></span> {{'system.logs.update' | t}}
+					</button>
+					<button class="btn btn-danger" ng-click = "cancelDiagutilJob()"
+						ng-show="filterDialog.type == 'download' && diagnostic.type == 1">
+						#{icon 'minus'/} &{'button.cancel'}</button>
+					<button type="button" class="btn btn-default" data-dismiss="modal">
+						<span v-icon="remove"></span> {{'button.close' | t}}
+					</button>
+				</div>
+			</div>
+        </div>
     </div>
-  </div>
-</div>
 </div>

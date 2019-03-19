@@ -7,10 +7,13 @@ package controllers;
 import static controllers.Common.angularRenderArgs;
 import static render.RenderProxy.renderViprProxy;
 import static render.RenderSupportPackage.renderSupportPackage;
+import static render.RenderSupportDiagutilPackage.renderSupportDiagutilPackage;
 import static util.BourneUtil.getSysClient;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.net.ConnectException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,9 +21,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.management.backup.ExternalServerType;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.storageos.management.backup.util.SFtpClient;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.services.ServicesMetadata;
+import com.emc.vipr.model.sys.diagutil.UploadParam;
+import com.emc.vipr.model.sys.diagutil.UploadParam.UploadType;
+import com.emc.vipr.model.sys.diagutil.LogParam;
+import com.emc.vipr.model.sys.diagutil.DiagutilParam;
+import com.emc.vipr.model.sys.diagutil.DiagutilInfo;
+import com.emc.vipr.model.sys.diagutil.UploadFtpParam;
 import com.emc.vipr.model.sys.recovery.RecoveryPrecheckStatus;
+import jobs.CollectDiagutilDataJob;
 import jobs.MinorityNodeRecoveryJob;
 import jobs.RebootNodeJob;
 import jobs.RestartServiceJob;
@@ -28,23 +43,21 @@ import models.datatable.NodeServicesDataTable;
 import models.datatable.NodesDataTable;
 
 import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.http.auth.AuthenticationException;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 
 import play.Logger;
 import play.data.validation.Required;
+import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.libs.F.Promise;
 import play.mvc.Controller;
 import play.mvc.With;
-import util.AdminDashboardUtils;
-import util.BourneUtil;
-import util.DisasterRecoveryUtils;
-import util.MonitorUtils;
-import util.SystemLogUtils;
-import util.TenantUtils;
+import util.*;
 import util.datatable.DataTablesSupport;
+import util.support.SupportDiagutilCreator;
 import util.support.SupportPackageCreator;
 import util.support.SupportPackageCreator.OrderTypes;
 
@@ -262,6 +275,9 @@ public class SystemHealth extends Controller {
         defaultServiceNames.remove(SystemLogUtils.MESSAGES_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ACCESS_LOG);
         defaultServiceNames.remove(SystemLogUtils.NGINX_ERROR_LOG);
+        
+        renderArgs.put("allDiagnosticOptions", getDiagnosticOptions());
+        renderArgs.put("defaultDiagnosticOptions", getDefaultDiagnosticOptions().values());
 
         loadSystemLogArgument(PARAM_NODE_ID, null);
         loadSystemLogArgument(PARAM_SERVICE, defaultServiceNames, String[].class);
@@ -504,6 +520,30 @@ public class SystemHealth extends Controller {
         }
         return false;
     }
+    
+    /**
+     * Keep the same with script/diagutils
+     * -min_cfs|-all_cfs|-zk|-backup|-logs|-properties|-health
+     * @return
+     */
+    private static Map getDiagnosticOptions() {
+        Map<String, String> options = getDefaultDiagnosticOptions();
+        options.put("all CFs", "all_cfs");
+        options.put("backup data", "backup");
+        //options.put("including all CFs(-logs)", "-logs"); including -logs by default
+        return options;
+    }
+
+    private static Map getDefaultDiagnosticOptions() {
+        Map<String, String> options = Maps.newLinkedHashMap();
+        options.put("minimum CFs", "min_cfs");
+        options.put("zookeeper data", "zk");
+        options.put("properties", "properties");
+        options.put("health data", "health");
+
+        return options;
+
+    }
 
     private static void loadSystemLogArgument(String name, Object defaultValue) {
         loadSystemLogArgument(name, defaultValue, String.class);
@@ -545,6 +585,132 @@ public class SystemHealth extends Controller {
         else {
             return (T[]) ConvertUtils.convert(values, targetType);
         }
+    }
+
+    /**
+     * Collects diagutil data.
+     * 
+     * @param options
+     *         the options for collecting diagutils data.
+     * @param nodeId
+     *         ViPR node ID.
+     * @param services
+     *         ViPR services
+     * @param severity
+     *         the severity of logs
+     * @param searchMessage
+     *         denotes a specific string to search for.
+     * @param startTime
+     *         denotes the starting time.
+     * @param endTime
+     *         denotes the ending time.
+     * @param orderType
+     *         denotes the type of order.
+     * @param ftpType
+     *         ftp transport type.
+     * @param ftpAddr
+     *         ftp url.
+     * @param userName
+     *         username for ftp server
+     * @param password
+     *         password for authenticating with ftp 
+     */
+    public static void collectDiagutilData(String[] options, String nodeId, String[] services, Integer severity, String searchMessage,
+                                           String startTime, String endTime, String orderType, String ftpType, String ftpAddr,
+                                           String userName, String password ) {
+        List<String> optionList = null;
+        if (options != null) {
+            optionList = Arrays.asList(options);
+        }
+        UploadType uploadType = UploadType.valueOf(ftpType);
+        String msgRex = null;
+        if(StringUtils.isNotEmpty(searchMessage)) {
+            msgRex = "(?i).*" + searchMessage + ".*";
+        }
+        LogParam logParam = null;
+        if (services != null) {
+            logParam = new LogParam(Lists.newArrayList(nodeId), Lists.newArrayList(nodeId), Arrays.asList(services),
+                    severity, startTime, endTime, msgRex);//to be polished
+        }
+        String url = ftpAddr;
+        String user = userName;
+        DiagutilParam diagutilParam;
+        if (logParam == null) {
+            diagutilParam = new DiagutilParam(false, null, new UploadParam(uploadType, new UploadFtpParam(url, user, password)));
+        }else {
+            diagutilParam = new DiagutilParam(true, logParam, new UploadParam(uploadType, new UploadFtpParam(url, user, password)));
+        }
+        new CollectDiagutilDataJob(getSysClient(), optionList, diagutilParam).in(1);
+    }
+
+    /**
+     * Collect the diagutil status.
+     */
+    public static void getDiagutilsStatus() {
+        DiagutilInfo diagutilInfo = BourneUtil.getSysClient().diagutil().getStatus();
+        renderJSON(diagutilInfo);
+    }
+
+    /**
+     * Cancel the diagutil job.
+     */
+    public static void cancelDiagutilJob() {
+        BourneUtil.getSysClient().diagutil().cancel();
+    }
+
+    /**
+     * Creates a zip package for the diagutil data.
+     * 
+     * @param nodeId
+     *         The ViPR node ID.
+     * @param fileName
+     *         filename to be used for zip backup.
+     */
+    public static void downloadDiagutilData(String nodeId, String fileName) {
+        String[] file = fileName.split(File.separator);
+        String zipName = file[3] + BackupConstants.COMPRESS_SUFFIX;
+        SupportDiagutilCreator creator = new SupportDiagutilCreator(BourneUtil.getSysClient(), nodeId, zipName);
+        renderSupportDiagutilPackage(creator, zipName);
+    }
+
+    /**
+     * Validates external server settings.
+     * 
+     * @param serverType
+     *          The server type.
+     * @param serverUrl
+     *          URL of the server.
+     * @param user
+     *          username of the server.
+     * @param password
+     *          password for authenticating with the server.
+     */
+    public static void validateExternalSettings(String serverType, String serverUrl, String user, String password) {
+        Logger.info("validateExternalSettings of serverType:'%s', serverUrl:'%s', user:'%s'",serverType, serverUrl, user);
+        BackupClient client = null;
+       // String passwd = PasswordUtil.decryptedValue(password);
+        if (serverType.equalsIgnoreCase(UploadType.sftp.name())) {
+            if(serverUrl == null || serverUrl.isEmpty() || password == null){
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.empty")));
+            }  
+            client = new SFtpClient(serverUrl, user, password);
+        } else if (serverType.equalsIgnoreCase(UploadType.ftp.name())) {
+            if(serverUrl == null || serverUrl.isEmpty() || user == null || password == null) {
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.server.empty")));
+            }
+            if (!(serverUrl.startsWith(BackupConstants.FTP_URL_PREFIX)|| serverUrl.startsWith(BackupConstants.FTPS_URL_PREFIX))) {
+                renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.serverType.invalid")));
+            }
+            client = new FtpClient(serverUrl, user, password);
+        }
+        try {
+            client.validate();
+        } catch (AuthenticationException e){
+            renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.credential.invalid")));
+        } catch (ConnectException e) {
+            renderJSON(ValidationResponse.invalid(Messages.get("configProperties.backup.credential.invalid")));
+        }
+        renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
     }
 
     /**

@@ -1683,6 +1683,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         CGRequestParams cgParams = null;
         boolean metropoint = false;
         boolean lockException = false;
+        RPHelper.setLinkStateWaitTimeOut(_coordinator);
         try {
             // Get only the RP volumes from the descriptors.
             List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor.filterByType(
@@ -1844,6 +1845,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         _log.info("Start cg create rollback step");
         WorkflowStepCompleter.stepExecuting(token);
+        RPHelper.setLinkStateWaitTimeOut(_coordinator);
         // Get only the RP source volumes from the descriptors.
         List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor
                 .filterByType(
@@ -2206,6 +2208,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         _log.info("cgDeleteStep is running");
         boolean lockException = false;
+        RPHelper.setLinkStateWaitTimeOut(_coordinator);
         try {
             // Validate input arguments
             if (rpSystem == null) {
@@ -3707,6 +3710,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public boolean deleteRSetStep(URI rpSystemId, List<URI> volumeIds, String token) throws InternalException {
         List<String> replicationSetNames = new ArrayList<String>();
         try {
+            RPHelper.setLinkStateWaitTimeOut(_coordinator);
             List<RecoverPointVolumeProtectionInfo> volumeProtectionInfoList = new ArrayList<RecoverPointVolumeProtectionInfo>();
 
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
@@ -3756,7 +3760,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String token) throws InternalException {
 
         List<String> replicationSetNames = new ArrayList<String>();
-
+        RPHelper.setLinkStateWaitTimeOut(_coordinator);
         try {
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
 
@@ -4332,6 +4336,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String imageAccessMode, String op,
             String stepId) throws ControllerException {
         WorkflowStepCompleter.stepExecuting(stepId);
+        RPHelper.setLinkStateWaitTimeOut(_coordinator);
         try {
 
             ProtectionSystem rpSystem = getRPSystem(protectionSystem);
@@ -5197,6 +5202,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public boolean createBookmarkStep(List<URI> snapshotList, ProtectionSystem system, String snapshotName, Set<String> volumeWWNs,
             boolean rpBookmarkOnly, String token) {
 
+        RPHelper.setLinkStateWaitTimeOut(_coordinator);
         RecoverPointClient rp = RPHelper.getRecoverPointClient(system);
         CreateBookmarkRequestParams request = new CreateBookmarkRequestParams();
         request.setVolumeWWNSet(volumeWWNs);
@@ -5661,7 +5667,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String stepId) throws InternalException {
         try {
             _log.info("Restoring bookmark on the RP CG");
-
+            RPHelper.setLinkStateWaitTimeOut(_coordinator);
             WorkflowStepCompleter.stepExecuting(stepId);
 
             ProtectionSystem system = null;
@@ -6649,6 +6655,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public boolean cgModifyStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams, String token)
             throws InternalException {
         try {
+            RPHelper.setLinkStateWaitTimeOut(_coordinator);
             // Get only the RP_EXISTING_PROTECTED_SOURCE descriptors
             List<VolumeDescriptor> existingProtectedSourceVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE }, new VolumeDescriptor.Type[] {});

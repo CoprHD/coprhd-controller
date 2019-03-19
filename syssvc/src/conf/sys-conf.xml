@@ -87,6 +87,21 @@
         <property name="backupScheduler" ref="backupScheduler" />
         <property name="jobProducer" ref="backupUploadJobProducer" />
     </bean>
+    
+    <bean id="dataCollectionService" class="com.emc.storageos.systemservices.impl.resource.DataCollectionService" >
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="jobProducer" ref="diagutilsJobProducer" />
+    </bean>
+
+    <bean id="diagutilsJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">
+        <property name="coordinator" ref="coordinator" />
+        <property name="consumer" ref="diagutilsJobConsumer" />
+        <property name="queueName" value="diagutilsjob" />
+    </bean>
+
+    <bean id="diagutilsJobConsumer" class="com.emc.storageos.systemservices.impl.jobs.consumer.DiagutilsJobConsumer">
+        <property name="coordinatorClientExt" ref="coordinatorclientext" />
+    </bean>
 
     <bean id="syssvcApp" class="com.emc.storageos.systemservices.impl.resource.SysSvcApp">
         <property name="resource">
@@ -109,6 +124,7 @@
                 </bean>
                 <ref bean="logService"/>
                 <ref bean="configService"/>
+                <ref bean="dataCollectionService"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.ControlService">
                     <property name="proxy" ref="coordinatorclientext" />
                 </bean>

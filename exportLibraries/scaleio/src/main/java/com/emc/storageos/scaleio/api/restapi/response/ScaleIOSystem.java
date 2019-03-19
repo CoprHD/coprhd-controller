@@ -129,8 +129,9 @@ public class ScaleIOSystem {
 
     public String getVersion() {
         String result = null;
-        ParsePattern parse = new ParsePattern("EMC ScaleIO Version:\\s+[a-zA-Z](.*?)", ScaleIOConstants.SCALEIO_VERSION);
-        List<String> versions = parse.isMatch(systemVersionName);
+        ParsePattern parse = new ParsePattern(ScaleIOConstants.SCALEIO_VERSION_PATTERN, ScaleIOConstants.SCALEIO_VERSION);
+        String versionStr = systemVersionName.substring(systemVersionName.indexOf(ScaleIOConstants.SCALEIO_VERSION));
+        List<String> versions = parse.isMatch(versionStr);
         if (versions != null && !versions.isEmpty()) {
             result = versions.get(0);
         }

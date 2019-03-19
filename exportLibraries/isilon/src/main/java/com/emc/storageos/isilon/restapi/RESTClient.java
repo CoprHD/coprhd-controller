@@ -82,6 +82,7 @@ public class RESTClient {
      */
     public ClientResponse get(URI url) {
     	ClientResponse clientResp = null;
+
     	if (IsilonApiConstants.AuthType.BASIC.name().equals(_authType))
     		clientResp = _client.resource(url).get(ClientResponse.class);
     	else
@@ -97,6 +98,7 @@ public class RESTClient {
      */
     public ClientResponse head(URI url) {
     	ClientResponse clientResp = null;
+
     	if (IsilonApiConstants.AuthType.BASIC.name().equals(_authType))
     		clientResp = _client.resource(url).head();
     	else
@@ -141,6 +143,7 @@ public class RESTClient {
      */
     public ClientResponse delete(URI url) {
     	ClientResponse clientResp = null;
+
     	if (IsilonApiConstants.AuthType.BASIC.name().equals(_authType))
     		clientResp = _client.resource(url).delete(ClientResponse.class);
     	else
@@ -157,6 +160,7 @@ public class RESTClient {
      */
     public ClientResponse post(URI url, String body) {
     	ClientResponse clientResp = null;
+
     	if (IsilonApiConstants.AuthType.BASIC.name().equals(_authType))
     		clientResp = _client.resource(url).type(MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
     	else
@@ -220,5 +224,6 @@ public class RESTClient {
        }
 
        return resBuilder;
-    }    
+    }
+
 }

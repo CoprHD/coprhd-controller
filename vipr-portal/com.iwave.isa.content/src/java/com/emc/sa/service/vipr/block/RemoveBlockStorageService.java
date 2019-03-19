@@ -24,6 +24,8 @@ public class RemoveBlockStorageService extends ViPRService {
 
     @Override
     public void precheck() {
+        // check to select max 100 resources at a time.
+        checkForMaxResouceOrderLimit(volumeIds);
         BlockStorageUtils.getBlockResources(uris(volumeIds));
         checkForBootVolumes(volumeIds);
     }

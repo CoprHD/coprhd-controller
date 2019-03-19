@@ -3756,6 +3756,67 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Checks whether the given storage group (SG) is part of an MV. If the SG is a child of CSG, then it will check if the CSG is part of
+     * an MV.
+     * 
+     * Note: CSG is used in cluster export.
+     * 
+     * @param storage the storage system
+     * @param groupName the storage group name (SG)
+     * @return true if the SG or its CSG is part of an MV; false otherwise.
+     * @throws Exception
+     */
+    public boolean isSGOrItsCSGPartOfMaskingView(StorageSystem storage, String groupName) throws Exception {
+
+        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
+                SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+        CloseableIterator<CIMObjectPath> cimPathItr = null;
+        CloseableIterator<CIMObjectPath> pathItr = null;
+        try {
+            _log.info("Trying to find the masking views, on which this group {} resides", groupName);
+
+            if(isStandAloneSG(storage, maskingGroupPath)) {
+                cimPathItr = getAssociatorNames(storage, maskingGroupPath, null, SYMM_LUN_MASKING_VIEW,
+                        null, null);
+                if (cimPathItr.hasNext()) {
+                    _log.info("Storage Group {} is part of existing masking view: {}",
+                            groupName, cimPathItr.next().toString());
+                    return true;
+                }
+            } else {
+                /*
+                 * The SG is nested under CSG. Query MVs using the child SG does not return anything.
+                 * Hence, we have to get the CSG from the child SG and then use the CSG to query the MVs.
+                 */
+                // Try to get the CSG
+                pathItr = getReference(storage, maskingGroupPath, SE_MEMBER_OF_COLLECTION_DMG_DMG, null);
+                while (pathItr.hasNext()) {
+                    CIMObjectPath objPath = pathItr.next();
+                    if (objPath != null) {
+                        CIMProperty prop = objPath.getKey(COLLECTION);
+                        if (prop != null) {
+                            CIMObjectPath csgPath = (CIMObjectPath) prop.getValue();
+                            _log.debug("CSG of {}: {}", groupName, csgPath.toString());
+                            cimPathItr = getAssociatorNames(storage, csgPath, null, SYMM_LUN_MASKING_VIEW,
+                                    null, null);
+                            if (cimPathItr.hasNext()) {
+                                _log.info("The parent storage group {} is part of existing masking view: {}",
+                                        csgPath.toString(), cimPathItr.next().toString());
+                                return true;
+                            }
+                        }
+
+                    }
+                }
+            }
+        } finally {
+            closeCIMIterator(cimPathItr);
+            closeCIMIterator(pathItr);
+        }
+        return false;
+    }
+
+    /**
      * Group volumes by storage group which has host IO limit set.
      *
      * @param storage the storage
@@ -5689,7 +5750,15 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
 
+        boolean foundSGwithMV = false;
         for (String parkingSGName : parkingSGToVolumes.keySet()) {
+
+            _log.debug("Trying to find whether the storage group: {} is used in  a masking view...", parkingSGName);
+            foundSGwithMV = isSGOrItsCSGPartOfMaskingView(storage, parkingSGName);
+            if (foundSGwithMV) {
+                _log.warn("The parking storage group is part of a masking view. So, don't remove volumes from it: {}", parkingSGName);
+                continue;
+            }
             List<CIMObjectPath> volumePaths = parkingSGToVolumes.get(parkingSGName);
             CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, parkingSGName,
                     MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);

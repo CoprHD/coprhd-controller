@@ -37,8 +37,6 @@ import com.jcraft.jsch.JSchException;
 public class HpuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(HpuxHostDiscoveryAdapter.class);
 
-    private static final String LAN0 = "lan0";
-
     @Override
     protected String getSupportedType() {
         return HostType.HPUX.name();
@@ -190,13 +188,16 @@ public class HpuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void setNativeGuid(Host host) {
         HpuxSystem hpux = getCli(host);
         try {
-            String macAddress = hpux.getNetworkAdapterMacAddress(LAN0);
-            if (macAddress != null && !host.getNativeGuid().equalsIgnoreCase(macAddress)) {
-                checkDuplicateHost(host, macAddress);
-                info("Setting nativeGuid for " + host.getId() + " as " + macAddress);
-                host.setNativeGuid(macAddress);
-                save(host);
-            }
+        	for (String adaptor : hpux.listNwInterfacesWithIP()) {
+                String macAddress = hpux.getNetworkAdapterMacAddress(adaptor);
+                if (macAddress != null && !host.getNativeGuid().equalsIgnoreCase(macAddress)) {
+                    checkDuplicateHost(host, macAddress);
+                    info("Setting nativeGuid for " + host.getId() + " as " + macAddress);
+                    host.setNativeGuid(macAddress);
+                    save(host);
+                    break;
+                }
+        	}
         } catch (CommandException ex) {
             LOG.warn("Failed to get MAC address of adapter during discovery");
         }

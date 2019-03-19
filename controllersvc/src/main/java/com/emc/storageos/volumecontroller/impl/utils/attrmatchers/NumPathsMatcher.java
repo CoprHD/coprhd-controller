@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -24,12 +22,12 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.google.common.collect.Sets;
@@ -234,9 +232,11 @@ public class NumPathsMatcher extends AttributeMatcher {
         for (StoragePort storagePort : storagePorts) {
             // must not be null or incompatible or inactive
             _logger.debug("Checking port: " + storagePort.getNativeGuid());
+            // COP-35850 In case of vpool matcher we should not check for initiator count over ceiling.
+            // hence, setting checkInitiatorCountOverCeiling flag as false
             if (transportType.name().equals(storagePort.getTransportType()) &&
                     _portMetricsProcessor.isPortUsable(storagePort, vArrays) &&
-                    !_portMetricsProcessor.isPortOverCeiling(storagePort, storageDevice, false)) {
+                    !_portMetricsProcessor.isPortOverCeiling(storagePort, storageDevice, false, false)) {
                 haDomains.add(storagePort.getStorageHADomain());
                 usable++;
             }

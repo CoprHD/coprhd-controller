@@ -375,7 +375,7 @@ public class XtremIOV1Client extends XtremIOClient {
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiatorGroups igGroups = getResponseObject(XtremIOInitiatorGroups.class,
                     response);
-            XtremIOInitiatorGroup igGroup= igGroups.getContent();
+            XtremIOInitiatorGroup igGroup = igGroups.getContent();
             log.info(igGroup.toString());
             return igGroup;
         } catch (Exception e) {
@@ -397,7 +397,7 @@ public class XtremIOV1Client extends XtremIOClient {
             XtremIOTags folderResponse = getResponseObject(
                     XtremIOTags.class, response);
             XtremIOTag folder = folderResponse.getContent();
-            log.info(folder.toString());            		
+            log.info(folder.toString());
             return folder;
 
         } catch (Exception e) {
@@ -419,7 +419,7 @@ public class XtremIOV1Client extends XtremIOClient {
             ClientResponse response = get(URI.create(uriStr));
             XtremIOTags folderResponse = getResponseObject(XtremIOTags.class, response);
             XtremIOTag folder = folderResponse.getContent();
-            log.info(folder.toString());            		
+            log.info(folder.toString());
             return folder;
 
         } catch (Exception e) {
@@ -567,10 +567,10 @@ public class XtremIOV1Client extends XtremIOClient {
             deleteInitiatorGroupFolder(XtremIOConstants.V1_ROOT_FOLDER.concat(tagName), clusterName);
         }
     }
-    
+
     @Override
     public void deleteEntityTag(String tagName, String tagEntityType, String entityDetails, String clusterName) throws Exception {
-         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("deleteEntityTagDetails");
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("deleteEntityTagDetails");
     }
 
     @Override
@@ -632,5 +632,4 @@ public class XtremIOV1Client extends XtremIOClient {
     public void expandBlockSnapshot(String snapshotName, String size, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("expandXtremIOBlockSnapshot");
     }
-    
 }

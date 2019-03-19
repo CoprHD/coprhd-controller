@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.recoverpoint.utils.RecoverPointImageManagementUtils;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,6 +118,7 @@ public class RPHelper {
     private static final String LOG_MSG_VOLUME_TYPE_RPVPLEX = "RP_VPLEX_VIRT_SOURCE";
 
     public static final String REMOVE_PROTECTION = "REMOVE_PROTECTION";
+    private static final String CONTROLLER_RP_LINK_STATE_WAIT_TIMEOUT = "controller_rp_link_state_wait_timeout";
 
     /**
      * Get all of the replication set volumes for a list of volumes; the sources and all of their targets.
@@ -2629,5 +2633,18 @@ public class RPHelper {
             }
         }
         return false;
+    }
+    
+    /**
+     * This is used to get the updated Value for controller_rp_link_state_timeout and set it to linkStateWaitTime in
+     * RecoverPointImageManagementUtils.java class
+     * 
+     * @param coordinator
+     */
+    public static void setLinkStateWaitTimeOut(CoordinatorClient coordinator) {
+
+        int highStateValue = Integer
+                .valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, CONTROLLER_RP_LINK_STATE_WAIT_TIMEOUT));
+        RecoverPointImageManagementUtils.setLinkStateWaitTime(highStateValue);
     }
 }

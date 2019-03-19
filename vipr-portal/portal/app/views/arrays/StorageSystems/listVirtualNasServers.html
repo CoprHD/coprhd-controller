@@ -102,12 +102,10 @@
 
 <script type="text/javascript">
 function renderLink(o, val) {
-    
     return "";
 }
 
 function enableSubmitFormButton(buttonId) {
-	
 	var checked = false;
 	var checkboxes = document.getElementsByName('selected');
 	for (var i=0, n=checkboxes.length;i<n;i++) {
@@ -115,7 +113,7 @@ function enableSubmitFormButton(buttonId) {
         	checked = true;
         	break;
         }
-      }
+    }
 	if(checked) {
 		document.getElementById(buttonId).disabled = false;
 	} else {
@@ -124,48 +122,39 @@ function enableSubmitFormButton(buttonId) {
 }
 
 function showAssociateProjectDialog() {
-      var checkboxes = document.getElementsByName('selected');
-      var nasIds = "";
-      document.getElementById("submitAssociateFormButton").disabled = true;
-      for (var i=0, n=checkboxes.length;i<n;i++) {
-        if (checkboxes[i].checked) {
-        	
+    var checkboxes = document.getElementsByName('selected');
+    var nasIds = "";
+    document.getElementById("submitAssociateFormButton").disabled = true;
+    for (var i=0, n=checkboxes.length;i<n; i++) {
+		if (checkboxes[i].checked) {        	
         	document.getElementById("submitAssociateFormButton").disabled = false;
-        	var nasid = checkboxes[i].value.split("~~~");
-            nasIds += "," + nasid[0];
+            nasIds += "," + checkboxes[i].value
         }
-      }
-      if (nasIds) {
-    	  nasIds = nasIds.substring(1);
-      }
-      var scope = angular.element($('#associateForm')).scope();
-	  scope.populateModal(nasIds);
-	  $('#associateToProject').modal('show');
+    }      
+    if (nasIds) {
+    	nasIds = nasIds.substring(1);
+    }
+    var scope = angular.element($('#associateForm')).scope();
+	scope.populateModal(nasIds);
+	$('#associateToProject').modal('show');
 }
 
 function showDissociateProjectDialog() {
     var checkboxes = document.getElementsByName('selected');
-    var projectIds = "";
-    var nasIds = "";
+    var nasIds = "";    
     document.getElementById("submitDissociateFormButton").disabled = true;
-    for (var i=0, n=checkboxes.length;i<n;i++) {
-      if (checkboxes[i].checked) {
-    	  document.getElementById("submitDissociateFormButton").disabled = false;
-    	  
-      	  var project = checkboxes[i].value.split("~~~");
-      	  if (project.length > 1 && project[1].trim().length > 0) {
-      	      projectIds += "," + project[1];
-      	      nasIds = project[0];
-      	  }
-      	  break;
-      }
+    for (var i=0, n=checkboxes.length;i<n; i++) {
+      	if (checkboxes[i].checked) {
+    		document.getElementById("submitDissociateFormButton").disabled = false;
+      	    nasIds += "," + checkboxes[i].value     	  	
+      	}
     }
-    if (projectIds.length > 0) {
-    	projectIds = projectIds.substring(1);
-	    var scope = angular.element($('#dissociateForm')).scope();
-	    scope.populateModal(projectIds, nasIds);
-	    $('#dissociateFromProject').modal('show');
+    if (nasIds) {
+    	nasIds = nasIds.substring(1);
     }
+    var scope = angular.element($('#dissociateForm')).scope();
+    scope.populateModal(nasIds);
+    $('#dissociateFromProject').modal('show');    
 }
 
 </script>

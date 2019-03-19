@@ -16,6 +16,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -49,7 +50,7 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
      *
      */
     @Override
-    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         ExportMask eMask = null;
         boolean maskFound = false;
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
@@ -63,10 +64,17 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
             for (URI eMaskUri : exportMaskUris) {
                 ExportMask potentialMask = _dbClient.queryObject(ExportMask.class, eMaskUri);
                 if (potentialMask.getStorageDevice() != null && potentialMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
-                    _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
-                    eMask = potentialMask;
-                    maskFound = true;
-                    break;
+                	ExportGroup eg = requestContext.getExportGroup();
+					if (null != eg && null != eg.getExportMasks() && eg.getExportMasks().contains(eMaskUri.toString())) {
+						// COP-36231: Check whether we are ingesting into existing EG's. This will make sure to pick the right ExportMask
+						// when there are cluster & exclusive EMs exists.
+						_logger.info("Found Mask {} in the export Group {}", eMaskUri, eg.getId());
+						eMask = potentialMask;
+						maskFound = true;
+						break;
+					} else {
+						_logger.info("Found Mask {} with matching initiator and unmatched Storage System & EG. Skipping mask", eMaskUri);
+					}
                 } else {
                     _logger.info("Found Mask {} with matching initiator and unmatched Storage System. Skipping mask", eMaskUri);
                 }

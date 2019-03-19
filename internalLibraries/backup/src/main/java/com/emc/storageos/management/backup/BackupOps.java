@@ -20,7 +20,17 @@ import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -37,44 +47,41 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-
-import com.emc.storageos.management.backup.util.BackupClient;
-
-import com.emc.storageos.services.util.TimeUtils;
-import com.emc.vipr.model.sys.backup.BackupInfo;
-import com.emc.vipr.model.sys.backup.BackupOperationStatus;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
-import com.google.common.base.Preconditions;
-
-import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
-import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
-
-import com.emc.storageos.services.util.FileUtils;
-import com.emc.storageos.coordinator.client.model.ProductName;
-import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.ZipUtil;
 import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.vipr.model.sys.recovery.RecoveryConstants;
-import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.storageos.services.util.FileUtils;
+import com.emc.storageos.services.util.TimeUtils;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.ClusterInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
+import com.emc.vipr.model.sys.backup.BackupOperationStatus;
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.recovery.RecoveryConstants;
+import com.google.common.base.Preconditions;
+import com.google.common.hash.Hashing;
+import com.google.common.io.Files;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
@@ -371,6 +378,7 @@ public class BackupOps {
             }
 
             checkMD5(file);
+            checkZipSlipVulnerability(backupFolder, file);
         }
 
         log.info("found db {} geodb {}", found_db_file, found_geodb_file);
@@ -781,6 +789,22 @@ public class BackupOps {
             throw new RuntimeException(errMsg);
         }
     }
+
+    private void checkZipSlipVulnerability(File backupFolder, File backupFile) {
+    	if (backupFile.getName().endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+			try {
+				boolean validZip = ZipUtil.validateZipSlip(backupFile, backupFolder.getParentFile());
+
+				if (!validZip) {
+					String errMsg = String.format("Backup archive %s contains a file trying to traverse up the target directory.", backupFile.getName());
+					throw new RuntimeException(errMsg);
+				}
+	        } catch (IOException e) {
+	    		String errMsg = String.format("Unable to read/validate the backup archive %s file. Error : %s", backupFile.getName(), e.getMessage());
+	            throw new RuntimeException(errMsg);
+	        }
+    	}
+	}
 
     public boolean isGeoBackup(String backupFileName) {
         return backupFileName.contains("multivdc");

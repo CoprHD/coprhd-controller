@@ -29,6 +29,7 @@ public class ScaleIOConstants {
     public static final String THICK_PROVISIONED = "ThickProvisioned";
 
     public static final String SCALEIO_VERSION = "Version";
+    public static final String SCALEIO_VERSION_PATTERN = "Version:\\s+[a-zA-Z](.*?)";
     public static final String SCALEIO_CUSTOMER_ID = "CustomerID";
     public static final String SCALEIO_INSTALLATION_ID = "InstallationID";
     public static final String SCALEIO_TOTAL_CAPACITY = "TotalCapacity";

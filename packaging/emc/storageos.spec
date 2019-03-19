@@ -132,6 +132,7 @@ fi
 /etc/genconfig.d/ssl
 /etc/genconfig.d/syslog
 /etc/genconfig.d/logretention
+/etc/genconfig.d/diagutil
 /etc/genconfig.d/system
 /etc/genconfig.d/syssvc
 /etc/genconfig.d/vasa

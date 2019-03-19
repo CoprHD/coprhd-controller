@@ -45,7 +45,7 @@
   </target>
     
   <target name="StopServices" description="Stop the StorageOS services.">
-    <!--  Stop the services -->
+    <!--  Stop the StorageOS services -->
     <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos stop" trust="true"/>
   </target>
 

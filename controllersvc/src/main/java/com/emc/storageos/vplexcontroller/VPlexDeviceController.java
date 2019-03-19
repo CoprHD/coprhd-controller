@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
+import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
@@ -69,6 +70,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -77,6 +79,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -262,6 +265,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String IMPORT_COPY_STEP = "importCopy";
     private static final String VOLUME_FORGET_STEP = "forgetVolumes";
     private static final String ZONING_STEP = "zoning";
+    private static final String ZONING_FC_REF_STEP = "zoningFCRefStep";
     private static final String INITIATOR_REGISTRATION = "initiatorRegistration";
     private static final String RESTORE_VOLUME_STEP = "restoreVolume";
     private static final String RESTORE_VPLEX_VOLUME_STEP = "restoreVPlexVolume";
@@ -341,8 +345,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     private static final String STORAGE_VIEW_ADD_INITS_METHOD = "storageViewAddInitiators";
 
     // Constants used for creating a migration name.
-    private static final String MIGRATION_NAME_PREFIX = "M_";
-    private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
+    private static final String MIGRATION_NAME_PREFIX = "M";
+    private static final String MIGRATION_NAME_DATE_FORMAT = "ddHHmmssSSS";
 
     // Miscellaneous Constants
     private static final String HYPHEN_OPERATOR = "-";
@@ -357,6 +361,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     
     private static final Long MINUTE_TO_MILLISECONDS = 60000L;
     private static final String CONTROLLER_VPLEX_MIGRATION_TIMEOUT_MINUTES = "controller_vplex_migration_timeout_minutes";
+    private static final String CONTROLLER_VPLEX_BACKEND_HDS_DISCOVERY_RETRY = "controller_vplex_backend_hds_discovery_retry";
 
     // migration speed to transfer size map
     private static final Map<String, String> migrationSpeedToTransferSizeMap;
@@ -877,6 +882,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             List<String> storageSystemGuids = new ArrayList<String>();
 
             Boolean isDistributedVolume = false;
+            Boolean isAnyHDSVolume = false;
             Map<String, Set<URI>> clusterVarrayMap = new HashMap<>();
             for (URI vplexVolumeURI : vplexVolumeURIs) {
                 Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
@@ -906,6 +912,10 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                         storageMap.put(storageSystemId, storage);
                         if (!storageSystemGuids.contains(storage.getNativeGuid())) {
                             storageSystemGuids.add(storage.getNativeGuid());
+                            //check any storage is HDS as it may need extra discovery
+                            if (storage.deviceIsType(DiscoveredDataObject.Type.hds)) {
+                                isAnyHDSVolume = true;
+                            }
                         }
                     }
                     volumeMap.get(vplexVolume).add(storageVolume);
@@ -937,6 +947,13 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // Essentially we revert to what was happening before the 12826 changes if there
             // is an issue discovering the systems on the initial try here.
             boolean discoveryRequired = false;
+            // Update for COP-36674, We Observe that for HDS system even after successful discovery the backend storage volume not found by
+            // VPLEX Intermittently and it may required rediscovery to find it.Making it configurable with default value set false.
+            boolean hdsRediscoveryConfigFlag = Boolean
+                    .valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, CONTROLLER_VPLEX_BACKEND_HDS_DISCOVERY_RETRY));
+            discoveryRequired = hdsRediscoveryConfigFlag && isAnyHDSVolume;
+            _log.debug("discoveryRequired: {} , hdsRediscoveryConfigFlag: {}, isAnyHDSVolume: {}",
+                    discoveryRequired, hdsRediscoveryConfigFlag, isAnyHDSVolume);
             try {
                 client.rediscoverStorageSystems(storageSystemGuids);
             } catch (Exception e) {
@@ -2328,6 +2345,24 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             _log.info("Adding step to update zones if required.");
             zoningStepId = addStepsForZoningUpdate(export, initiators, blockObjectMap, workflow, waitFor, exportMasksToCreateOnDevice,
                     exportMasksToUpdateOnDevice);
+        } else {
+            // If exportMasksToCreateOnDevice list as not empty, new export must be created and zoned on switch .
+            if (!exportMasksToCreateOnDevice.isEmpty()) {
+
+                _log.info("Adding zone step to newly created exportMask");
+                zoningStepId = addStepsForZoningUpdate(export, initiators, blockObjectMap, workflow, waitFor,
+                        exportMasksToCreateOnDevice,
+                        new ArrayList<ExportMask>());
+            }
+
+            // We are in exportGroupAddVolumes method with controller config "Enable Zoning On Export Add Volume" is set to False
+            // create the FCZoneReference for new volumes by referencing existing FCZoneReference on same ExportGroup
+            if (!exportMasksToUpdateOnDevice.isEmpty()) {
+                _log.info("Update ExportGroup: {} will use existing zone and new FCZoneReference will get added", export);
+                zoningStepId = addStepsForFCZoneRefCreate(export, blockObjectMap, workflow, zoningStepId, exportMasksToUpdateOnDevice);
+
+            }
+
         }
         _log.info("set up initiator pre-registration step");
         String storageViewStepId = 
@@ -2824,6 +2859,80 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 waitFor, nullURI, "network-system",
                 _networkDeviceController.getClass(), zoningExecuteMethod, zoningRollbackMethod, zoningStepId);
         return zoningStepId;
+    }
+
+    /**
+     * Handles creating a workflow method for creating the zoning reference for ExportMasks being
+     * updated with controller config flag Enable Zoning On Export Add Volume set to false
+     *
+     * @param exportGroup
+     *            the ViPR ExportGroup in question
+     * @param blockObjectMap
+     *            the map of URIs to block volumes for export
+     * @param workflow
+     *            the controller Workflow
+     * @param waitFor
+     *            if non-null, step will wait for previous step.
+     * @param exportMasksToUpdateOnDevice
+     *            collection of ExportMasks to update on the device
+     * @return
+     */
+    private String addStepsForFCZoneRefCreate(URI exportGroup, Map<URI, Integer> blockObjectMap, Workflow workflow,
+            String waitFor, List<ExportMask> exportMasksToUpdateOnDevice) {
+
+        // Add a step to create the underlying zoning.
+        List<FCZoneReference> fcList = new ArrayList<FCZoneReference>();
+        String zoningStepId = workflow.createStepId();
+        for (ExportMask exportMask : exportMasksToUpdateOnDevice) {
+            // Find one FCZoneReference for each Initiator_port pair for Export masks
+            Map<String, FCZoneReference> fcref = getPwwnKeyFCZoneReferencesMap(exportMask, _dbClient);
+            List<FCZoneReference> fcs = _networkDeviceController.generateFCZoneReferences(exportGroup, fcref.values(),
+                    blockObjectMap.keySet());
+            fcList.addAll(fcs);
+        }
+        Workflow.Method zoningExecuteMethod = _networkDeviceController.createFCZoneReferencesMethod(fcList);
+        Workflow.Method zoningRollbackMethod = _networkDeviceController.rollbackPersistFCZoneReferencesMethod(fcList);
+
+        zoningStepId = workflow.createStep(ZONING_FC_REF_STEP,
+                String.format("Adding FCZoneReference for existing export"),
+                waitFor, nullURI, "network-system",
+                _networkDeviceController.getClass(), zoningExecuteMethod, zoningRollbackMethod, zoningStepId);
+        return zoningStepId;
+    }
+
+    /**
+     * Find one FCZoneReference for each Initiator_port pair for referencing Export Mask
+     * and store in a Map
+     * 
+     * @param exportMask export Group
+     * @param dbClient db client
+     * @return Map of pwwnKey with one FCZoneReference.
+     */
+    private Map<String, FCZoneReference> getPwwnKeyFCZoneReferencesMap(ExportMask exportMask, DbClient dbClient) {
+        Map<String, FCZoneReference> resultFCRefMap = new HashMap<>();
+        StringSetMap refreshMap = exportMask.getZoningMap();
+        // Zone Map consist of initiator to ports map.
+        // Construct Initiator_Port pair (pwwnKey) and find one FCZoneReference for each pwwnKey
+        for (String initKey : refreshMap.keySet()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initKey));
+            if (initiator.getProtocol().equals(Block.FC.name())) {
+                StringSet portsKey = refreshMap.get(initKey);
+                for (String portkey : portsKey) {
+                    StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portkey));
+                    String pwwnKey = FCZoneReference.makeEndpointsKey(initiator.getInitiatorPort(), port.getPortNetworkId());
+                    URIQueryResultList queryList = new URIQueryResultList();
+                    // find All FCZoneReference for pwwnKey i.e. initiator_port
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceKeyConstraint(pwwnKey), queryList);
+                    for (URI uri : queryList) {
+                        FCZoneReference fc = dbClient.queryObject(FCZoneReference.class, uri);
+                        resultFCRefMap.put(pwwnKey, fc);
+                        // Need only one fcRef for each pwwnKey key;
+                        break;
+                    }
+                }
+            }
+        }
+        return resultFCRefMap;
     }
 
     /**
@@ -6651,10 +6760,17 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             // for the migration name. However, for remote migrations,
             // which require VPlex device migration, the max length is much
             // more restrictive, like 20 characters. So, we switched over
-            // timestamps.
+            // timestamps suffix with stepId.
             StringBuilder migrationNameBuilder = new StringBuilder(MIGRATION_NAME_PREFIX);
             DateFormat dateFormatter = new SimpleDateFormat(MIGRATION_NAME_DATE_FORMAT);
             migrationNameBuilder.append(dateFormatter.format(new Date()));
+            // Append step id last 7 char to migration name to make it unique
+            if (stepId.length() > 6) {
+                String nameSuffex = stepId.substring(stepId.length() - 7);
+                migrationNameBuilder.append(nameSuffex.toUpperCase());
+            } else {
+                migrationNameBuilder.append(stepId.toUpperCase());
+            }
             String migrationName = migrationNameBuilder.toString();
             migration.setLabel(migrationName);
             _dbClient.updateObject(migration);

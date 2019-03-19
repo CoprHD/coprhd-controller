@@ -796,7 +796,8 @@ public class PortMetricsProcessor {
             // since this method is invoked locally, port metrics are ready
             // updated. Hence, no need to update in its callee --set "false" to avoid
             // redundant update
-            boolean overCeiling = isPortOverCeiling(sp, system, updatePortUsages);
+            // COP-35850 In case of provisioning volume to new host we should set checkInitiatorCountOverCeiling flag as true
+            boolean overCeiling = isPortOverCeiling(sp, system, updatePortUsages, true);
             if (!overCeiling) {
                 portList.add(sp);
             }
@@ -810,10 +811,15 @@ public class PortMetricsProcessor {
      * @param sp
      * @param system
      * @param updatePortUsages - update port usage computation
+     * @param checkInitiatorCountOverCeiling This flag is used to whether initiator count ceiling check is required or not.
+     *            In case of provisioning volume to new host we should set this flag as true, while in case of Implicit pool matcher
+     *            we shouldn't check initiator count..
      * @return
      */
-    public boolean isPortOverCeiling(StoragePort sp, StorageSystem system, boolean updatePortUsages) {
+    public boolean isPortOverCeiling(StoragePort sp, StorageSystem system, boolean updatePortUsages,
+            boolean checkInitiatorCountOverCeiling) {
         boolean overCeiling = false;
+        Integer ceiling;
         boolean metricsValid = metricsValid(system, Collections.singletonList(sp));
 
         // to optimize performance, avoid redundant update port usage. When this method invoked
@@ -823,13 +829,19 @@ public class PortMetricsProcessor {
         }
 
         StringMap metrics = sp.getMetrics();
-        Long initiatorCount = MetricsKeys.getLong(MetricsKeys.initiatorCount, metrics);
-        Integer ceiling = getInitiatorCeiling(StorageSystem.Type.valueOf(system.getSystemType()));
-        if (initiatorCount >= ceiling) {
+
+        if (checkInitiatorCountOverCeiling) {
+            Long initiatorCount = MetricsKeys.getLong(MetricsKeys.initiatorCount, metrics);
+            ceiling = getInitiatorCeiling(StorageSystem.Type.valueOf(system.getSystemType()));
+            if (initiatorCount >= ceiling) {
             _log.info(String.format("Port %s disqualified because initiator count %d over or equal-to ceiling %d",
                     portName(sp), initiatorCount, ceiling));
             overCeiling = true;
+            }
+        } else {
+            _log.info("Skipping the initiator ceiling count check for port: {} as request is coming from Implicit Matcher", sp.getLabel());
         }
+
         Long volumeCount = MetricsKeys.getLong(MetricsKeys.volumeCount, metrics);
         ceiling = getVolumeCeiling(StorageSystem.Type.valueOf(system.getSystemType()));
         if (volumeCount >= ceiling) {

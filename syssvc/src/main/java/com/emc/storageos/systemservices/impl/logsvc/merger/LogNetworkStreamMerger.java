@@ -42,6 +42,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
 
     private MediaType mediaType;
     private LogSvcPropertiesLoader propertiesLoader;
+    private boolean isOverMaxByte = false;
 
     /**
      * Merges all logs on each node based on time stamp
@@ -67,12 +68,17 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
         }
     }
 
+    public boolean getIsOverMaxByte() {
+        return isOverMaxByte;
+    }
+
     public void streamLogs(OutputStream outputStream) {
         logger.trace("Entering into LogNetworkStreamMerger.streamLogs()");
         CountingOutputStream cos = new CountingOutputStream(new BufferedOutputStream(
                 outputStream, LogConstants.BUFFER_SIZE));
         Marshaller marshaller = MarshallerFactory.getLogMarshaller(mediaType, cos);
         int finalCount = 0;
+        isOverMaxByte = false;
         try {
             marshaller.head();
             LogMessage msg = readNextMergedLogMessage();
@@ -83,6 +89,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
                     if (request.getMaxBytes() > 0 && streamedBytes >= request.getMaxBytes()) {
                         logger.info("Streamed log size {}bytes reached maximum allowed limit {}bytes. So quitting.",
                                 streamedBytes, request.getMaxBytes());
+                        isOverMaxByte = true;
                         break;
                     }
 

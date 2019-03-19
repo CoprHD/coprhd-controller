@@ -18,7 +18,8 @@ DISK_USED_PERCENTAGE_WARNING_LIMIT=50
 DISK_USED_PERCENTAGE_TERMINATION_LIMIT=80
 MIN_CFS=(BlockConsistencyGroup BlockMirror BlockSnapshot Cluster ExportGroup ExportMask FCZoneReference Host Initiator Network NetworkSystem ProtectionSet ProtectionSystem StorageProvider StoragePool StoragePort StorageSystem Vcenter VirtualArray VirtualDataCenter VirtualPool Volume)
 LOG_DOWNLOAD_SERVICE_NAMES=(vasasvc portalsvc systemevents coordinatorsvc apisvc bkutils geosvc dbsvc authsvc controllersvc controllersvc-discovery controllersvc-metering controllersvc-vplex-api controllersvc-xio-api syssvc sasvc geodbsvc)
-
+EXECUTED_FROM_GUI=false
+MAX_CURR_JOBS=4
 
 #This script is used to help user to restore a backupset simply
 usage() {
@@ -77,7 +78,8 @@ init() {
     NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
     LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
-    mkdir -p ${DIAGCOLLECT_OUTPUT}
+    make_dir ${DIAGCOLLECT_OUTPUT}
+    chmod 777 ${DIAGCOLLECT_DIR}
     touch ${DIAGCOLLECT_LOG}
     echo_stdout_log -n "@@@@@@@@@@@@@@ ${DIAGCOLLECT_OUTPUT} @@@@@@@@@@@@ at " >>${DIAGCOLLECT_LOG}; date >>${DIAGCOLLECT_LOG}
 }
@@ -93,7 +95,7 @@ collect_cfs() {
 
     echo_stdout_log "Collecting cfs info.."
     local cfsDir="${DIAGCOLLECT_OUTPUT}/${param}"
-    mkdir -p ${cfsDir}
+    make_dir ${cfsDir}
 
     set +e
     diagnose_cfs ${cfsDir} "${option}"
@@ -109,7 +111,7 @@ collect_zk() {
 
     echo_stdout_log "Collecting zk info.."
     local zkDir="${DIAGCOLLECT_OUTPUT}/$param"
-    mkdir -p ${zkDir}
+    make_dir ${zkDir}
 
     set +e
     ${COMMAND_DIR}/zkutils path / > $zkDir/zk-path
@@ -139,7 +141,7 @@ collect_backup() {
 
     echo_stdout_log -e -n "\tTrying to collect and archive existing backup data.."
     local backupDir="${DIAGCOLLECT_OUTPUT}/backup"
-    mkdir -p ${backupDir}
+    make_dir ${backupDir}
     collect_data "/data/backup/${backupName}" "${backupDir}" "false"
   
     cd ${backupDir}
@@ -155,14 +157,22 @@ collect_backup() {
 collect_logs() {
     echo_stdout_log "Collecting logs.."
     local logsDir="${DIAGCOLLECT_OUTPUT}/logs"
-    mkdir -p ${logsDir}
+    make_dir ${logsDir}
 
     set +e
     cd ${logsDir}
-    mkdir info logs orders
+    make_dir info logs orders
     /opt/storageos/bin/dbutils dump_orders "${logsDir}/orders" &>> ${DIAGCOLLECT_LOG}
     collect_data "/opt/storageos/logs" "${logsDir}/info" "true"
-    convert_log_name
+    
+    if [ ${EXECUTED_FROM_GUI} != true ];then
+        convert_log_name
+    fi
+
+    if [ ${EXECUTED_FROM_GUI} == true ];then
+        format_info_folder
+    fi
+    
     zip -r logs-${DIAGCOLLECT_MAME}.zip * &>>${DIAGCOLLECT_LOG}
     rm -rf info logs orders
     set -e
@@ -171,10 +181,16 @@ collect_logs() {
 collect_properties() {
     echo_stdout_log "Collecting properties.."
     local propDir="${DIAGCOLLECT_OUTPUT}/properties"
-    mkdir -p ${propDir}
+    make_dir ${propDir}
  
     set +e 
     /etc/systool --getprops > $propDir/systool-getprops
+     
+    #The systool-getprops file contains various private keys.
+    #These should be masked from the diagutils output.
+
+    sed -i 's/BEGIN.*KEY/******* ENCRYPTED CONTENT **********/g' $propDir/systool-getprops    
+
     /etc/systool --get-default > $propDir/systool-getdefault
     /etc/getovfproperties --is-vapp
     if [ $? -eq 0 ]; then
@@ -188,7 +204,7 @@ collect_properties() {
 collect_health() {
     echo_stdout_log "Collecting health information.."
     local healthDir="${DIAGCOLLECT_OUTPUT}/health"
-    mkdir -p ${healthDir}
+    make_dir ${healthDir}
     
     set +e
     echo_stdout_log -e -n "\tCollecting memory disk related information on local node.."
@@ -244,6 +260,7 @@ create_archive() {
     set -e
     if [ ${result} -eq 0 ]; then
         rm -rf ${DIAGCOLLECT_OUTPUT}
+        chmod 777 ${DIAGCOLLECT_ARCHIVE_NAME}.zip
     else
         echo_stdout_log "Exit."
         return ${result}
@@ -274,7 +291,7 @@ upload_to_ftp() {
 }
 
 precheck_status() {
-    precheck_disk_status
+    precheck_disk_status ${EXECUTED_FROM_GUI}
     precheck_node_cluster_status
     set_max_current_job_number
 }
@@ -292,7 +309,7 @@ collect_data() {
         local viprNode=$(get_nodeid)
         if [ $haveSubDir == "true" ]; then
             local targetDir="${2}/$viprNode"
-            mkdir -p $targetDir
+            make_dir $targetDir
         fi
         scp -r svcuser@"$viprNode":"${sourceDir}"/* ${targetDir} &>>${DIAGCOLLECT_LOG} &
     done
@@ -305,6 +322,18 @@ get_nodeid() {
     else
         echo_stdout_log "vipr$i"
     fi
+}
+
+format_info_folder() {
+    for i in $(seq 1 ${NODE_COUNT})
+    do
+        local nodeId=$(get_nodeid)
+        mkdir tmp
+        mv info/${nodeId}/{genconfig.log,ipreconfig.log,dbutils.log,nodetool.log,zkutils.log} tmp/
+        rm -rf info/${nodeId}/*.log*
+        mv tmp/* info/${nodeId}/
+        rm -rf tmp
+    done
 }
 
 get_nodeName() {
@@ -362,8 +391,6 @@ set_max_current_job_number() {
     cat /proc/cpuinfo | grep processor &>>${DIAGCOLLECT_LOG}
     if [ $? -eq 0 ]; then
         MAX_CURR_JOBS=`cat /proc/cpuinfo | grep processor | wc -l`
-    else
-        MAX_CURR_JOBS=4
     fi
 }
 
@@ -433,11 +460,12 @@ precheck_node_cluster_status() {
 }
 
 precheck_disk_status() {
+    local gui_command=$1
     local dataUsedPercentage=$(df -km ${DIAGCOLLECT_DIR} | grep -v "Used" | awk -F ' ' '{print $5}')
     if [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_TERMINATION_LIMIT ]]; then
         echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_TERMINATION_LIMIT}%, can not execute this tool."
         exit 1
-    elif [[ ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_WARNING_LIMIT ]]; then
+    elif [[ $gui_command != true && ${dataUsedPercentage%\%} -gt $DISK_USED_PERCENTAGE_WARNING_LIMIT ]]; then
         echo_stdout_log "Data disk used percentage(${dataUsedPercentage}) is over than ${DISK_USED_PERCENTAGE_WARNING_LIMIT}%."
         user_confirm "Are you sure you want to continue?"
     fi
@@ -473,7 +501,7 @@ diagnose_cfs() {
     local output="lists"
     local cfListFile="collected_cf_list"
     rm -rf ${cfsDir}
-    mkdir -p ${cfsDir}/${output}
+    make_dir ${cfsDir}/${output}
     echo_stdout_log "${cfList[*]}" > ${cfsDir}/${cfListFile}
 
     # Generate the "dbutils list" output files
@@ -562,7 +590,10 @@ clean_up() {
     kill_background_thread &>>${DIAGCOLLECT_LOG}
     set -e
 }
-
+make_dir() {
+    mkdir -p $*
+    chmod -R 777 $*
+}
 #######################
 # Validate Parameters
 #######################
@@ -631,6 +662,13 @@ for i in $(seq 1 $#)
 do
     eval param=\${${i}}
     case $param in
+         -gui)
+             EXECUTED_FROM_GUI=true
+             ;;
+         -output_dir)
+             if [[ $i -lt $# ]]; then
+                 eval DIAGCOLLECT_MAME=\${$[i+1]}
+             fi ;;
         -all|-quick)
             genaral_param_count=$[genaral_param_count+1]
             ;;
@@ -638,7 +676,7 @@ do
             plain_param_count=$[plain_param_count+1]
             cf_param_count=$[cf_param_count+1]
             ;;
-        -zk|-logs|-properties|-health)
+        -zk|-logs|-properties|-health|-pre_check|-archive)
             plain_param_count=$[plain_param_count+1]
             ;;
         -backup)
@@ -691,7 +729,9 @@ validate_parameters
 # Diag Collect Begin
 ###################
 init
-precheck_status
+if [[ ${EXECUTED_FROM_GUI} != true ]]; then
+    precheck_status
+fi
 
 trap clean_up EXIT
 
@@ -708,10 +748,15 @@ do
         -logs) collect_logs ;;
         -properties) collect_properties ;;
         -health) collect_health ;;
+        -pre_check) precheck_disk_status ${EXECUTED_FROM_GUI};;
+        -archive) create_archive;;
+
     esac
 done
 
-create_archive 2>>${DIAGCOLLECT_LOG}
+if [[ ${EXECUTED_FROM_GUI} != true ]]; then
+    create_archive 2>>${DIAGCOLLECT_LOG}
+fi
 
 if [[ ${ftp_param_count} -eq 3 ]]; then
     upload_to_ftp "${FTP}" "${USER}" "${PASSWORD}" 2>>${DIAGCOLLECT_LOG}

@@ -193,7 +193,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 }
 
                 _logger.info("looking for an existing export mask for " + unManagedExportMask.getMaskName());
-                ExportMask exportMask = getExportMaskAlreadyIngested(unManagedExportMask, _dbClient);
+                ExportMask exportMask = getExportMaskAlreadyIngested(unManagedExportMask, requestContext, _dbClient);
 
                 if (null != exportMask) {
                     // check if mask has already been loaded
@@ -380,7 +380,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                             blockObject, unManagedMasks, initiatorSet,
                             iniByProtocol, _dbClient, requestContext.getVarray(unManagedVolume).getId(),
                             requestContext.getVpool(unManagedVolume).getId(), hostPartOfCluster,
-                            getInitiatorsOfCluster(host.getCluster(), hostPartOfCluster), null, errorMessages);
+                            getInitiatorsOfCluster(host.getCluster(), hostPartOfCluster), null,
+                            errorMessages);
                     if (!eligibleMasks.isEmpty()) {
                         _logger.info("Eligible masks found for Host {}: {}", host.forDisplay(), Joiner.on(",").join(eligibleMasks));
                     } else {
@@ -471,11 +472,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      * Find existing export mask in DB which contains the right set of initiators.
      *
      * @param mask
+     * @param requestContext
      * @param dbClient
      * @param iniUriStr
      * @return
      */
-    protected abstract ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient);
+    protected abstract ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient);
 
     /**
      * Find existing but newly-created export mask in IngestionRequestContext which contains

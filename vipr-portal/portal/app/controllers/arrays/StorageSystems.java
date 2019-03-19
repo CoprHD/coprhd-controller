@@ -674,7 +674,6 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void vNasMoreDetails(String id) {
-        id = id.substring(0, id.indexOf("~~~"));
         List<URI> ids = Lists.newArrayList();
         ids.add(uri(id));
         List<VirtualNASRestRep> vNasRep = getViprClient().virtualNasServers()

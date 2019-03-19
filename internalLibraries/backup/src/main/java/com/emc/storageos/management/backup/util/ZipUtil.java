@@ -5,12 +5,6 @@
 
 package com.emc.storageos.management.backup.util;
 
-import com.google.common.base.Preconditions;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -21,6 +15,13 @@ import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class ZipUtil {
 
@@ -157,4 +158,43 @@ public class ZipUtil {
         }
     }
 
+    /**
+     * Validation for Zip Slip Vulnerability i.e directory traversal validation
+     * 
+     * @param sourceZip
+     *            The instance of input ZIP file.
+     * @param targetDir
+     *            output directory (created automatically if not found).
+     * @throws IOException
+     */
+    public static boolean validateZipSlip(File sourceZip, final File targetDir) throws IOException {
+        log.info("Validating the backup file {} for zip slip vulnerability...", sourceZip.getName());
+        ZipFile zipFile = null;
+        try {
+            zipFile = new ZipFile(sourceZip);
+            Enumeration<? extends ZipEntry> entriesEnum = zipFile.entries();
+            while (entriesEnum.hasMoreElements()) {
+            	ZipEntry zipEntry = entriesEnum.nextElement();
+            	//Adding the validation for Zip Slip Vulnerability i.e directory traversal validation
+                String canonicalTargetDirPath = targetDir.getCanonicalPath();
+                File targetFile = new File(targetDir, zipEntry.getName());
+                String canonicalTargetFile = targetFile.getCanonicalPath();
+                if (!canonicalTargetFile.startsWith(canonicalTargetDirPath + File.separator)) {
+                	log.error("Backup archive contains a file trying to traverse up the target directory.", targetFile.getName());
+                	return false;
+                }
+            }
+            log.info("Validated the backup file {} for zip slip vulnerability - {}", sourceZip.getName(), "passed");
+            
+        } finally {
+            try {
+                if (zipFile != null) {
+                    zipFile.close();
+                }
+            } catch (IOException e) {
+                // Just ignore it
+            }
+        }
+        return true;
+    }
 }

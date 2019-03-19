@@ -54,6 +54,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
      */
     public abstract boolean isVersion2();
 
+
     @Override
     protected int checkResponse(URI uri, ClientResponse response) throws XtremIOApiException {
         ClientResponse.Status status = response.getClientResponseStatus();
@@ -79,7 +80,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
                 String objStr = (obj == null) ? "" : obj.toString();
                 // Append extra exception info if present
                 if (extraExceptionInfo != null) {
-                    objStr = String.format("%s%s", 
+                    objStr = String.format("%s%s",
                             (objStr.isEmpty()) ? objStr : objStr + " | ", extraExceptionInfo);
                 }
                 throw XtremIOApiException.exceptions.internalError(uri.toString(), objStr);
@@ -114,28 +115,30 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             closeResponse(response);
         }
     }
-    
+
     @Override
     public ClientResponse post(URI uri, String body) throws InternalException {
-    	ClientResponse response = null;
+        ClientResponse response = null;
         log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
-        response = super.post(uri, body);        
+        response = super.post(uri, body);
         return response;
     }
-    
+
     @Override
     public ClientResponse get(URI uri) throws InternalException {
-    	ClientResponse response = null;
+        ClientResponse response = null;
         log.info("Calling GET {}", uri.toString());
-        response = super.get(uri);        
+        response = super.get(uri);
         return response;
     }
 
     /**
      * Wrapper of post method to ignore the response
      *
-     * @param uri URI
-     * @param body request body string
+     * @param uri
+     *            URI
+     * @param body
+     *            request body string
      * @return null
      * @throws InternalException
      */
@@ -143,7 +146,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         ClientResponse response = null;
         try {
             log.info(String.format("Calling POST %s with data %s", uri.toString(), body));
-            response = super.post(uri,  body);
+            response = super.post(uri, body);
         } finally {
             closeResponse(response);
         }
@@ -155,7 +158,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         ClientResponse response = null;
         try {
             log.info(String.format("Calling PUT %s with data %s", uri.toString(), body));
-            response = super.put(uri,  body);
+            response = super.put(uri, body);
         } finally {
             closeResponse(response);
         }
@@ -178,7 +181,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
     public ClientResponse delete(URI uri, String body) throws InternalException {
         ClientResponse response = null;
         try {
-        	log.info(String.format("Calling DELETE %s with data %s", uri.toString(), body));
+            log.info(String.format("Calling DELETE %s with data %s", uri.toString(), body));
             response = super.delete(uri, body);
         } finally {
             closeResponse(response);

@@ -2229,10 +2229,19 @@ public class RecoverPointScheduler implements Scheduler {
                          buildRpRecommendationFromExistingVolume(targetJournal, targetJournalVpool, capabilities, targetJournalSize);
                 
                 // Parse out the calculated values
-                Map.Entry<Integer, Long> entry = additionalJournalForSource.entrySet().iterator().next();
-                Integer journalCount = entry.getKey();
-                Long journalSize = entry.getValue();
-                
+                Integer journalCount = 0;
+                Long journalSize = 0L;
+                if (!CollectionUtils.isEmpty(additionalJournalForSource)) {
+                    Map.Entry<Integer, Long> entry = additionalJournalForSource.entrySet().iterator().next();
+                    journalCount = entry.getKey();
+                    journalSize = entry.getValue();
+                } else {
+                    _log.info("Journal for Source is Null, journal Size will be calculated from Target");
+                    Map.Entry<Integer, Long> entry = additionalJournalForTarget.entrySet().iterator().next();
+                    journalCount = entry.getKey();
+                    journalSize = entry.getValue();
+                }
+                _log.info("journalCount : {} and journalSize: {}", journalCount, journalSize);
                 // Override values in recommendation with calculated journal count and size
                 targetJournalRecommendation.setResourceCount(journalCount);
                 targetJournalRecommendation.setSize(journalSize);
@@ -2573,6 +2582,8 @@ public class RecoverPointScheduler implements Scheduler {
                 sourceStorageSytemUri, ps.getId(), sourceInternalSiteName, varray)) {
             _log.info(String.format("RP Placement: Disqualified RP site [%s] because its initiators are not in a network configured "
                     + "for use by the virtual array [%s]", sourceInternalSiteName, varray.getLabel()));
+            _log.info("Please recheck the Copy/Site Name {} and Virtual Array {} you have selected."+
+                    "Eg: varray associated with Stand-by site must be selected if you have selected Stand-by Copy Name.", sourceInternalSiteName, varray.getLabel());
             return null;
         }
 
@@ -3562,6 +3573,8 @@ public class RecoverPointScheduler implements Scheduler {
         _log.info(String.format(
                 "RP Placement : Disqualifying use of RP Cluster : %s because it was not found to be connected to a Network "
                         + "that belongs to varray : %s", translatedInternalSiteName, varray.getLabel()));
+        _log.info("Please recheck the Copy/Site Name {} and Virtual Array {} you have selected."+
+        "Eg: varray associated with Stand-by site must be selected if you have selected Stand-by Copy Name.", translatedInternalSiteName, varray.getLabel());
         return false;
     }
 

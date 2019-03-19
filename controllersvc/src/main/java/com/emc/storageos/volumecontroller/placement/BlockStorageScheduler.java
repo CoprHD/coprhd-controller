@@ -143,6 +143,30 @@ public class BlockStorageScheduler {
         }
         return assignmentMap;
     }
+    
+    public Map<URI, List<URI>> verifyStoragePortGroups(StorageSystem storage, URI virtualArray,
+            List<Initiator> initiators,
+            ExportPathParams pathParams,
+            StringSetMap existingZoningMap,
+            Collection<URI> volumeURIs){
+        Map<URI, List<URI>> assignmentMap = null;
+        boolean backend = ExportMaskUtils.areBackendInitiators(initiators);
+        if (!allocateFromPrezonedPortsOnly(virtualArray, storage.getSystemType(), backend)) {
+            try {
+                assignmentMap = internalAssignStoragePorts(storage, virtualArray,
+                        initiators, volumeURIs, pathParams, existingZoningMap);
+            } catch (Exception e) {
+                _log.debug("Unable to assign Storage Ports", e.getMessage());
+            }
+        } else {
+            // assignment should be made solely based on pre-zoned ports
+            _log.debug("Manual zoning is specified for this virtual array and the system configuration is to use "
+                    + "existing zones. Assign port storage will not add any additional ports.");
+            assignmentMap = new HashMap<URI, List<URI>>();
+        }
+        return assignmentMap;
+    }
+
 
     /**
      * Assigns storage ports to initiators.

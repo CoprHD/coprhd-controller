@@ -11,13 +11,10 @@ import org.apache.commons.lang.mutable.MutableInt;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
+
 
 public class UnexportedVolumeIngestOrchestrator extends BlockIngestExportOrchestrator {
 
@@ -29,7 +26,7 @@ public class UnexportedVolumeIngestOrchestrator extends BlockIngestExportOrchest
     }
 
     @Override
-    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         // TODO Auto-generated method stub
         return null;
     }

@@ -24,6 +24,11 @@
     host:{
       type:"assetType.vipr.esxHost"
     },
+    vmfsVersion:{
+      type:"assetType.vipr.vmfsVersion",
+      lockable:true,
+      initialValue:"Default"
+    },    
     project:{
       type:"assetType.vipr.project",
       lockable: true

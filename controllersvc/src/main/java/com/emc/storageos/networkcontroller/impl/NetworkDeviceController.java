@@ -7,6 +7,7 @@ package com.emc.storageos.networkcontroller.impl;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,6 +32,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -44,6 +46,7 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -3013,4 +3016,215 @@ public class NetworkDeviceController implements NetworkController {
     	}
     	return ref;
     }
+
+    /**
+     * Creates a Workflow method for creating FCZoneReferences in Vipr DB.
+     * This will not create any zones on the switch.
+     * 
+     * @param fcZoneRefList Collection of FCZoneReference
+     * @return
+     */
+    public Workflow.Method createFCZoneReferencesMethod(List<FCZoneReference> fcZoneRefList)
+    {
+        return new Workflow.Method("createFCZoneReferences", fcZoneRefList);
+    }
+
+    /**
+     * Creates a Workflow rollback method for removing FCZoneReferences in Vipr DB.
+     * 
+     * @param fcZoneRefList Collection of FCZoneReference
+     * @return
+     */
+    public Workflow.Method rollbackPersistFCZoneReferencesMethod(List<FCZoneReference> fcZoneRefList) {
+        return new Workflow.Method("rollbackPersistFCZoneReferences", fcZoneRefList);
+    }
+
+
+    /**
+     * Create and validate FCZoneReference in database for given {@link FCZoneReference} collection
+     * 
+     * @param fcZoneRefList Collection of FCZoneReference
+     * @param token stepId for the Workflow
+     * @return
+     */
+    public boolean createFCZoneReferences(List<FCZoneReference> fcZoneRefList, String token) {
+        boolean success = false;
+        WorkflowStepCompleter.stepExecuting(token);
+        try {
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_087);
+            if (null != fcZoneRefList) {
+                for (FCZoneReference ref : fcZoneRefList) {
+                    // need to store clone FCZoneReferences in DB, as it only stored changed attribute.
+                    _dbClient.updateObject(cloneFCZoneReferences(ref));
+                    FCZoneReference fcZoneRef = _dbClient.queryObject(FCZoneReference.class, ref.getId());
+                    if (fcZoneRef != null) {
+                        _log.info("Created FCZoneReference Id: {} for existing Zone: {} PwwnKey: {} VolumeUri: {} ExportGroup: {}",
+                                fcZoneRef.getId(), fcZoneRef.getZoneName(), fcZoneRef.getPwwnKey(), fcZoneRef.getVolumeUri(),
+                                fcZoneRef.getGroupUri());
+                        success = true;
+                    } else {
+                        _log.error("Not able to create FCZoneReference for Id {} ", ref.getId());
+                        ServiceError svcError = NetworkDeviceControllerException.errors
+                                .createFCZoneReferenceFailed("Did not find newly created FCZoneReference in DB");
+                        WorkflowStepCompleter.stepFailed(token, svcError);
+                        success = false;
+                        break;
+                    }
+                }
+            }
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_088);
+            if (success) {
+                WorkflowStepCompleter.stepSucceded(token);
+            }
+
+        } catch (Exception e) {
+            _log.error("Exception while verifying FCZoneReference entry in DB", e);
+            ServiceError svcError = NetworkDeviceControllerException.errors.createFCZoneReferenceFailedExc(e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(token, svcError);
+        }
+        return success;
+    }
+
+    /**
+     * Remove {@link FCZoneReference} from database for given collection
+     * 
+     * @param fcZoneRefList Collection of FCZoneReference
+     * @param token stepId for the Workflow
+     * @return
+     */
+    public boolean rollbackPersistFCZoneReferences(List<FCZoneReference> fcZoneRefList, String token) {
+        boolean success = false;
+        WorkflowStepCompleter.stepExecuting(token);
+        _log.info("{} FCZoneReference will be rolled back {} ", fcZoneRefList.size());
+        try {
+            if (null != fcZoneRefList) {
+                for (FCZoneReference fcZoneRef : fcZoneRefList) {
+                    if (null != fcZoneRef.getId()) {
+                        FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fcZoneRef.getId());
+                        if (ref != null) {
+                            _dbClient.markForDeletion(ref);
+                            _log.info("Removed FCZoneReference Id: {} for existing Zone: {} PwwnKey: {} VolumeUri: {} ExportGroup: {}",
+                                    ref.getId(), ref.getZoneName(), ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri());
+                        } else {
+                            _log.info("fcZoneReferenceId {} corresponding to zone {} is not found. Nothing to remove.",
+                                    fcZoneRef.getId(), fcZoneRef.getZoneName());
+                        }
+                    }
+                }
+            }
+            success = true;
+            WorkflowStepCompleter.stepSucceded(token);
+        } catch (Exception e) {
+            _log.error("Exception in rollback FCZoneReference entry in DB", e);
+            ServiceError svcError = NetworkDeviceControllerException.errors.removeFCZoneReferenceFailedExc(e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(token, svcError);
+        }
+        return success;
+    }
+
+    /**
+     * Generate FCZoneReference list for existing zone and new volume combination
+     * 
+     * @param exportGroup The ViPR ExportGroup in question
+     * @param oldRefList Collection of FCZoneReference for same ExportGroup
+     * @param blockRefList The map of URIs to block volumes for export
+     * @return
+     */
+    public List<FCZoneReference> generateFCZoneReferences(URI exportGroup, Collection<FCZoneReference> oldRefList,
+            Set<URI> blockRefList) {
+        List<FCZoneReference> fcList = new ArrayList<>();
+        for (URI blockRef : blockRefList) {
+            for (FCZoneReference oldRef : oldRefList) {
+                // Check to see that we don't add multiple references for same Volume/Export Group combination
+                String[] newOrExisting = new String[1];
+                FCZoneReference ref = findFCZoneReferenceForVolGroupKey(exportGroup, blockRef, oldRef.getPwwnKey(),
+                        newOrExisting);
+                if (ref == null) {
+                    ref = new FCZoneReference();
+                    ref.setPwwnKey(oldRef.getPwwnKey());
+                    ref.setFabricId(oldRef.getFabricId());
+                    ref.setNetworkSystemUri(oldRef.getNetworkSystemUri());
+                    ref.setVolumeUri(blockRef);
+                    if (exportGroup != null) {
+                        ref.setGroupUri(exportGroup);
+                    } else {
+                        ref.setGroupUri(oldRef.getGroupUri());
+                    }
+                    ref.setZoneName(oldRef.getZoneName());
+                    ref.setId(URIUtil.createId(FCZoneReference.class));
+                    ref.setInactive(false);
+                    ref.setLabel(FCZoneReference.makeLabel(oldRef.getPwwnKey(), blockRef.toString()));
+                    ref.setExistingZone(oldRef.getExistingZone());
+                    ref.setCreationTime(Calendar.getInstance());
+                    fcList.add(ref);
+                    _log.info("Genrated FCZoneReference Id: {} for existing Zone: {} PwwnKey: {} VolumeUri: {} ExportGroup: {}",
+                            ref.getId(), ref.getZoneName(), ref.getPwwnKey(), ref.getVolumeUri(), ref.getGroupUri());
+
+                }
+            }
+        }
+        return fcList;
+    }
+    
+    /**
+     * Find one FCZoneReference for each Initiator_port pair for referencing Export Mask
+     * and store in a Map
+     * 
+     * @param exportMask export Group
+     * @param dbClient db client
+     * @return Map of pwwnKey with one FCZoneReference.
+     */
+    public static Map<String, FCZoneReference> getPwwnKeyFCZoneReferencesMap(ExportMask exportMask, DbClient dbClient) {
+        Map<String, FCZoneReference> resultFCRefMap = new HashMap<>();
+        StringSetMap refreshMap = exportMask.getZoningMap();
+        // Zone Map consist of initiator to ports map.
+        // Construct Initiator_Port pair (pwwnKey) and find one FCZoneReference for each pwwnKey
+        for (String initKey : refreshMap.keySet()) {
+            Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initKey));
+            if (initiator.getProtocol().equals(Block.FC.name())) {
+                StringSet portsKey = refreshMap.get(initKey);
+                for (String portkey : portsKey) {
+                    StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portkey));
+                    String pwwnKey = FCZoneReference.makeEndpointsKey(initiator.getInitiatorPort(), port.getPortNetworkId());
+                    URIQueryResultList queryList = new URIQueryResultList();
+                    // find All FCZoneReference for pwwnKey i.e. initiator_port
+                    dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceKeyConstraint(pwwnKey), queryList);
+                    for (URI uri : queryList) {
+                        FCZoneReference fc = dbClient.queryObject(FCZoneReference.class, uri);
+                        resultFCRefMap.put(pwwnKey, fc);
+                        // Need only one fcRef for each pwwnKey key;
+                        break;
+                    }
+                }
+            }
+        }
+        return resultFCRefMap;
+    }
+
+
+    /**
+     * Create new FCZoneReference instance, it will make sure _changed property is set properly,
+     * which is required for persisting it in DB.
+     * 
+     * @param oldRef - FCZoneReference object
+     * @return new cloned FCZoneReference object
+     */
+    public static FCZoneReference cloneFCZoneReferences(FCZoneReference oldRef) {
+        FCZoneReference ref = new FCZoneReference();
+        ref.setPwwnKey(oldRef.getPwwnKey());
+        ref.setFabricId(oldRef.getFabricId());
+        ref.setNetworkSystemUri(oldRef.getNetworkSystemUri());
+        ref.setVolumeUri(oldRef.getVolumeUri());
+        ref.setGroupUri(oldRef.getGroupUri());
+        ref.setZoneName(oldRef.getZoneName());
+        ref.setId(oldRef.getId());
+        ref.setInactive(oldRef.getInactive());
+        ref.setLabel(oldRef.getLabel());
+        ref.setExistingZone(oldRef.getExistingZone());
+        ref.setCreationTime(Calendar.getInstance());
+        return ref;
+    }
+
 }

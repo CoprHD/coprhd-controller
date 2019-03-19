@@ -70,6 +70,7 @@ public class LogService extends BaseLogSvcResource {
             LogSeverity.DEBUG, LogSeverity.TRACE);
     private static final List<String> VALID_LOG4J_SEV_STRS = new ArrayList<String>();
     private static final int MAX_LOG_LEVEL_EXPIR = 2880; // two days
+    public static final long DEFAULT_DOWNLOAD_LOG_SIZE = 1024 * 1024 * 300L;
 
     @Autowired
     private CoordinatorClientExt _coordinatorClientExt;
@@ -165,6 +166,27 @@ public class LogService extends BaseLogSvcResource {
         final MediaType mediaType = getMediaType();
         _log.info("Logs request media type {}", mediaType);
 
+        final LogNetworkStreamMerger logRequestMgr = getLogNetworkStreamMerger(nodeIds, nodeNames, logNames, severity, 
+        		startTimeStr, endTimeStr, msgRegex, maxCount, 0L, dryRun, mediaType);
+        if (dryRun) {
+            return Response.ok().build();
+        }
+        StreamingOutput logMsgStream = new StreamingOutput() {
+            @Override
+            public void write(OutputStream outputStream) {
+                try {
+                    runningRequests.incrementAndGet();
+                    logRequestMgr.streamLogs(outputStream);
+                } finally {
+                    runningRequests.decrementAndGet();
+                }
+            }
+        };
+        return Response.ok(logMsgStream).build();
+    }
+
+    public LogNetworkStreamMerger getLogNetworkStreamMerger(List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity, 
+    		String startTimeStr,String endTimeStr, String msgRegex, int maxCount, long maxBytes, boolean dryRun, MediaType mediaType) {
         nodeIds = _coordinatorClientExt.combineNodeNamesWithNodeIds(nodeNames, nodeIds);
 
         // Validate the passed node ids.
@@ -213,82 +235,72 @@ public class LogService extends BaseLogSvcResource {
         }
 
         if (dryRun) {
-            List<NodeInfo> clusterNodesInfo = ClusterNodesUtil.getClusterNodeInfo();
-            if (clusterNodesInfo.isEmpty()) {
-                _log.error("No nodes available for collecting logs");
-                throw APIException.internalServerErrors.noNodeAvailableError("no nodes available for collecting logs");
-            }
-            List<NodeInfo> matchingNodes = null;
-            if (nodeIds.isEmpty()) {
-                matchingNodes = clusterNodesInfo;
-            }
-            else {
-                matchingNodes = new ArrayList<NodeInfo>();
-                for (NodeInfo node : clusterNodesInfo) {
-                    if (nodeIds.contains(node.getId())) {
-                        matchingNodes.add(node);
-                    }
-                }
-            }
-
-            // find the unavailable nodes
-            List<String> failedNodes = null;
-            if (matchingNodes.size() == 1 && matchingNodes.get(0).getId().equals("standalone")) {
-                failedNodes = new ArrayList<String>();
-            }
-            else {
-                // find the unavailable nodes
-                failedNodes = _coordinatorClientExt.getUnavailableControllerNodes();
-            }
-
-            if (!nodeIds.isEmpty()) {
-                failedNodes.retainAll(nodeIds);
-            }
-            String baseNodeURL;
-            SysClientFactory.SysClient sysClient;
-            for (final NodeInfo node : matchingNodes) {
-                baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, node.getIpAddress(),
-                        node.getPort());
-                _log.debug("getting log names from node: " + baseNodeURL);
-                sysClient = SysClientFactory.getSysClient(URI.create(baseNodeURL),
-                        _logSvcPropertiesLoader.getNodeLogCollectorTimeout() * 1000,
-                        _logSvcPropertiesLoader.getNodeLogConnectionTimeout() * 1000);
-                LogRequest logReq = new LogRequest.Builder().nodeIds(nodeIds).baseNames(
-                        getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
-                        .endTime(endTime).regex(msgRegex).maxCont(maxCount).build();
-                logReq.setDryRun(true);
-                try {
-                    sysClient.post(SysClientFactory.URI_NODE_LOGS, null, logReq);
-                } catch (Exception e) {
-                    _log.error("Exception accessing node {}: {}", baseNodeURL, e);
-                    failedNodes.add(node.getId());
-                }
-            }
-            if (_coordinatorClientExt.getNodeCount() == failedNodes.size()) {
-                throw APIException.internalServerErrors.noNodeAvailableError("All nodes are unavailable for collecting logs");
-            }
-
-            return Response.ok().build();
+            druRun(nodeIds, logNames, severity, msgRegex, maxCount, startTime, endTime);
+            return null;
         }
 
         LogRequest logReqInfo = new LogRequest.Builder().nodeIds(nodeIds).baseNames(
                 getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
-                .endTime(endTime).regex(msgRegex).maxCont(maxCount).build();
+                .endTime(endTime).regex(msgRegex).maxCont(maxCount).maxBytes(maxBytes).build();
         _log.info("log request info is {}", logReqInfo.toString());
-        final LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger(
+        LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger(
                 logReqInfo, mediaType, _logSvcPropertiesLoader);
-        StreamingOutput logMsgStream = new StreamingOutput() {
-            @Override
-            public void write(OutputStream outputStream) {
-                try {
-                    runningRequests.incrementAndGet();
-                    logRequestMgr.streamLogs(outputStream);
-                } finally {
-                    runningRequests.decrementAndGet();
+        return logRequestMgr;
+    }
+
+    private void druRun(List<String> nodeIds, List<String> logNames, int severity, String msgRegex, int maxCount, Date startTime, Date endTime) {
+        List<NodeInfo> clusterNodesInfo = ClusterNodesUtil.getClusterNodeInfo();
+        if (clusterNodesInfo.isEmpty()) {
+            _log.error("No nodes available for collecting logs");
+            throw APIException.internalServerErrors.noNodeAvailableError("no nodes available for collecting logs");
+        }
+        List<NodeInfo> matchingNodes = null;
+        if (nodeIds.isEmpty()) {
+            matchingNodes = clusterNodesInfo;
+        } else {
+            matchingNodes = new ArrayList<NodeInfo>();
+            for (NodeInfo node : clusterNodesInfo) {
+                if (nodeIds.contains(node.getId())) {
+                    matchingNodes.add(node);
                 }
             }
-        };
-        return Response.ok(logMsgStream).build();
+        }
+
+        // find the unavailable nodes
+        List<String> failedNodes = null;
+        if (matchingNodes.size() == 1 && matchingNodes.get(0).getId().equals("standalone")) {
+            failedNodes = new ArrayList<String>();
+        } else {
+            // find the unavailable nodes
+            failedNodes = _coordinatorClientExt.getUnavailableControllerNodes();
+        }
+
+        if (!nodeIds.isEmpty()) {
+            failedNodes.retainAll(nodeIds);
+        }
+        String baseNodeURL;
+        SysClientFactory.SysClient sysClient;
+        for (final NodeInfo node : matchingNodes) {
+            baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, node.getIpAddress(),
+                    node.getPort());
+            _log.debug("getting log names from node: " + baseNodeURL);
+            sysClient = SysClientFactory.getSysClient(URI.create(baseNodeURL),
+                    _logSvcPropertiesLoader.getNodeLogCollectorTimeout() * 1000,
+                    _logSvcPropertiesLoader.getNodeLogConnectionTimeout() * 1000);
+            LogRequest logReq = new LogRequest.Builder().nodeIds(nodeIds).baseNames(
+                    getLogNamesFromAlias(logNames)).logLevel(severity).startTime(startTime)
+                    .endTime(endTime).regex(msgRegex).maxCont(maxCount).build();
+            logReq.setDryRun(true);
+            try {
+                sysClient.post(SysClientFactory.URI_NODE_LOGS, null, logReq);
+            } catch (Exception e) {
+                _log.error("Exception accessing node {}: {}", baseNodeURL, e);
+                failedNodes.add(node.getId());
+            }
+        }
+        if (_coordinatorClientExt.getNodeCount() == failedNodes.size()) {
+            throw APIException.internalServerErrors.noNodeAvailableError("All nodes are unavailable for collecting logs");
+        }
     }
 
     /**

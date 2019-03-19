@@ -9,6 +9,7 @@ import util.ConfigProperty;
 
 public class SyslogPropertiesPage extends CustomPropertyPage {
     private Property logRetentionDays;
+    private Property minCfs;
     private Property syslogRemoteServersPorts;
     private Property syslogEnable;
     private Property syslogTransportProtocol;
@@ -18,6 +19,7 @@ public class SyslogPropertiesPage extends CustomPropertyPage {
         super("Log");
         setRenderTemplate("syslogPage.html");
         logRetentionDays = addCustomProperty(properties, ConfigProperty.SYSTEM_LOG_RETENTION_DAYS);
+        minCfs = addCustomProperty(properties, ConfigProperty.SYSTEM_DIAGUTILS_MIN_CFS);
         syslogRemoteServersPorts = addCustomProperty(properties, ConfigProperty.SYSLOG_REMOTE_SERVERS_PORTS);
         syslogEnable = addCustomProperty(properties, ConfigProperty.SYSLOG_ENABLE);
         syslogDriverCa = addCustomProperty(properties, ConfigProperty.SYSLOG_DRIVER_CA);
@@ -30,6 +32,10 @@ public class SyslogPropertiesPage extends CustomPropertyPage {
 
     public Property getSyslogRemoteServersPorts() {
         return syslogRemoteServersPorts;
+    }
+
+    public Property getMinCfs() {
+    	return minCfs;
     }
 
     public Property getSyslogEnable() {

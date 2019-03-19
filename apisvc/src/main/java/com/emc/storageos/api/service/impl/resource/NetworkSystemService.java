@@ -12,11 +12,12 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -31,18 +32,20 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.api.mapper.functions.MapNetworkSystem;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.api.service.impl.resource.utils.FCZoneReferenceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -51,6 +54,7 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
@@ -63,6 +67,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.network.DbSchemasRestRep;
 import com.emc.storageos.model.network.FCEndpointRestRep;
 import com.emc.storageos.model.network.FCEndpoints;
 import com.emc.storageos.model.network.FCZoneReferences;
@@ -730,6 +735,67 @@ public class NetworkSystemService extends TaskResourceService {
 
         return references;
     }
+
+    /**
+     * This GET API call is for debugging purpose. It fetches all missing FCZoneReferences from ViPR DB for all VPLEX Volume Exports.
+     * This information may be required to fix any missing FCZoneReferences for VPLEX exports.
+     * 
+     * @return dbcli compatible XML formated text with all missing FCZoneReference.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN })
+    @Path("/fc-zone-references/missing")
+    public DbSchemasRestRep findMissingFCZoneReference() {
+        List<FCZoneReference> fcList = new ArrayList<FCZoneReference>();
+        List<URI> egList = _dbClient.queryByType(ExportGroup.class, true);
+        Iterator<ExportGroup> egIterator = _dbClient.queryIterativeObjects(ExportGroup.class, egList);
+        Map<URI, StorageSystem> cacheStorageSystems = new HashMap<URI, StorageSystem>();
+        while (egIterator.hasNext()) {
+            ExportGroup exportGroup = egIterator.next();
+            for (String em : exportGroup.getExportMasks()) {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, URIUtil.uri(em));
+                URI storageSystemURI = exportMask.getStorageDevice();
+                StorageSystem storageSystem = cacheStorageSystems.get(storageSystemURI);
+                if (null == storageSystem) {
+                    storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                    cacheStorageSystems.put(storageSystemURI, storageSystem);
+                } 
+                if (Type.vplex.toString().equals(storageSystem.getSystemType())) {
+                    List<String> pwwnKeyList = FCZoneReferenceUtils.generatePwwnKeys(_dbClient, exportMask);
+                    Set<URI> missingFCRefVols = new HashSet<URI>();
+                    String volWithFCRefs = null;
+                    Map<String, List<FCZoneReference>> zoneRefsForBlock = new HashMap<String, List<FCZoneReference>>();
+                    if (exportMask.getUserAddedVolumes() != null) {
+                        for (String volUriStr : exportMask.getUserAddedVolumes().values()) {
+                            // find out volume is part of current export group or not.
+                            if (exportGroup.getVolumes().get(volUriStr) == null) {
+                                continue;
+                            }
+                            List<FCZoneReference> refs = FCZoneReferenceUtils.findFCZoneReferences(_dbClient, volUriStr, pwwnKeyList);
+                            // As due to bug COP-36572 ref will be empty.
+                            if (refs.isEmpty()) {
+                                missingFCRefVols.add(URIUtil.uri((volUriStr)));
+                            } else {
+                                volWithFCRefs = volUriStr;
+                                zoneRefsForBlock.put(volUriStr, refs);
+                            }
+                        }
+                    }
+                    List<FCZoneReference> tempList = FCZoneReferenceUtils.generateFCZoneReferences(_dbClient, exportGroup.getId(),
+                            zoneRefsForBlock.get(volWithFCRefs),
+                            missingFCRefVols);
+                    fcList.addAll(tempList);
+
+                }
+            }
+        }
+
+        // convert it into dbCli friendly DbSchemasRestRep object and return
+        return FCZoneReferenceUtils.convertToDbCliObjectFormat(fcList);
+
+    }
+
 
     /**
      * Returns a list of the VSAN or fabric names configured on this network system.
@@ -1427,5 +1493,7 @@ public class NetworkSystemService extends TaskResourceService {
         }
         return fcEndpointRestRepList;
     }
+    
+
 
 }

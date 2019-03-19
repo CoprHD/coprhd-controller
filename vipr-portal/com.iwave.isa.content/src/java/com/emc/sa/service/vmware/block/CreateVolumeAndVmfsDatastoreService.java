@@ -6,6 +6,7 @@ package com.emc.sa.service.vmware.block;
 
 import static com.emc.sa.service.ServiceParams.MULTIPATH_POLICY;
 import static com.emc.sa.service.ServiceParams.STORAGE_IO_CONTROL;
+import static com.emc.sa.service.ServiceParams.VMFS_VERSION;
 
 import java.net.URI;
 import java.util.List;
@@ -32,6 +33,8 @@ import com.vmware.vim25.mo.Datastore;
 @Service("VMware-CreateVolumeAndVmfsDatastore")
 public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
 
+	@Param(value = VMFS_VERSION)
+	protected String vmfsVersion;	
     @Param(value = MULTIPATH_POLICY, required = false)
     protected String multipathPolicy;
     @Param(value = STORAGE_IO_CONTROL, required = false)
@@ -130,7 +133,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         vmware.refreshStorage(host, cluster);
 
         for (Entry<String, BlockObjectRestRep> entry : datastoreVolumeMap.entrySet()) {
-            Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, entry.getValue(), entry.getKey());
+            Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, vmfsVersion, entry.getValue(), entry.getKey());
             vmware.setMultipathPolicy(host, cluster, multipathPolicy, entry.getValue());
             vmware.setStorageIOControl(datastore, storageIOControl, true);
         }

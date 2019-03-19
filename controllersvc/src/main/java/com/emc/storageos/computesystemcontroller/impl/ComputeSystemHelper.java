@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.util.EventUtils;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -49,6 +50,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.placement.PlacementException;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.vmware.vim25.DatastoreSummary;
@@ -796,6 +798,43 @@ public class ComputeSystemHelper {
             }
         }
         return null;
+    }
+
+    /**
+     * Gets all hosts initiators for the given cluster.
+     *
+     * @param clusterURI
+     *            the cluster uri
+     * @return the cluster initiators
+     */
+    public static List<Initiator> getAllInitiatorsForCluster(URI clusterURI, DbClient dbClient) {
+        List<Initiator> clusterInitiators = new ArrayList<Initiator>();
+        List<Host> hosts = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Host.class,
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
+        for (Host host : hosts) {
+            List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(host.getId(), Initiator.class, "host"));
+
+            clusterInitiators.addAll(initiators);
+        }
+        _log.debug("The initiators of the cluster {} are : -  {}", clusterURI,
+                Joiner.on(',').join(Collections2.transform(clusterInitiators, CommonTransformerFunctions.fctnDataObjectToID())));
+        return clusterInitiators;
+    }
+
+    /**
+     * Return the initiators of the host
+     * 
+     * @param computeResourceURI
+     * @param _dbClient
+     * @return
+     */
+    public static List<Initiator> getInitiatorsOfHost(URI computeResourceURI, DbClient _dbClient) {
+        List<Initiator> initiators = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Initiator.class,
+                ContainmentConstraint.Factory.getContainedObjectsConstraint(computeResourceURI, Initiator.class, "host"));
+        _log.debug("The initiators of the host {} are : -  {}", computeResourceURI,
+                Joiner.on(',').join(Collections2.transform(initiators, CommonTransformerFunctions.fctnDataObjectToID())));
+        return initiators;
     }
 
 }

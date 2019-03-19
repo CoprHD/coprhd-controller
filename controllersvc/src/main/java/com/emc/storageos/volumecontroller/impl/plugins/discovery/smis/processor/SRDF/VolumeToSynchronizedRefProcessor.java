@@ -67,7 +67,7 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
                     if (!findVolumesArefromSameArray(sourceNativeGuid, targetNativeGuid)) {
                         numberOfTargets++;
                         copyMode = storageSynchronized.getPropertyValue(MODE).toString();
-                        _log.info("RDF Group {} detected Copy Mode {}", remoteGroup.getNativeGuid(), copyMode);
+                        _log.info("RDF Group {} detected with Copy Mode {}", remoteGroup.getNativeGuid(), copyMode);
                     }
                 }
             }
@@ -76,21 +76,29 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
                 _log.info("RA Group {} is associated with Cascaded SRDF configuration, hence copyMode will not be updated.",
                         remoteGroup.getNativeGuid());
                 remoteGroup.setSupported(false);
-            } else {
-                // set copy Mode on Remote Group.
-                // get Volume-->RA Group Mapping
-                // if Copy Mode is already set on ViPr remoteGroup in DB, then don't change it.
-                remoteGroup.setSupported(true);
-                if (updateSupportedCopyMode(remoteGroup.getSupportedCopyMode())) {
-                    // in general, this property value can't be null, but in customer case we are seeing this, hence added this check
-                    if (null == copyMode) {
-                        remoteGroup.setSupportedCopyMode(SupportedCopyModes.UNKNOWN.toString());
-                    } else {
-                        remoteGroup.setSupportedCopyMode(SupportedCopyModes.getCopyMode(copyMode));
-                    }
-                }
-                _log.debug("Remote Group Copy Mode: {}", remoteGroup.getSupportedCopyMode());
-            }
+			} else {
+				// set copy Mode on Remote Group.
+				// get Volume-->RA Group Mapping
+				// Changing the copy mode if its a supported change or if it was Sync to Async or
+				// other way round change that would have been done at the array. This usecase
+				// comes into play when customer changes the mode to interchanges the Sync and
+				// Async mode on the basis of various parameter one being bandwidth.
+				remoteGroup.setSupported(true);
+				if (checkForCopyModeUpdate(remoteGroup.getSupportedCopyMode(),
+						SupportedCopyModes.getCopyMode(copyMode))) {
+					// in general, this property value can't be null, but in customer case we are
+					// seeing this, hence added this check
+					_log.info("RDF Group {} detected with set Copy Mode : {}; Copy Mode from array: {}",
+							remoteGroup.getLabel(), remoteGroup.getSupportedCopyMode(),
+							SupportedCopyModes.getCopyMode(copyMode));
+					if (null == copyMode) {
+						remoteGroup.setSupportedCopyMode(SupportedCopyModes.UNKNOWN.toString());
+					} else {
+						remoteGroup.setSupportedCopyMode(SupportedCopyModes.getCopyMode(copyMode));
+					}
+				}
+				_log.debug("Remote Group Copy Mode: {}", remoteGroup.getSupportedCopyMode());
+			}
             _dbClient.persistObject(remoteGroup);
         } catch (Exception e) {
             _log.error("Copy Mode Discovery failed for remote Groups ", e);

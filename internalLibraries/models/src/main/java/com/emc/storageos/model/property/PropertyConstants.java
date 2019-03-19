@@ -28,6 +28,8 @@ public class PropertyConstants {
     
     // type added for Syslog Forwarder feature
     public static final String IPPORTLIST                          = "ipportlist";
+    // type added for feature of collect diagutil data
+    public static final String STRINGLIST                       = "stringlist";
 
     // node related property key
     public static final String NODE_ID_KEY = "node_id";

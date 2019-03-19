@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -806,12 +807,67 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
+    	
+		if (validateVpoolChangeForExportPathAdjustment(volumes, vpool, taskId)) {
+			// COP-34359 Vpool change for exportPathAdjustment encounters the issue of taskID
+            // already in use. Generating a separate taskList for this particular use
+            // case. Every call to orchestrate vpool change will now use a different taskID. 
+            TaskList taskList2 = new TaskList();
+			String nextTaskId = taskId;
+			for (Volume volume : volumes) {
+				taskList2.getTaskList()
+						.addAll(orchestrateVpoolChangeForExportPathAdjustment(volume, vpool, nextTaskId).getTaskList());
+				// Create a unique task id.
+				nextTaskId = UUID.randomUUID().toString();
+			}
+			return taskList2;
+		}
+    	
         TaskList taskList = createTasksForVolumes(vpool, volumes, taskId);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return taskList;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
+    
+	/**
+	 * Perform vPool change for the given parameters.
+	 * 
+	 * @param volumes
+	 * @param newVirtualPool
+	 * @param taskId
+	 * @return taskList
+	 * @throws InternalException
+	 */
+	private TaskList orchestrateVpoolChangeForExportPathAdjustment(Volume volume, VirtualPool newVirtualPool,
+			String taskId) throws InternalException {
+		TaskList taskList = createTasksForVolumes(newVirtualPool, Arrays.asList(volume), taskId);
+		BlockExportController exportController = getController(BlockExportController.class,
+				BlockExportController.EXPORT);
+		exportController.updateVolumePathParams(volume.getId(), newVirtualPool.getId(), taskId);
+		return taskList;
+	}
+
+	/**
+	 * Checks whether vpool change can be performed for the given parameters for
+	 * export Path adjustment.
+	 * 
+	 * @param volumes
+	 * @param newVirtualPool
+	 * @param taskId
+	 * @return true if possible else false.
+	 * @throws InternalException
+	 */
+	private boolean validateVpoolChangeForExportPathAdjustment(List<Volume> volumes, VirtualPool newVirtualPool,
+			String taskId) throws InternalException {
+		VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
+		StringBuffer notSuppReasonBuff = new StringBuffer();
+		if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), volumeVirtualPool, newVirtualPool,
+				_dbClient, notSuppReasonBuff)) {
+			return true;
+		}
+		return false;
+	}
 
     @Override
     public StorageSystemConnectivityList getStorageSystemConnectivity(StorageSystem storageSystem) {

@@ -31,6 +31,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.Version;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -76,6 +77,22 @@ public class VMWareProvider extends BaseHostProvider {
     protected List<VcenterDataCenterRestRep> listDatacentersByVCenter(AssetOptionsContext context, URI vcenterId) {
         return api(context).vcenterDataCenters().getByVcenter(vcenterId, context.getTenant());
     }
+    
+    protected List<String> listSupportedVmfsVersionsByVCenter(AssetOptionsContext context, URI vcenterId) {
+    	String MIN_VCENTER_VERSION_SUPPORT_FOR_VMFS6 = "6.5.0";
+    	List<String> vmfsVersionsList = Lists.newArrayList();
+    	VcenterRestRep vcenterRestRep = api(context).vcenters().get(vcenterId);
+    	Version vcenterVersion = new Version(vcenterRestRep.getOsVersion());
+    	Version minVcenterVersion = new Version(MIN_VCENTER_VERSION_SUPPORT_FOR_VMFS6);
+    	int result = vcenterVersion.compareTo(minVcenterVersion);
+		vmfsVersionsList.add("Default");
+		vmfsVersionsList.add("VMFS5");
+		//Add VMFS6 option if the vCenter version is >= 6.5
+    	if (result == 1 || result == 0) {
+    		vmfsVersionsList.add("VMFS6");
+    	}    	
+        return vmfsVersionsList;
+    }
 
     protected List<VcenterDataCenterRestRep> listDatacentersByVCenterAndCluster(AssetOptionsContext context, URI vcenterId, URI clusterId) {
         ClusterRestRep clusterRestRep = api(context).clusters().get(clusterId);
@@ -111,6 +128,13 @@ public class VMWareProvider extends BaseHostProvider {
     public List<AssetOption> getDatacenters(AssetOptionsContext context, URI vcenter) {
         debug("getting datacenters (vcenter=%s)", vcenter);
         return createBaseResourceOptions(listDatacentersByVCenter(context, vcenter));
+    }
+
+    @Asset("vmfsVersion")
+    @AssetDependencies({ "vcenter" })
+    public List<AssetOption> getVCenterVmfsVersion(AssetOptionsContext context, URI vcenter) {
+        debug("getting VCenter supported VMFS version (vcenter=%s)", vcenter);
+        return createStringOptions(listSupportedVmfsVersionsByVCenter(context, vcenter));
     }
 
     @Asset("esxHost")

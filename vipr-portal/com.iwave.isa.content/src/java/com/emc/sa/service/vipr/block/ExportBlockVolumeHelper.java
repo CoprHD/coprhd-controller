@@ -83,6 +83,8 @@ public class ExportBlockVolumeHelper {
     protected Cluster cluster;
 
     public void precheck() {
+        // check to select max 100 resources at a time.
+        ViPRService.checkForMaxResouceOrderLimit(volumeIds);
         if (hlu == null) {
             hlu = -1;
         }

@@ -66,12 +66,13 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                     rmObj.setSourceVolumeNativeGuid(sourceNativeGuid);
                     rmObj.setType(RemoteMirrorObject.Types.TARGET.toString());
 
-                    if (copyMode != null && !SupportedCopyModes.UNKNOWN.name().equals(copyMode)
-                            && !copyMode.equalsIgnoreCase(rmObj.getCopyMode())
-                            && updateSupportedCopyMode(rmObj.getCopyMode())) {
-                        rmObj.setCopyMode(copyMode);
-                        updateCopyModeInRAGroupObjectIfRequired(copyMode, rmObj);
-                    }
+					if (checkForCopyModeUpdate(rmObj.getCopyMode(), copyMode)) {
+						_log.info(
+								"Target Volume with native GUID {} detected with set Copy Mode : {}; Copy Mode from array: {}",
+								targetNativeGuid, rmObj.getCopyMode(), copyMode);
+						rmObj.setCopyMode(copyMode);
+						updateCopyModeInRAGroupObjectIfRequired(copyMode, rmObj);
+					}
                 }
 
                 if (volumeToRAGroupMap.containsKey(sourceNativeGuid)) {
@@ -88,7 +89,18 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
                         // Set this only for the volumes have remote replication
                         rmObj.setType(RemoteMirrorObject.Types.SOURCE.toString());
                         _log.debug("Updated Target Volumes", rmObj);
-                    }
+					}
+                    
+					// If while iterating the source volume is encountered and if there is any
+					// deviation we will have to update it else there will be database
+					// inconsistencies.
+					if (checkForCopyModeUpdate(rmObj.getCopyMode(), copyMode)) {
+						_log.info(
+								"Source Volume with native GUID {} detected with set Copy Mode : {}; Copy Mode from array: {}",
+								sourceNativeGuid, rmObj.getCopyMode(), copyMode);
+						rmObj.setCopyMode(copyMode);
+						updateCopyModeInRAGroupObjectIfRequired(copyMode, rmObj);
+					}
                 }
             } catch (Exception e) {
                 _log.error("Finding out Parent of a target Volume failed", e);
@@ -110,20 +122,22 @@ public class StorageSynchronizedProcessor extends StorageProcessor {
         // If pairs got added to RA group outside, after the storage systems are registered, the
         // supported copy mode will still be ALL.
         // update the latest copy mode in RA group object in DB
-        if (raGroup != null && !copyMode.equalsIgnoreCase(raGroup.getSupportedCopyMode())
-                && updateSupportedCopyMode(raGroup.getSupportedCopyMode())) {
-            raGroup.setSupportedCopyMode(copyMode);
-            _dbClient.updateObject(raGroup);
-        }
+		if (checkForCopyModeUpdate(raGroup.getSupportedCopyMode(), copyMode)) {
+			_log.info("RDF Group {} detected with set Copy Mode : {}; Copy Mode from array: {}", raGroup.getLabel(),
+					raGroup.getSupportedCopyMode(), copyMode);
+			raGroup.setSupportedCopyMode(copyMode);
+			_dbClient.updateObject(raGroup);
+		}
 
         // get target array RA group
         URI targetRaGroupURI = rmObj.getSourceRaGroupUri();
         RemoteDirectorGroup targetRaGroup = _dbClient.queryObject(RemoteDirectorGroup.class, targetRaGroupURI);
-        if (targetRaGroup != null && !copyMode.equalsIgnoreCase(targetRaGroup.getSupportedCopyMode())
-                && updateSupportedCopyMode(targetRaGroup.getSupportedCopyMode())) {
-            targetRaGroup.setSupportedCopyMode(copyMode);
-            _dbClient.updateObject(targetRaGroup);
-        }
+		if (checkForCopyModeUpdate(targetRaGroup.getSupportedCopyMode(), copyMode)) {
+			_log.info("RDF Group {} detected with set Copy Mode : {}; Copy Mode from array: {}",
+					targetRaGroup.getLabel(), targetRaGroup.getSupportedCopyMode(), copyMode);
+			targetRaGroup.setSupportedCopyMode(copyMode);
+			_dbClient.updateObject(targetRaGroup);
+		}
     }
 
     @Override

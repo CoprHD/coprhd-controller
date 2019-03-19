@@ -16,14 +16,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupRequest;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupVolumeRequest;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapCreateAndReassign;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapshotExpand;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOV2SnapCreate;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOEntityTagDelete;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorGroupCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOLunMapCreate;
-import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapCreateAndReassign;
-import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapshotExpand;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOTagRequest;
-import com.emc.storageos.xtremio.restapi.model.request.XtremIOV2SnapCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOVolumeCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOVolumeExpand;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOCGResponse;
@@ -46,7 +49,6 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceRespon
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTags;
@@ -57,8 +59,6 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
 
 public class XtremIOV2Client extends XtremIOClient {
 
@@ -150,7 +150,7 @@ public class XtremIOV2Client extends XtremIOClient {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {
             URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref().concat(
-                        XtremIOConstants.getInputClusterString(clusterName))));
+                    XtremIOConstants.getInputClusterString(clusterName))));
             ClientResponse response = get(volumeURI);
             XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
             log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
@@ -186,7 +186,7 @@ public class XtremIOV2Client extends XtremIOClient {
         List<XtremIOLunMap> lunMapList = new ArrayList<XtremIOLunMap>();
         for (XtremIOObjectInfo lunMapInfo : lunMapLinks) {
             URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref().concat(
-                        XtremIOConstants.getInputClusterString(clusterName))));
+                    XtremIOConstants.getInputClusterString(clusterName))));
             ClientResponse response = get(lunMapURI);
             XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
             log.info("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
@@ -408,7 +408,7 @@ public class XtremIOV2Client extends XtremIOClient {
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiatorGroups igGroups = getResponseObject(XtremIOInitiatorGroups.class,
                     response);
-            XtremIOInitiatorGroup igGroup= igGroups.getContent();
+            XtremIOInitiatorGroup igGroup = igGroups.getContent();
             log.info(igGroup.toString());
             return igGroup;
         } catch (Exception e) {
@@ -631,7 +631,6 @@ public class XtremIOV2Client extends XtremIOClient {
                     + xioSystem.getContent().getVersion());
             return xioSystem.getContent();
         }
-
         return null;
     }
 
@@ -646,7 +645,7 @@ public class XtremIOV2Client extends XtremIOClient {
         log.info("Calling Tag Delete with: {}", deleteURI.toString());
         delete(deleteURI);
     }
-    
+
     @Override
     public void deleteEntityTag(String tagName, String tagEntityType, String entityDetails, String clusterName) throws Exception {
         // construct the body with entity & entity-details to untag.

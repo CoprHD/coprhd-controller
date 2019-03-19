@@ -39,6 +39,8 @@ public class UnexportHostService extends ViPRService {
 
     @Override
     public void precheck() {
+        // check to select max 100 resources at a time.
+        checkForMaxResouceOrderLimit(volumeIds);
         host = BlockStorageUtils.getHost(hostId);
         String hostName = host.getLabel();
 
@@ -62,7 +64,6 @@ public class UnexportHostService extends ViPRService {
                 }
             }
         }
-
         checkForBootVolumes(volumeIds);
     }
 

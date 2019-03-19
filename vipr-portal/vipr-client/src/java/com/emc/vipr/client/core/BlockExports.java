@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
 import javax.ws.rs.core.UriBuilder;
@@ -28,6 +29,8 @@ import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
+import com.emc.storageos.model.portgroup.StoragePortGroupChangeList;
+import com.emc.storageos.model.portgroup.StoragePortGroupChangeRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -229,8 +232,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
         ResourceFilter<ExportGroupRestRep> filter;
         if (virtualArrayId == null) {
             filter = new ExportHostOrClusterFilter(hostId, clusterId);
-        }
-        else {
+        } else {
             filter = new ExportHostOrClusterFilter(hostId, clusterId).and(new ExportVirtualArrayFilter(virtualArrayId));
         }
 
@@ -302,7 +304,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     public ExportGroupSearchBuilder search() {
         return new ExportGroupSearchBuilder(this);
     }
-    
+
     /**
      * Generate an export path preview for use with path adjustment
      * <p>
@@ -315,7 +317,28 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     public ExportPathsAdjustmentPreviewRestRep getExportPathAdjustmentPreview(URI id, ExportPathsAdjustmentPreviewParam input) {
         return client.post(ExportPathsAdjustmentPreviewRestRep.class, input, getIdUrl() + "/paths-adjustment-preview", id);
     }
-    
+
+    /**
+     * Generate a list of Target Port Groups
+     * <p>
+     * API Call: <tt>GET /block/exports/target-storage-port-groups</tt>
+     *
+     * @param currentPortGroup has input details of current port group
+     * @param hostOrClusterID has input details of host or cluster ID
+     * @param varrayID has input details of current virtual array id
+     * @return List of Port Groups that are eligible
+     */
+    public List<StoragePortGroupChangeRep> getPortGroupsForPortGroupChange(URI currentPortGroup, URI hostOrClusterID, URI varrayID) {
+        Properties queryParam = new Properties();
+        queryParam.setProperty("currentPortGroup", currentPortGroup.toString());
+        queryParam.setProperty("hostOrClusterID", hostOrClusterID.toString());
+        queryParam.setProperty("varrayID", varrayID.toString());
+        StoragePortGroupChangeList response = client.get(StoragePortGroupChangeList.class, baseUrl + "/target-storage-port-groups",
+                queryParam);
+        return defaultList(response.getPortGroups());
+
+    }
+
     /**
      * Create task to perform path adjustment based on information retrieved by export path preview
      * <p>
@@ -328,7 +351,7 @@ public class BlockExports extends ProjectResources<ExportGroupRestRep> implement
     public Task<ExportGroupRestRep> pathAdjustment(URI id, ExportPathsAdjustmentParam input) {
         return putTask(input, getIdUrl() + "/paths-adjustment", id);
     }
-    
+
     /**
      * Create task to perform port group change based on information retrieved by export port group service
      * <p>

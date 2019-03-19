@@ -63,6 +63,7 @@ var routes = {
   DataProtectionSystems_edit: #{jsAction @arrays.DataProtectionSystems.edit(':id')/},
   StorageProviders_edit: #{jsAction @arrays.StorageProviders.edit(':id')/},
   VCenter_edit: #{jsAction @compute.VCenters.edit(':id')/},
+  VirtualNasServers_getVirtualNasServerAssocProjects: #{jsAction @resources.VirtualNasServers.getVirtualNasServerAssocProjects(':id')/},
 
   BlockVirtualPools_listHighAvailabilityVirtualArraysJson: #{jsAction @arrays.BlockVirtualPools.listHighAvailabilityVirtualArraysJson() /},
   BlockVirtualPools_listHighAvailabilityVirtualPoolsJson: #{jsAction @arrays.BlockVirtualPools.listHighAvailabilityVirtualPoolsJson() /},
@@ -81,6 +82,11 @@ var routes = {
   SystemHealth_logsJson: #{jsAction @SystemHealth.logsJson() /},
   SystemHealth_logs: #{jsAction @SystemHealth.logs() /},
   SystemHealth_download: #{jsAction @SystemHealth.download() /},
+  SystemHealth_collectDiagutilData: #{jsAction @SystemHealth.collectDiagutilData() /},
+  SystemHealth_getDiagutilsStatus: #{jsAction @SystemHealth.getDiagutilsStatus() /},
+  SystemHealth_cancelDiagutilJob: #{jsAction @SystemHealth.cancelDiagutilJob() /},
+  SystemHealth_downloadDiagutilData: #{jsAction @SystemHealth.downloadDiagutilData() /},
+  SystemHealth_validateExternalSettings: #{jsAction @SystemHealth.validateExternalSettings() /},
 
   AuditLog_list: #{jsAction @infra.AuditLog.list() /},
   AuditLog_download: #{jsAction @infra.AuditLog.download() /},

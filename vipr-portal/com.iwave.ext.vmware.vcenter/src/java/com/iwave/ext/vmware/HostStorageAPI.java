@@ -503,8 +503,8 @@ public class HostStorageAPI implements HostRescanAdapter {
      * @param disk the disk on which to create the datastore.
      * @param datastoreName the datastore name.
      */
-    public Datastore createVmfsDatastore(HostScsiDisk disk, String datastoreName) {
-        VmfsDatastoreCreateSpec createSpec = getVmfsDatastoreCreateSpec(disk, datastoreName);
+    public Datastore createVmfsDatastore(HostScsiDisk disk, String vmfsVersion, String datastoreName) {
+        VmfsDatastoreCreateSpec createSpec = getVmfsDatastoreCreateSpec(disk, vmfsVersion, datastoreName);
         try {
             Datastore datastore = getDatastoreSystem().createVmfsDatastore(createSpec);
             return datastore;
@@ -659,9 +659,21 @@ public class HostStorageAPI implements HostRescanAdapter {
      * @return the VMFS datastore create spec.
      */
     public VmfsDatastoreCreateSpec getVmfsDatastoreCreateSpec(HostScsiDisk disk,
-            String datastoreName) {
+    		String vmfsVersion, String datastoreName) {
         List<VmfsDatastoreOption> createOptions = queryVmfsDatastoreCreateOptions(disk);
-        VmfsDatastoreCreateSpec createSpec = pickBestCreateSpec(createOptions);
+        VmfsDatastoreCreateSpec createSpec = null;
+        if (vmfsVersion.equals("Default")) {
+        	//Picks the best create spec from the list of datastore options.
+        	createSpec = pickBestCreateSpec(createOptions);
+        } else {
+        	//Sets user specified VMFS version for the datastore option.
+        	createSpec = (VmfsDatastoreCreateSpec) createOptions.get(0).getSpec();
+        	if (vmfsVersion.equals("VMFS6")) {
+        		createSpec.getVmfs().setMajorVersion(6);
+        	} else {
+        		createSpec.getVmfs().setMajorVersion(5);
+        	}        	
+        }
         if (createSpec == null) {
             throw new VMWareException("No VMFS datastore create spec. Volume may already contain a datastore.");
         }

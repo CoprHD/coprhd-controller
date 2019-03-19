@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -1132,12 +1133,27 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             excluded.add(HA_VARRAY_VPOOL_MAP);
         }
 
+        // If both vPools specifies SRDF then we should exclude REMOTECOPY_VARRAY_SETTINGS at this point
+        // because this value will have VpoolRemoteCopyProtectionSettings URI, which will be unique for
+        // any newly created SRDF vPool.Preventing the shallow comparison here but will be doing deep comparison later.
+        boolean vpoolsSpecifiesSRDF = VirtualPool.vPoolSpecifiesSRDF(currentVpool) && VirtualPool.vPoolSpecifiesSRDF(newVpool);
+        if (vpoolsSpecifiesSRDF) {
+            s_logger.info("Excluding {} for vpool comparison, will handle it later.", REMOTECOPY_VARRAY_SETTINGS);
+            excluded.add(REMOTECOPY_VARRAY_SETTINGS);
+        }
+
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
             logNotSupportedReasonForTieringPolicyChange(changes, notSuppReasonBuff, exclude, "vPool");
             return false;
         }
+
+        // Check for REMOTECOPY_VARRAY_SETTINGS in case of SRDF vpool
+        if (vpoolsSpecifiesSRDF) {
+            return checkForRemoteProtectionSettings(currentVpool, newVpool, _dbClient, notSuppReasonBuff);
+        }
         return true;
+
     }
 
     /**
@@ -1158,6 +1174,40 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         s_logger.info("Virtual Pool change not supported {}", notSuppReasonBuff.toString());
         s_logger.info(String.format("Parameters other than %s were changed",
                 Arrays.toString(exclude)));
+    }
+
+    /**
+     * Check for for any differences between two vpool's 'remoteProtectionSettings' field.
+     * 
+     * @param currentVpool the current vPool
+     * @param newVpool new vPool
+     * @param _dbClient the dbclient
+     * @param notSuppReasonBuff Buffer containing current unsupported reasons
+     * @return true if there is no difference else false
+     */
+    private static boolean checkForRemoteProtectionSettings(VirtualPool currentVpool, VirtualPool newVpool, DbClient _dbClient,
+            StringBuffer notSuppReasonBuff) {
+
+        Map<URI, VpoolRemoteCopyProtectionSettings> currentSettingMap = VirtualPool.getRemoteProtectionSettings(currentVpool,
+                _dbClient);
+        Map<URI, VpoolRemoteCopyProtectionSettings> newSettingMap = VirtualPool.getRemoteProtectionSettings(newVpool,
+                _dbClient);
+        for (URI varrayURI : currentSettingMap.keySet()) {
+            if (!newSettingMap.keySet().contains(varrayURI)) {
+                s_logger.info("Unexpected Auto-tiering Policy {} attribute change: {}", "SRDF vPool", REMOTECOPY_VARRAY_SETTINGS);
+                notSuppReasonBuff.append(String.format("These target %s differences are invalid: ", "SRDF vPool"));
+                notSuppReasonBuff.append(REMOTECOPY_VARRAY_SETTINGS + " ");
+                return false;
+            } else {
+                Map<String, Change> change = analyzeChanges(currentSettingMap.get(varrayURI),
+                        newSettingMap.get(varrayURI), null, GENERALLY_EXCLUDED, null);
+                if (!change.isEmpty()) {
+                    logNotSupportedReasonForTieringPolicyChange(change, notSuppReasonBuff, null, "SRDF vPool");
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**

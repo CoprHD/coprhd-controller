@@ -17,11 +17,13 @@ import com.vmware.vim25.mo.HostSystem;
 public class CreateVmfsDatastore extends RetryableTask<Datastore> {
     private HostStorageAPI hostStorageAPI;
     private HostScsiDisk disk;
+    private String vmfsVersion; 
     private String datastoreName;
 
-    public CreateVmfsDatastore(HostSystem host, HostScsiDisk disk, String datastoreName) {
+    public CreateVmfsDatastore(HostSystem host, HostScsiDisk disk, String vmfsVersion, String datastoreName) {
         this.hostStorageAPI = new HostStorageAPI(host);
         this.disk = disk;
+        this.vmfsVersion = vmfsVersion;
         this.datastoreName = datastoreName;
         provideDetailArgs(datastoreName, host.getName(), disk.getDisplayName());
         provideNameArgs(datastoreName);
@@ -30,7 +32,7 @@ public class CreateVmfsDatastore extends RetryableTask<Datastore> {
 
     @Override
     protected Datastore tryExecute() {
-        Datastore datastore = hostStorageAPI.createVmfsDatastore(disk, datastoreName);
+        Datastore datastore = hostStorageAPI.createVmfsDatastore(disk, vmfsVersion, datastoreName);
         HostVmfsVolume vmfs = VMwareUtils.getHostVmfsVolume(datastore);
         if (vmfs != null) {
             logInfo("create.vmfs.datastore", datastore.getName(), vmfs.getVersion());

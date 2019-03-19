@@ -28,6 +28,8 @@ public class RemoveUnexportedBlockStorageService extends ViPRService {
 
     @Override
     public void precheck() {
+        // check to select max 100 resources at a time.
+        checkForMaxResouceOrderLimit(volumeIds);
         BlockStorageUtils.getBlockResources(uris(volumeIds));
         if (!deletionType.equals(VolumeDeleteTypeEnum.VIPR_ONLY)) {
             BlockStorageUtils.verifyVolumeDependencies(uris(volumeIds), uri(project));

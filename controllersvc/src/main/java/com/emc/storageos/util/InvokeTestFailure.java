@@ -119,6 +119,8 @@ public final class InvokeTestFailure {
     public static final String ARTIFICIAL_FAILURE_084 = "failure_084_VPlexDeviceController_deleteStorageView_before_delete";
     public static final String ARTIFICIAL_FAILURE_085 = "failure_085_VPlexApiDiscoveryManager_find_consistency_group";
     public static final String ARTIFICIAL_FAILURE_086 = "failure_086_BlockDeviceController.deleteReplicationGroupInCG_BeforeDelete";
+    public static final String ARTIFICIAL_FAILURE_087 = "failure_087_NetworkDeviceController.createFCZoneReferences_before";
+    public static final String ARTIFICIAL_FAILURE_088 = "failure_088_NetworkDeviceController.createFCZoneReferences_after";
 
     private static final int FAILURE_SUBSTRING_LENGTH = 11;
 

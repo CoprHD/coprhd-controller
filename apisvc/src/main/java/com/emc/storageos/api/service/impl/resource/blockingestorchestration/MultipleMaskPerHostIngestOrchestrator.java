@@ -42,7 +42,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     }
 
     @Override
-    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, IngestionRequestContext requestContext, DbClient dbClient) {
         @SuppressWarnings("deprecation")
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(mask
                 .getMaskName()));

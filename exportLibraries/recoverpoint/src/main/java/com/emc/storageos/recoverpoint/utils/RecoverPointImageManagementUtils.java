@@ -63,6 +63,27 @@ public class RecoverPointImageManagementUtils {
     // us to cover a 24 hour period in search of a snapshot PiT.
     private final static int NUM_SNAPSHOT_QUERY_ATTEMPTS = 48;
 
+    // Controller RP Link State Timeout
+    private static int linkStateWaitTime = 15;
+
+    /**
+     * This is used to get the updated value linkStateWaitTime configured by User.
+     * 
+     * @return linkStateWaitTime
+     */
+    public static int getLinkStateWaitTime() {
+        return linkStateWaitTime;
+    }
+
+    /**
+     * This is used to set the updated value linkStateWaitTime configured by User.
+     * 
+     * @param linkStateWaitTime
+     */
+    public static void setLinkStateWaitTime(int linkStateWaitTime) {
+        RecoverPointImageManagementUtils.linkStateWaitTime = linkStateWaitTime;
+    }
+
     /**
      * Perform an enable image access on a CG copy
      *
@@ -1165,7 +1186,9 @@ public class RecoverPointImageManagementUtils {
 
         boolean isInitializing = false;
         boolean allLinksInDesiredState = false;
-        while ((!allLinksInDesiredState && numRetries++ < MAX_RETRIES) || isInitializing) {
+        int maxRetries = getLinkStateWaitTime() * 4;
+        logger.debug("CG link state wait time is {} min and Max retry is {}", getLinkStateWaitTime(), maxRetries);
+        while ((!allLinksInDesiredState && numRetries++ < maxRetries) || isInitializing) {
             ConsistencyGroupState cgState = null;
             isInitializing = false;
             try {

@@ -730,4 +730,22 @@ public abstract class StorageProcessor extends PoolProcessor {
                 || SupportedCopyModes.ALL.toString().equalsIgnoreCase(copyMode)
                 || SupportedCopyModes.ADAPTIVECOPY.toString().equalsIgnoreCase(copyMode);
     }
+    
+	protected boolean checkForCopyModeUpdate(String existingDbCopyMode, String newCopyMode) {
+		boolean isUpdateNeeded = false;
+		if (newCopyMode != null && !SupportedCopyModes.UNKNOWN.name().equals(newCopyMode)
+				&& !newCopyMode.equalsIgnoreCase(existingDbCopyMode)) {
+			if (updateSupportedCopyMode(existingDbCopyMode)) {
+				isUpdateNeeded = true;
+			} else if (SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(existingDbCopyMode)
+					&& SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(newCopyMode)) {
+				isUpdateNeeded = true;
+			} else if (SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(existingDbCopyMode)
+					&& SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(newCopyMode)) {
+				isUpdateNeeded = true;
+			}
+		}
+		return isUpdateNeeded;
+
+	}
 }

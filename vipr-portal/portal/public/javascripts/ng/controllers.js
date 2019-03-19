@@ -582,6 +582,7 @@ angular.module("portalApp").controller({
             $http.get(routes.StorageSystems_getProjectsForNas()).success(function(data) {
             	$scope.projectTenantOptions = data;
             });
+
             $scope.getProjects = function(value){
             	
             	if (value) {
@@ -596,34 +597,47 @@ angular.module("portalApp").controller({
                  }
             	 $scope.projectOptions = myNewOptions;
             };
-            
-    	    $scope.$apply();
+
+            $scope.$apply();
        }
     },
-    DissociateProjectCtrl: function($scope, $http, $window, translate) {
-    	
+    DissociateProjectCtrl: function($scope, $http, $window, $q, translate) {
+   	
     	var resetModal = function() {
     		$scope.dissociateForm = {};
     		$scope.projectsToDissociate = {};
     	}
     	
-    	$scope.populateModal = function(ids, nasIdString) {
-    		
-    		resetModal();
+        $scope.getAssociatedProjects = function(nasIdString){
+        	$scope.nasIdString = nasIdString;
+        	var def = $q.defer();
+
+            $http.get(routes.VirtualNasServers_getVirtualNasServerAssocProjects({id:$scope.nasIdString})).success(function(data) {
+            	def.resolve(data);
+            });
+            return def.promise;
+        };
+
+        $scope.populateModal = function(nasIdString) {
+    		resetModal();    	
     		$scope.projectsToDissociateOptions = [];
-    		
-    		var myNewOptions = [];
-    		var projects = ids.split(",");
-    		
-    		for(var i = 0; i < projects.length; i++) {
-    			var projectInfo = projects[i].split("+");
-    			myNewOptions.push({ id: projectInfo[1], name: projectInfo[0] });
-    		}
-            	
-            $scope.projectsToDissociateOptions = myNewOptions;
-            $scope.nasIds = nasIdString;
-    	    $scope.$apply();
-       }
+
+    		$scope.getAssociatedProjects(nasIdString).then(function(data) {
+                var myNewOptions = [];
+                var projectIds = data.toString();
+        		var projects = projectIds.split(",");
+       		
+        		for(var i = 0; i < projects.length; i++) {
+        			var projectInfo = projects[i].split("~~~");
+        			myNewOptions.push({ id: projectInfo[0], name: projectInfo[1] });
+        		}
+                
+                $scope.projectsToDissociateOptions = myNewOptions;
+                $scope.nasIds = nasIdString;
+    		});
+
+    		$scope.$apply();
+        }
     },
     NfsAclCtrl: function($scope, $http, $window, translate) {
     	
@@ -1247,18 +1261,32 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     }
 });
 
-angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http, $sce, $cookies, translate) {
+angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http, $sce, $cookies, translate, $interval) {
     var LOGS_JSON = routes.SystemHealth_logsJson();
     var APPLY_FILTER = routes.SystemHealth_logs();
     var DOWNLOAD_LOGS = routes.SystemHealth_download();
+    var COLLECT_DIAGUTIL = routes.SystemHealth_collectDiagutilData();
+    var GET_DIAGUTIL_STATUS = routes.SystemHealth_getDiagutilsStatus();
+    var CANCEL_DIAGUTIL_JOB = routes.SystemHealth_cancelDiagutilJob();
+    var DOWNLOAD_DIAGUTIL = routes.SystemHealth_downloadDiagutilData();
+    var VALIDATE_SERVER = routes.SystemHealth_validateExternalSettings();
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
+    var DEFAULT_DOWNLOAD_FTPS = 'download';
+    var isMsgPopedUp = false;
+    var diagutilStatus = '';
     var SEVERITIES = {
         '4': 'ERROR',
         '5': 'WARN',
         '7': 'INFO',
         '8': 'DEBUG'
     };
+    var FTPS = {
+    	'download': 'None',
+        'ftp': 'FTP',
+        'sftp': 'SFTP'
+    }
+
     
     $scope.orderTypeOptions = [{id:'', name:translate("systemLogs.orderType.NONE")}];
     angular.forEach($scope.orderTypes, function(value) {
@@ -1279,6 +1307,16 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     angular.forEach(SEVERITIES, function(value, key) {
         this.push({id:key, name:value});
     }, $scope.severityOptions);
+    
+    $scope.diagnosticOptions = [];
+    angular.forEach($scope.allDiagnosticOptions, function(value, key) {
+        this.push({id:value, name:key});
+    }, $scope.diagnosticOptions);
+    
+    $scope.ftpOptions = [];
+    angular.forEach(FTPS, function(value, key) {
+        this.push({id:key, name:value});
+    }, $scope.ftpOptions);
 
     $scope.descending = $cookies.sort === 'desc';
     $scope.toggleSort = function() {
@@ -1292,12 +1330,13 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         severity: $scope.severity,
         nodeId: $scope.nodeId || '',
         service: $scope.service,
+        options: $scope.defaultDiagnosticOptions,
         searchMessage: $scope.searchMessage
     };
     $scope.$watchCollection('filter', function() {
         $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
     });
-    
+
     $scope.filterText = getFilterText();
     $scope.loading = false;
     $scope.error = null;
@@ -1326,6 +1365,9 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
                 $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
+                $scope.diagnostic.type = 1;
+                $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
+               // $scope.diagnostic.options = $scope.defaultDiagnosticOptions;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
@@ -1335,6 +1377,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     // Applies the filter from the dialog
     $scope.applyFilter = function() {
         angular.element('#filter-dialog').modal('hide');
+        isMsgPopedUp = false;
         var args = {
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             severity: $scope.filterDialog.severity,
@@ -1349,6 +1392,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     // Downloads the logs from the server
     $scope.downloadLogs = function() {
         angular.element('#filter-dialog').modal('hide');
+        isMsgPopedUp = false;
         var args = {
             startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
             endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
@@ -1364,13 +1408,150 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
         window.open(url, "_blank");
     };
+
+    //collect diagutil Data
+    $scope.uploadDiagutilData = function() {
+        isMsgPopedUp = false;
+        var args = {
+            options: $scope.filterDialog.options,
+            nodeId: $scope.filterDialog.nodeId,
+            services: $scope.filterDialog.service,
+            severity: $scope.filterDialog.severity,
+            searchMessage: $scope.filterDialog.searchMessage,
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
+            orderType: $scope.filterDialog.orderTypes,
+            ftpType: $scope.diagnostic.ftp,
+            ftpAddr: $scope.diagnostic.url,
+            userName: $scope.diagnostic.user,
+            password: $scope.diagnostic.pw
+            };
+        if ($scope.filterDialog.endTimeCurrentTime) {
+            args.endTime = new Date().getTime();
+        }
+        var url = COLLECT_DIAGUTIL + "?" + encodeArgs(args);
+        $http.get(url).success(function (result) {
+        });
+    };
+
+    $scope.validateServer = function() {
+        var args = {
+            serverType: $scope.diagnostic.ftp,
+            serverUrl: $scope.diagnostic.url,
+            user: $scope.diagnostic.user,
+            password: $scope.diagnostic.pw
+            };
+        var url = VALIDATE_SERVER;
+        $http.post(url, args).success(function (result) {
+            console.log("result message:" + result.message + "sucess:" + result.success);
+            if(result.success) {
+                $scope.validationSuccess = result.message;
+                $scope.validation = 1;
+            } else {
+                $scope.validationError = result.message;
+                $scope.validation = 2;
+            }
+            })
+            .error(function (result) {
+                console.log("result message:" + result.message + "sucess:" + result.error);
+                $scope.validationError = result.message;
+                $scope.validation = 2;
+        });
+    };
+
+    $scope.cancelDiagutilJob = function() {
+        var cancel = confirm('WARNING: Are you sure you want to cancel ?')
+        if(cancel) {
+            $http.get(CANCEL_DIAGUTIL_JOB);
+        }
+    };
     
     $scope.getLocalDateTime = function(o,datestring){
     	return render.localDate(o,datestring);
     }
-    
+
     // Fill the table with data
     fetchLogs(getFetchArgs());
+
+    var updateDiagutilStatus = function() {
+        $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
+        console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
+        diagutilStatus = diagutilInfo.status;
+        if (diagutilInfo.desc == undefined) {
+            $scope.diagutilStatusDesc = '';
+        } else if ( (diagutilInfo.desc != undefined && diagutilInfo.endTimeStr != undefined) &&
+                      (diagutilStatus == "PRECHECK_ERROR" || diagutilStatus == "COLLECTING_ERROR" ||
+                       diagutilStatus == "UPLOADING_ERROR" || diagutilStatus == "DOWNLOAD_ERROR" ||
+                       diagutilStatus == "UNEXPECTED_ERROR" || diagutilStatus == "COMPLETE" || 
+                       diagutilStatus == "COLLECTING_SUCCESS") ) {
+        	var date = new Date(diagutilInfo.endTimeStr);
+            $scope.diagutilStatusDesc = translate('diagnostic.msg.' + diagutilInfo.desc) + ' ' + (date.toLocaleString());
+        }
+          else {
+            $scope.diagutilStatusDesc = translate('diagnostic.msg.' + diagutilInfo.desc);
+        }
+        });
+    };
+    $interval(updateDiagutilStatus, 3000);
+    
+    $scope.triggerDownload = function() {
+        $http.get(GET_DIAGUTIL_STATUS).success( function (diagutilInfo) {
+            console.log("diagutilsInfo status " + diagutilInfo.status + " desc is: " + diagutilInfo.desc);
+            if ((diagutilInfo.status == 'COLLECTING_SUCCESS' || diagutilInfo.status == 'DOWNLOAD_ERROR') && (diagutilInfo.jobType == 'download')) {
+                if (diagutilInfo.nodeId != undefined && diagutilInfo.location != undefined && !isMsgPopedUp) {
+                    triggerDownload(diagutilInfo.status, diagutilInfo.nodeId, diagutilInfo.location);
+                }
+            }
+         });
+    };
+
+    $scope.isDiagutilJobRunning = function() {
+        if (diagutilStatus == "PRECHECK_ERROR" || diagutilStatus == "COLLECTING_ERROR"
+        || diagutilStatus == "UPLOADING_ERROR" || diagutilStatus == "DOWNLOAD_ERROR"
+        || diagutilStatus == "UNEXPECTED_ERROR" || diagutilStatus == "COMPLETE"
+        || diagutilStatus == undefined) {
+        return false;
+        }
+        return true;
+    };
+    
+    $scope.isDownloadReady = function() {        
+        if (diagutilStatus == 'COLLECTING_SUCCESS' || diagutilStatus == 'DOWNLOAD_ERROR') {
+        return true;
+        }
+        return false;        
+    };
+
+    $scope.isValidationDisabled = function() {
+        var args = {
+                serverUrl: $scope.diagnostic.url,
+                user: $scope.diagnostic.user,
+                password: $scope.diagnostic.pw
+            };                
+        if (args.serverUrl == null || args.user == null  || args.password == null) {
+        return true;
+        }
+    	return false;
+    }
+
+    function triggerDownload(status, nodeId, fileName) {
+        console.log("About to trigger download");
+        if (status == 'DOWNLOAD_ERROR' ) { //another download session could pick up already collected data
+            isMsgPopedUp = true;
+            if (confirm(translate('diagnostic.msg.collect.done'))) {
+                console.info("yes");
+            } else{
+                console.info("no");
+                return;
+            }
+        }
+        var args = {
+            nodeId: nodeId,
+            fileName: fileName
+        };
+        var url = DOWNLOAD_DIAGUTIL + "?" + encodeArgs(args);
+        window.open(url, "_blank");
+    }
     
     function getDate(millis) {
         return millis ? formatDate(millis, "YYYY-MM-DD") : "";

@@ -1144,6 +1144,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException portNotBelongingToSystem(final URI port, final URI system);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException portGroupNotBelongingToSystem(final String portGroup, final String system);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException errorInvokingEventMethod(final URI eventId, final String method);
 

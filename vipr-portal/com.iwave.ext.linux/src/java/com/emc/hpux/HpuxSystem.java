@@ -16,6 +16,7 @@ import com.emc.hpux.command.IoscanRescanDevicesCommand;
 import com.emc.hpux.command.ListHBAInfoCommand;
 import com.emc.hpux.command.ListIPInterfacesCommand;
 import com.emc.hpux.command.ListIQNsCommand;
+import com.emc.hpux.command.ListNwInterafacesWithIPCommand;
 import com.emc.hpux.model.HpuxVersion;
 import com.iwave.ext.command.Command;
 import com.iwave.ext.command.HostRescanAdapter;
@@ -55,6 +56,12 @@ public final class HpuxSystem extends SecureShellSupport implements HostRescanAd
         ListIQNsCommand iqnCmd = new ListIQNsCommand();
         executeCommand(iqnCmd);
         return iqnCmd.getResults();
+    }
+
+    public Set<String> listNwInterfacesWithIP() {
+    	ListNwInterafacesWithIPCommand netIntCmd = new ListNwInterafacesWithIPCommand();
+        executeCommand(netIntCmd);
+        return netIntCmd.getResults();
     }
 
     public String getNetworkAdapterMacAddress(String adapter) {

@@ -61,5 +61,8 @@ public class ConfigProperty {
     public static final String SYSLOG_DRIVER_CA = "system_syslog_driver_ca";
 
     public static final String SYSTEM_LOG_RETENTION_DAYS = "system_log_retention_days";
+
+    public static final String SYSTEM_DIAGUTILS_MIN_CFS = "system_diagutil_min_cfs";
+    
     public static final String CUSTOM_SEREVICES_ENABLE = "custom_services_available";
 }

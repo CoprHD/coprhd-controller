@@ -7,7 +7,9 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -24,7 +26,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.services.util.StorageDriverManager;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +64,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -78,15 +81,15 @@ import com.emc.storageos.vplexcontroller.VPlexController;
  * 
  */
 @Path("/vdc/storage-providers")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";
     private static final String HTTPS_PREFIX = "https://";
 
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext()
+            .getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
     private static class ScanJobExec implements AsyncTaskExecutorIntf {
 
@@ -199,8 +202,7 @@ public class StorageProviderService extends TaskResourceService {
     @Override
     public StorageProviderBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<StorageProvider> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<StorageProvider> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new StorageProviderBulkRep(BulkList.wrapping(_dbIterator, MapStorageProvider.getInstance()));
     }
 
@@ -231,11 +233,9 @@ public class StorageProviderService extends TaskResourceService {
             ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type",
                     StorageProvider.InterfaceType.class);
         }
-        String providerKey = param.getIpAddress() + "-" + param.getPortNumber();
-        List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
-        if (providers != null && !providers.isEmpty()) {
-            throw APIException.badRequests.invalidParameterStorageProviderAlreadyRegistered(providerKey);
-        }
+
+        // Check for duplicate storage provider using host IP/FQDN
+        checkForDuplicateStorageProvider(param);
 
         // Set the SSL parameter
         Boolean useSSL = param.getUseSSL();
@@ -265,12 +265,12 @@ public class StorageProviderService extends TaskResourceService {
 
         if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(provider.getInterfaceType())) {
             provider.setManufacturer("IBM");
-            //For XIV, Secondary manager URL would hold HSM URL and it is expected that these values are provided during create
+            // For XIV, Secondary manager URL would hold HSM URL and it is expected that these values are provided during create
             verifySecondaryParams(param.getSecondaryURL());
-            if(null != param.getSecondaryUsername()) {
+            if (null != param.getSecondaryUsername()) {
                 ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
             }
-            if(null != param.getSecondaryPassword()) {
+            if (null != param.getSecondaryPassword()) {
                 ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
             }
         }
@@ -305,6 +305,39 @@ public class StorageProviderService extends TaskResourceService {
         DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new ScanJobExec(controller));
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
         return taskList.getTaskList().listIterator().next();
+    }
+
+    /**
+     * Check for any storage provider already registered in the DB with same IP/FQDN
+     * 
+     * @param param StorageProviderCreateParam
+     */
+    private void checkForDuplicateStorageProvider(StorageProviderCreateParam param) {
+        String providerKey = null;
+        InetAddress inetadd = null;
+        List<StorageProvider> providers = null;
+
+        try {
+            inetadd = InetAddress.getByName(param.getIpAddress());
+        } catch (UnknownHostException e) {
+            log.error("Parameter \"ip_address\" is not a valid IP address: {}", param.getIpAddress());
+            throw APIException.badRequests.invalidParameterInvalidIP("ip_address", param.getIpAddress());
+        }
+
+        // Check 1: Check with the IP address for any duplicate providers..
+        providerKey = inetadd.getHostAddress() + "-" + param.getPortNumber();
+        providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
+
+        // Check 2: Check with FQDN for any duplicate providers..
+        if (CollectionUtils.isEmpty(providers)) {
+            providerKey = inetadd.getCanonicalHostName() + "-" + param.getPortNumber();
+            providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
+        }
+
+        if (!CollectionUtils.isEmpty(providers)) {
+            log.error("Storage Provider: {} already available in the system", providerKey);
+            throw APIException.badRequests.invalidParameterStorageProviderAlreadyRegistered(providerKey);
+        }
     }
 
     private Type getSystemTypeByInterface(String interfaceType) {
@@ -474,22 +507,22 @@ public class StorageProviderService extends TaskResourceService {
             if (param.getInterfaceType() != null) {
                 ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type", EnumSet.of(
                         StorageProvider.InterfaceType.hicommand, StorageProvider.InterfaceType.smis,
-                        StorageProvider.InterfaceType.ibmxiv, StorageProvider.InterfaceType.scaleioapi, 
+                        StorageProvider.InterfaceType.ibmxiv, StorageProvider.InterfaceType.scaleioapi,
                         StorageProvider.InterfaceType.xtremio, StorageProvider.InterfaceType.ddmc,
                         StorageProvider.InterfaceType.unity));
                 storageProvider.setInterfaceType(param.getInterfaceType());
             }
 
             if (param.getSecondaryUsername() != null) {
-            	ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
+                ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_username");
                 storageProvider.setSecondaryUsername(param.getSecondaryUsername());
             }
             if (param.getSecondaryPassword() != null) {
-            	ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
-            	storageProvider.setSecondaryPassword(param.getSecondaryPassword());
+                ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+                storageProvider.setSecondaryPassword(param.getSecondaryPassword());
             }
             if (param.getSecondaryURL() != null) {
-            	verifySecondaryParams(param.getSecondaryURL());
+                verifySecondaryParams(param.getSecondaryURL());
                 storageProvider.setSecondaryURL(param.getSecondaryURL());
             }
             if (param.getElementManagerURL() != null) {
@@ -498,9 +531,6 @@ public class StorageProviderService extends TaskResourceService {
 
             _dbClient.persistObject(storageProvider);
         }
-        
-        
-        
 
         auditOp(OperationTypeEnum.UPDATE_STORAGEPROVIDER, true, null,
                 storageProvider.getId().toString(), storageProvider.getLabel(), storageProvider.getIPAddress(),
@@ -513,8 +543,7 @@ public class StorageProviderService extends TaskResourceService {
             Integer portNumber, String interfaceType) {
         log.info("Validating {} storage provider connection at {}.", interfaceType, ipAddress);
         if (StorageProvider.InterfaceType.vplex.name().equals(interfaceType)) {
-            VPlexController controller =
-                    getController(VPlexController.class, DiscoveredDataObject.Type.vplex.toString());
+            VPlexController controller = getController(VPlexController.class, DiscoveredDataObject.Type.vplex.toString());
             return controller.validateStorageProviderConnection(ipAddress, portNumber);
         } else {
             BlockController controller = getController(BlockController.class, "vnxblock");
@@ -629,8 +658,7 @@ public class StorageProviderService extends TaskResourceService {
         int cleared = DecommissionedResource.removeDecommissionedFlag(_dbClient, nativeGuid, StorageSystem.class);
         if (cleared == 0) {
             log.info("Cleared {} decommissioned systems", cleared);
-        }
-        else {
+        } else {
             log.info("Did not find any decommissioned systems to clear. Continue to scan.");
         }
 
@@ -643,9 +671,9 @@ public class StorageProviderService extends TaskResourceService {
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
         return taskList.getTaskList().listIterator().next();
     }
-    
+
     private void verifySecondaryParams(String secondaryURL) {
-        String newSecondaryURL=null;
+        String newSecondaryURL = null;
         if (null != secondaryURL) {
             ArgValidator.checkFieldNotEmpty(secondaryURL, "secondary_url");
             if (secondaryURL.startsWith(HTTPS_PREFIX)) {
@@ -656,7 +684,6 @@ public class StorageProviderService extends TaskResourceService {
             }
         }
     }
-    
 
     /**
      * Allows the user to get data for the storage system with the passed system

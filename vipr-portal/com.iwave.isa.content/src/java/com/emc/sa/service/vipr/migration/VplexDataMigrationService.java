@@ -34,6 +34,13 @@ public class VplexDataMigrationService extends ViPRService {
     protected String displayJournals;
 
     @Override
+    public void precheck() throws Exception {
+        super.precheck();
+        // check to select max 100 resources at a time.
+        checkForMaxResouceOrderLimit(volumeIds);
+    }
+
+    @Override
     public void execute() throws Exception {
         boolean forceFlag = BlockProvider.YES_VALUE.equalsIgnoreCase(displayJournals);
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, migrationSuspend, forceFlag));

@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
@@ -78,7 +79,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
-import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
@@ -87,7 +87,6 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatche
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.Lists;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -1990,20 +1989,18 @@ public class StorageScheduler implements Scheduler {
         if (!CollectionUtils.isEmpty(vmaxStorageSystems)) {
             // Check to see if this is a Host or Cluster, keep track of the type.
             String computeResource = capabilities.getCompute();
-            String computeResourceType = "";
-            if (computeResource.toLowerCase().contains("cluster")) {
-                computeResourceType = "cluster";
-            } else {
-                computeResourceType= "host";                        
-            }                                                
             URI computeResourceURI = URIUtil.uri(computeResource);
+            List<Initiator> initiators;
 
             // Get the existing Export Masks for the Host/Cluster using the initiators from the Host/Cluster.
-            URIQueryResultList initiatorURIs = new URIQueryResultList();
-            _dbClient.queryByConstraint(
-                    ContainmentConstraint.Factory.getContainedObjectsConstraint(computeResourceURI, Initiator.class, computeResourceType), initiatorURIs);
-            Iterator<Initiator> initiatorIter = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);
-            List<Initiator> initiators = Lists.newArrayList(initiatorIter);
+            if (computeResource.toLowerCase().contains("cluster")) {
+                _log.debug("Got cluster id {} so would get initiators of the cluster", computeResourceURI);
+                initiators = ComputeSystemHelper.getAllInitiatorsForCluster(computeResourceURI, _dbClient);
+            } else {
+                _log.debug("Got host id {} so would get initiators of the host", computeResourceURI);
+                initiators = ComputeSystemHelper.getInitiatorsOfHost(computeResourceURI, _dbClient);
+            }
+
             Map<URI, ExportMask> existingExportMasks = ExportMaskUtils.getExportMasksWithInitiators(_dbClient, initiators);
 
             // If existing Export Masks were found, let's see if any of them are for the VMAXs that were

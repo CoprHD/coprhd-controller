@@ -50,6 +50,8 @@ public abstract class ViPRService extends AbstractExecutionService {
     
     private static Charset UTF_8 = Charset.forName("UTF-8");
     
+    private static int MAX_RESOURCE_PER_ORDER = 100;
+    
     @Autowired
     private ViPRProxyUser proxyUser;
     @Autowired
@@ -356,6 +358,21 @@ public abstract class ViPRService extends AbstractExecutionService {
             }
         }
     }
+
+    /**
+     * Check for max number of resource per Order limit. Throw failure message if number exceeds
+     * 
+     * 
+     * @param resourceIds Collection of resource.
+     */
+    public static <E> void checkForMaxResouceOrderLimit(Collection<E> resourceIds) {
+
+        if (null != resourceIds && resourceIds.size() > MAX_RESOURCE_PER_ORDER) {
+            ExecutionUtils.fail("failTask.resource.number.exceededPerOrderLimit", resourceIds.size(), resourceIds.size(),
+                    MAX_RESOURCE_PER_ORDER);
+        }
+    }
+
 
     /**
      * Invoke a failure if the artificialFailure variable is passed by the service.

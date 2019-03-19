@@ -26,6 +26,8 @@ public class UnexportMultiVolumeService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
+        // check to select max 100 resources at a time.
+        checkForMaxResouceOrderLimit(volumeIds);
         checkForBootVolumes(volumeIds);
     }
     

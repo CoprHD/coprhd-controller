@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.SupportedResourceTypes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -744,6 +745,15 @@ public class SRDFScheduler implements Scheduler {
             if (!storageSystem.containsRemotelyConnectedTo(targetPool.getStorageDevice())) {
                 continue;
             }
+            
+            //If pool supports THICK_ONLY then set flag isThinlyProvisioned as false, else
+            //set it as true.
+            if (targetPool.getSupportedResourceTypes().equals(SupportedResourceTypes.THICK_ONLY.name())) {
+                isThinlyProvisioned = false;
+            } else {
+                isThinlyProvisioned = true;
+            }
+            
             // Check that target pool can support required volume configuration.
             if (!validateRequiredVolumeConfiguration(sourcePool, targetPool, vpoolChangeVolume,
                     destPoolStorageMap, sourceVolumeRecommendation, size, isThinlyProvisioned, vpool.getFastExpansion(),
@@ -759,7 +769,7 @@ public class SRDFScheduler implements Scheduler {
             srcDestPoolList.add(srdfPoolMapping);
         }
     }
-
+    
     /**
      * Check if target pool can support required volume configuration for srdf target volume.
      * 

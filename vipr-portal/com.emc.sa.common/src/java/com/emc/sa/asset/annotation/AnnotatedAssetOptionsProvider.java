@@ -227,6 +227,10 @@ public abstract class AnnotatedAssetOptionsProvider extends AbstractAssetOptions
         // to the javaMethodParameters list for use in the method invocation.
         for (String parentAssetName : assetMethod.assetDependencies) {
             String parentAssetValue = availableAssets.get(parentAssetName);
+            // Added check if the value contains any double quotes(") if so remove it.
+            if (parentAssetValue.contains("\"")) {
+            	parentAssetValue = parentAssetValue.replaceAll("^\"|\"$", "");
+            }
             int index = javaMethodParameters.size();
             Object value = assetMethod.convertParameter(index, parentAssetValue);
             javaMethodParameters.add(value);

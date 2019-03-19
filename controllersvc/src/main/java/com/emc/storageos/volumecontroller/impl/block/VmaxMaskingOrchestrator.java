@@ -1793,18 +1793,30 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                         match = true;
                                     }
 
+                                    // Volume with no FAST policy and Mask with non-cascading SG and FAST Policy
+                                    if (isVMAX3 && volumePolicyName == null && policy.localTierPolicy != null) {
+                                        _log.info(
+                                                "Pre-existing Mask Matched rule 1B-1 (VMAX3): volume do not have FAST policy but mask has with non-cascading SG");
+                                        match = true;
+                                    }
+
                                     // Exact fit case, FAST policy with non-cascading storage group
                                     if (volumePolicyName != null) {
                                         if (policy.localTierPolicy != null) {
                                             if (isVMAX3) {
-                                                match = SmisUtils.checkPolicyMatchForVMAX3(policy.localTierPolicy, volumePolicyName);
+                                                // COP-34807 In Case of VMAX3 SG is converted to CSG
+                                                // irrespective of policy name and MV is reused.
+                                                _log.info(
+                                                        "Pre-existing Mask Matched rule 1C-1 (VMAX3):volume has FAST policy which is same or different as "
+                                                                + "masking view with non-cascading storage group");
+                                                match = true;
                                             } else {
                                                 match = policy.localTierPolicy.equalsIgnoreCase(volumePolicyName);
+                                                if (match) {
+                                                _log.info(
+                                                        "Pre-existing Mask Matched rule 1C: volume has same FAST policy as masking view with non-cascading storage group");
+                                                }
                                             }
-                                            if (match) {
-                                                _log.info("Pre-existing Mask Matched rule 1C: volume has same FAST policy as masking view with non-cascading storage group");
-                                            }
-
                                         }
 
                                         // Exact fit case, FAST policy with cascading storage group, but there's only one FAST policy, and

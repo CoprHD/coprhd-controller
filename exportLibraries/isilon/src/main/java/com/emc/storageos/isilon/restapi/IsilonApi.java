@@ -90,6 +90,8 @@ public class IsilonApi {
     private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
     private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
     private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules/");
+    private static final URI URI_SESSION = URI.create("/session/1/session");
+
     private static final int sessionTimeoutthreshold = 600;
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);

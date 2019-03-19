@@ -665,12 +665,7 @@ public class FileStorageScheduler implements Scheduler {
                         iterator.remove();
                         invalidNasServers.add(vNAS);
                     }
-                } else if (!ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vNAS)) {
-                    _log.info("Removing vNAS {} as its domain does not match with project's domain: {}",
-                            vNAS.getNasName(), projectDomains);
-                    iterator.remove();
-                    invalidNasServers.add(vNAS);
-                }
+                } 
             }
         }
         if (vNASList != null) {

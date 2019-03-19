@@ -1024,6 +1024,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 newStoragePorts.add(port);
             } else {
                 port.setStorageHADomain(matchingHADomain.getId());
+                _logger.info("Updating the existing portGroup {} with {} of port {}.", 
+                		port.getPortGroup(), intf.getDataMoverId(), intf.getIpAddress());
+                port.setPortGroup(intf.getDataMoverId());
                 existingStoragePorts.add(port);
             }
             port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
@@ -1202,7 +1205,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     _logger.info("{} has CIFS Enabled since interfaces are found ", vdm.getVdmName(), intf + ":" + vdmCapability);
                     protocols.add(StorageProtocol.File.CIFS.name());
                 }
-                if (vdmCapability.contains("vdm")) {
+                if ((vdmCapability.contains("vdm")) || (vdmCapability.contains("nfs"))) {
                     _logger.info("{} has NFS Enabled since interfaces are found ", vdm.getVdmName(), intf + ":" + vdmCapability);
                     protocols.add(StorageProtocol.File.NFS.name());
                 }

@@ -79,7 +79,7 @@ public class CinderVolumeExpandJob extends CinderJob {
                 long oldCapacity = volume.getCapacity();
                 long newCapacity = taskCompleter.getSize();
                 // set requested capacity
-                volume.setCapacity(newCapacity / CinderConstants.BYTES_TO_GB);
+                volume.setCapacity(newCapacity);
                 volume.setProvisionedCapacity(taskCompleter.getSize());
                 volume.setAllocatedCapacity(taskCompleter.getSize());
                 dbClient.persistObject(volume);

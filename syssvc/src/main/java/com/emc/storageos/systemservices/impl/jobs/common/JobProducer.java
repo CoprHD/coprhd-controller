@@ -43,7 +43,6 @@ public class JobProducer {
     }
 
     public void enqueue(Serializable job) {
-        log.info("enqueue job:{}", job);
         try {
             queue.put(job);
         } catch (Exception e) {

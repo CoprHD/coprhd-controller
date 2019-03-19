@@ -14,6 +14,7 @@ public interface ServiceParams {
     public String SIZE_BOOT_VOL_IN_GB = "sizeBootVols";
     public String HOST = "host";
     public String VCENTER = "vcenter";
+    public String VMFS_VERSION = "vmfsVersion";
     public String DATASTORE = "datastore";
     public String DATASTORE_NAME = "datastoreName";
     public String MOUNT_POINT = "mountPoint";

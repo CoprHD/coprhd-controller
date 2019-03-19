@@ -941,8 +941,7 @@ public class ProjectService extends TaggedResource {
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
             // Get list of domains associated with the project
-            Set<String> projectDomains = ProjectUtility.getDomainsOfProject(_permissionsHelper, project);
-
+            Set<String> projectDomains = ProjectUtility.getDomainsOfProject(_permissionsHelper, project);            
             for (String id : vNasIds) {
 
                 if (project.getAssignedVNasServers().contains(id)) {
@@ -978,9 +977,7 @@ public class ProjectService extends TaggedResource {
                 boolean domainMatched = ProjectUtility.doesProjectDomainMatchesWithVNASDomain(projectDomains, vnas);
 
                 if (!domainMatched) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
-                    _log.error(errorMsg.toString());
-                    continue;
+                    _log.warn(" vNas " + vnas.getNasName() + " domain is not matched with vipr project domain");
                 }
 
                 if (!shareVNASWithMultipleProjects) {

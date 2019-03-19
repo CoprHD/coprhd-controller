@@ -2173,10 +2173,19 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-port-groups/{portGroupId}/deregister")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public StoragePortGroupRestRep deregisterStoragePortGroup(@PathParam("portGroupId") URI portGroupId) {
+    public StoragePortGroupRestRep deregisterStoragePortGroup(@PathParam("id") URI id, @PathParam("portGroupId") URI portGroupId) {
+
+        // Validate and make sure the storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem storage = queryRegisteredSystem(id);
 
         ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
         StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        if (!portGroup.getStorageDevice().equals(id)) {
+            _log.error("The storage system id {} passed in request does not match with the port group storage system id {}", id,
+                    portGroup.getStorageDevice());
+            throw APIException.badRequests.portGroupNotBelongingToSystem(portGroup.getLabel(), storage.getLabel());
+        }
         if (portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
             // internal port group
             throw APIException.badRequests.internalPortGroup(portGroup.getNativeGuid());
@@ -2213,10 +2222,19 @@ public class StorageSystemService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-port-groups/{portGroupId}/register")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public StoragePortGroupRestRep registerStoragePortGroup(@PathParam("portGroupId") URI portGroupId) {
+    public StoragePortGroupRestRep registerStoragePortGroup(@PathParam("id") URI id, @PathParam("portGroupId") URI portGroupId) {
+
+        // Make sure the storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem storage = queryRegisteredSystem(id);
 
         ArgValidator.checkFieldUriType(portGroupId, StoragePortGroup.class, "portGroupId");
         StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, portGroupId);
+        if (!portGroup.getStorageDevice().equals(id)) {
+            _log.error("The storage system id {} passed in request does not match with the port group storage system id {}", id,
+                    portGroup.getStorageDevice());
+            throw APIException.badRequests.portGroupNotBelongingToSystem(portGroup.getLabel(), storage.getLabel());
+        }
         if (portGroup.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
             // internal port group
             throw APIException.badRequests.internalPortGroup(portGroup.getNativeGuid());
@@ -2348,10 +2366,15 @@ public class StorageSystemService extends TaskResourceService {
         // Only support for VMAX
         if (!DiscoveredDataObject.Type.vmax.name().equals(system.getSystemType())) {
             APIException.badRequests.operationNotSupportedForSystemType(
-                    OperationTypeEnum.CREATE_STORAGE_PORT_GROUP.name(), system.getSystemType());
+                    OperationTypeEnum.DELETE_STORAGE_PORT_GROUP.name(), system.getSystemType());
         }
         ArgValidator.checkFieldUriType(pgId, StoragePortGroup.class, "portGroupId");
         StoragePortGroup portGroup = _dbClient.queryObject(StoragePortGroup.class, pgId);
+        if (!portGroup.getStorageDevice().equals(id)) {
+            _log.error("The storage system id {} passed in request does not match with the port group storage system id {}", id,
+                    portGroup.getStorageDevice());
+            throw APIException.badRequests.portGroupNotBelongingToSystem(portGroup.getLabel(), system.getLabel());
+        }
         String task = UUID.randomUUID().toString();
         Operation op = null;
         if (portGroup == null || portGroup.getInactive()) {

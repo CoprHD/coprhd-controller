@@ -70,7 +70,6 @@ public class IsilonApiFactory {
 			services.add("namespace");
 		}
     }
-    
     /**
      * Maximum number of outstanding connections
      * 

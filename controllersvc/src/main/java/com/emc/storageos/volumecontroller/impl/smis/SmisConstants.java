@@ -148,6 +148,7 @@ public interface SmisConstants {
     static final String SE_MEMBER_OF_COLLECTION_DMG_DMG = "SE_MemberOfCollection_DMG_DMG";
     static final String SE_MEMBER_OF_COLLECTION_IMG_IMG = "SE_MemberOfCollection_IMG_IMG";
     static final String MEMBER = "Member";
+    static final String COLLECTION = "Collection";
     static final String CREATE_GROUP_REPLICA = "CreateGroupReplica";
     static final String CREATE_LIST_REPLICA = "CreateListReplica";
     static final String CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS = "CreateGroupReplicaFromElementSynchronizations";

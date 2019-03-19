@@ -95,8 +95,10 @@ public class XtremIOProvUtils {
     /**
      * Gets the storage pool for the given storage system.
      *
-     * @param systemId the system id
-     * @param dbClient the db client
+     * @param systemId
+     *            the system id
+     * @param dbClient
+     *            the db client
      * @return the xtremio storage pool
      */
     public static StoragePool getXtremIOStoragePool(URI systemId, DbClient dbClient) {
@@ -205,7 +207,7 @@ public class XtremIOProvUtils {
             if (null != e.getMessage() && !e.getMessage().contains(XtremIOConstants.OBJECT_NOT_FOUND)) {
                 throw e;
             } else {
-            _log.info("Tag {} not available in Array.", tagName);
+                _log.info("Tag {} not available in Array.", tagName);
             }
         }
 
@@ -530,16 +532,16 @@ public class XtremIOProvUtils {
      * @return true if the version is 4.0.2 or greater
      */
     public static boolean isXtremIOVersion402OrGreater(String version) {
-    	// the version will be in the format: 4.0.2-80_ndu. Extract the third number between dot and dash
-    	// and verify that the numerical value is greater than 2
-    	Pattern pattern = Pattern.compile("([0-9]*?\\.[0-9]*?)\\.([0-9]*?)-");
-    	Matcher matcher = pattern.matcher(version);
-    	while (matcher.find()) {
-    		float xioVersion = Float.parseFloat(matcher.group(1));
-    		boolean isVersion4 = xioVersion == 4.0;
-    		boolean isVersionGreater = xioVersion > 4.0;
+        // the version will be in the format: 4.0.2-80_ndu. Extract the third number between dot and dash
+        // and verify that the numerical value is greater than 2
+        Pattern pattern = Pattern.compile("([0-9]*?\\.[0-9]*?)\\.([0-9]*?)-");
+        Matcher matcher = pattern.matcher(version);
+        while (matcher.find()) {
+            float xioVersion = Float.parseFloat(matcher.group(1));
+            boolean isVersion4 = xioVersion == 4.0;
+            boolean isVersionGreater = xioVersion > 4.0;
             return isVersionGreater || (isVersion4 && (Integer.valueOf(matcher.group(2)) >= 2));
-    	}
+        }
 
         return false;
     }
@@ -599,9 +601,12 @@ public class XtremIOProvUtils {
     /**
      * Gets the lun maps for the initiator group.
      *
-     * @param igName the ig name
-     * @param clusterName the cluster name
-     * @param client the xtremio client
+     * @param igName
+     *            the ig name
+     * @param clusterName
+     *            the cluster name
+     * @param client
+     *            the xtremio client
      * @return the initiator group lun maps
      * @throws Exception
      */
@@ -639,7 +644,7 @@ public class XtremIOProvUtils {
      */
     public static ArrayListMultimap<String, Initiator> mapInitiatorToInitiatorGroup(String storageSerialNumber,
             Collection<Initiator> initiators, List<Initiator> initiatorsNotFound, String xioClusterName, XtremIOClient client)
-                    throws Exception {
+            throws Exception {
         ArrayListMultimap<String, Initiator> initiatorToIGMap = ArrayListMultimap.create();
         for (Initiator initiator : initiators) {
             String igName = getIGNameForInitiator(initiator, storageSerialNumber, client, xioClusterName);

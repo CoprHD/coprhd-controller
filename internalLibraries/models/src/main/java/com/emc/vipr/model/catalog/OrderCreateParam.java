@@ -29,7 +29,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "order_create")
 public class OrderCreateParam extends OrderCommonParam {
 
-    private URI tenantId;
+	private static final long serialVersionUID = 7460167816555633906L;
+	
+	private URI tenantId;
 
     private URI scheduledEventId;
 

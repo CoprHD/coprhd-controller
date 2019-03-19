@@ -219,9 +219,9 @@ public class VMwareSupport {
      * @return datastore
      */
     public Datastore createVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
-            BlockObjectRestRep volume, String datastoreName) {
+    		String vmfsVersion, BlockObjectRestRep volume, String datastoreName) {
         HostScsiDisk disk = findScsiDisk(host, cluster, volume, true);
-        Datastore datastore = execute(new CreateVmfsDatastore(host, disk, datastoreName));
+        Datastore datastore = execute(new CreateVmfsDatastore(host, disk, vmfsVersion, datastoreName));
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastoreName);
         ExecutionUtils.clearRollback();

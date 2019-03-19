@@ -17,6 +17,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -65,12 +66,12 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 List<URI> newInitiators = new ArrayList<>();
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 for (Initiator initiator : initiators) {
-                    List<ExportMask> exportMasks = ExportUtils.getInitiatorExportMasks(initiator, _dbClient);
+                    List<ExportMask> exportMasks = ExportUtils.getInitiatorExportMasks(initiator, storage.getId(), _dbClient);
                     if (exportMasks == null || exportMasks.isEmpty()) {
                         newInitiators.add(initiator.getId());
                     } else {
                         for (ExportMask exportMask : exportMasks) {
-                            exportMaskToVolumesToAdd.put(exportMask.getId(), volumeMap);
+                        	exportMaskToVolumesToAdd.put(exportMask.getId(), volumeMap);
                         }
                     }
                 }

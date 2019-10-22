@@ -207,6 +207,23 @@ public abstract class Executor {
         try {
             StringBuilder logMessage = new StringBuilder();
             logMessage.append(NEWLINE).append("{");
+			
+			Object[] cmdObjList = commandObject.retreiveArguments();
+			if (cmdObjList != null && cmdObjList[0].toString().contains("Login") && cmdObjList[3].toString().contains("443")) {
+				int count = 0;
+				for (Object obj : cmdObjList) {
+					if (count == 2){
+						count++;
+						continue;
+					}	
+					logMessage.append(obj.toString()).append(SEMICOLON);
+					count++;
+				}
+				logMessage.append("}");
+				_LOGGER.debug(logMessage.toString());
+				return;
+			}
+			
             for (Object obj : commandObject.retreiveArguments()) {
                 if (null == obj) {
                     logMessage.append("NULL").append(SEMICOLON);

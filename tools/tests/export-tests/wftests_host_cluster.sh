@@ -19,6 +19,12 @@ HOST_TEST_CASES="test_host_add_initiator \
                     test_vcenter_event \
                     test_host_remove_initiator_event" 
 
+get_host_id() {
+    tenant_arg=$1
+    hostname_arg=$2
+    echo `hosts list ${tenant_arg} | grep ${hostname_arg} | awk '{print $4}'`
+}
+
 get_host_cluster() {
     tenant_arg=$1
     hostname_arg=$2
@@ -567,7 +573,8 @@ remove_host_from_cluster() {
 
 remove_initiator_from_host() {
     host=$1
-    args="removeHBA $host 1"
+    number=$2
+    args="removeHBA $host $number"
     echo "Removing initiator from $host"
     # Uncomment for debugging
     #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
@@ -576,8 +583,9 @@ remove_initiator_from_host() {
 
 add_initiator_to_host() {
     host=$1
-    args="addHBA $host 1"
-    echo "Removing initiator from $host"
+    number=$2
+    args="addHBA $host $number"
+    echo "Adding initiator to $host"
     # Uncomment for debugging
     #echo "=== curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "${args}"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null"
     curl -ikL --header "Content-Type: application/json" --header "username:xx" --header "password: yy" --data '{"args": "'"${args}"'"}' -X POST http://${HW_SIMULATOR_IP}:8235/vmware/modify &> /dev/null    
@@ -586,6 +594,17 @@ add_initiator_to_host() {
 get_host_initiator_count() {
     host=$1
     echo `initiator list ${host} | grep Initiator | wc -l`
+}
+
+get_host_initiator_id() {
+    host=$1
+    wwn=$2
+    echo `initiator list ${host} | grep Initiator | grep $wwn | awk '{print $5}'`
+}
+
+get_host_initiators() {
+    host=$1
+    echo `initiator list ${host} | grep Initiator | awk '{printf("%s\n",$5)}'`
 }
 
 discover_vcenter() {
@@ -609,12 +628,19 @@ get_pending_task() {
 }
 
 get_pending_event() {
-    echo $(events list emcworld | grep pending | awk '{print $1}')
+    echo `events list emcworld | grep pending | awk '{printf("%s ",$1)}'`
 } 
 
 get_failed_event() {
     echo $(events list emcworld | grep failed | awk '{print $1}')
 }  
+get_event_count() {
+    echo $(events list emcworld | grep pending | grep ActionableEvent | wc -l)
+}
+
+get_declined_event_count() {
+    echo $(events list emcworld | grep declined | grep ActionableEvent | wc -l)
+}
 
 approve_pending_event() {
     echo "Approving event $1"
@@ -2336,10 +2362,10 @@ test_host_remove_initiator_event() {
     # Run the export group command
     runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
 
-    old_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+    old_initiator_count=`get_host_initiator_count ${VCENTER_SIMULATOR_HOST}`
 
     # Remove initiator from a host in the cluster
-    remove_initiator_from_host "host11"
+    remove_initiator_from_host ${VCENTER_SIMULATOR_HOST} "1"
 
     discover_vcenter "vcenter1"
 
@@ -2354,7 +2380,7 @@ test_host_remove_initiator_event() {
       approve_pending_event $EVENT_ID 
     fi
 
-    current_initiator_count=`get_host_initiator_count "host11.sim.emc.com"`
+    current_initiator_count=`get_host_initiator_count ${VCENTER_SIMULATOR_HOST}`
 
     echo "old_initiator_count = ${old_initiator_count}"
     echo "new_initiator_count = ${current_initiator_count}"
@@ -2373,12 +2399,175 @@ test_host_remove_initiator_event() {
     # Remove the shared export
     runcmd export_group delete ${PROJECT}/${expname}1
 
-    add_initiator_to_host "host11"
+    add_initiator_to_host ${VCENTER_SIMULATOR_HOST} "1"
     discover_vcenter "vcenter1"
  
     # Report results
     report_results ${test_name} ${failure}
     
+    # Add a break in the output
+    echo " "
+}
+
+test_host_batch_initiator_merge_old_events() {
+
+    hostname="host21.sim.emc.com"
+    host_id=`get_host_id emcworld ${hostname}`
+    hinits=`get_host_initiators ${hostname}`
+    initiators=()
+    IFS=" "; read -ra initiators <<< "$hinits"
+    tenant_id=`get_tenant_id emcworld`
+
+    fake_pwwn1=`randwwn`
+    fake_nwwn1=`randwwn`
+    # Add initiator to network
+    runcmd run transportzone add ${FC_ZONE_A} ${fake_pwwn1}
+
+    # Create new initators and add to fake hosts
+    runcmd initiator create ${hostname} FC ${fake_pwwn1} --node ${fake_nwwn1}
+
+    fake_initiator_id=`get_host_initiator_id ${hostname} "${fake_pwwn1}"`
+    create_basic_volumes
+    runcmd export_group create $PROJECT cluster1export $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-2"
+
+    create_actionable_event "oldInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{oldInitiatorId}|${fake_initiator_id}" "{tenantId}|${tenant_id}"
+    create_actionable_event "newInitiatorEvent.txt" "{hostId}|${host_id}" "{hostName}|${hostname}" "{newInitiatorId}|${initiators[1]}" "{tenantId}|${tenant_id}"
+
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "2" ]; then
+        echo "FAILED. Expected 2 events but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    discover_vcenter "vcenter1"
+
+    #should now have a single event
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "2" ]; then
+        echo "FAILED. Expected 2 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi 
+
+    numberOfEvents=$(get_declined_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 declined event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    pending_events=()
+    IFS=" "; read -ra pending_events <<< `get_pending_event`
+    approve_pending_event  ${pending_events[0]}
+    approve_pending_event  ${pending_events[1]}
+}
+
+test_host_batch_initiator_event() {
+    test_name="test_host_batch_initiator_event"
+    failure="${HAPPY_PATH_TEST_INJECTION}"
+    echot "Running test_host_batch_initiator_event"
+    TEST_OUTPUT_FILE=test_output_${RANDOM}.log
+    reset_counts
+    expname=${EXPORT_GROUP_NAME}t2
+    item=${RANDOM}
+    cfs=("ExportGroup ExportMask Host Initiator Cluster")
+    mkdir -p results/${item}
+    set_controller_cs_discovery_refresh_interval 1
+
+    create_basic_volumes
+
+    # Run the export group command
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Cluster --volspec ${PROJECT}/${VOLNAME}-1 --clusters "emcworld/cluster-1"
+
+    old_initiator_count=`get_host_initiator_count ${VCENTER_SIMULATOR_HOST}`
+
+    # Remove initiators from a host in the cluster
+    remove_initiator_from_host  ${VCENTER_SIMULATOR_HOST} "2"
+
+    discover_vcenter "vcenter1"
+
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+        echo "FAILED. Expected an event."
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    else
+      approve_pending_event $EVENT_ID
+    fi
+
+    current_initiator_count=`get_host_initiator_count ${VCENTER_SIMULATOR_HOST}`
+
+    echo "old_initiator_count = ${old_initiator_count}"
+    echo "new_initiator_count = ${current_initiator_count}"
+
+    # Initiator should no longer exist
+    if [[ "$old_initiator_count" > "$current_initiator_count" ]];
+    then
+             echo "Success. Initiators were deleted from the event"    
+    else
+        echo "+++ FAIL - Initiators were not deleted from host"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    add_initiator_to_host ${VCENTER_SIMULATOR_HOST} "2"
+    discover_vcenter "vcenter1"
+
+    numberOfEvents=$(get_event_count)
+    if [ "$numberOfEvents" != "1" ]; then
+        echo "FAILED. Expected 1 event but there are $numberOfEvents"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    EVENT_ID=$(get_pending_event)
+    if [ -z "$EVENT_ID" ]
+    then
+        echo "FAILED. Expected an event."
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    else
+      approve_pending_event $EVENT_ID
+    fi
+
+    current_initiator_count=`get_host_initiator_count ${VCENTER_SIMULATOR_HOST}`
+
+    echo "old_initiator_count = ${old_initiator_count}"
+    echo "new_initiator_count = ${current_initiator_count}"
+
+    if [[ "$old_initiator_count" = "$current_initiator_count" ]];
+    then
+             echo "Success. Initiators were added to the event"    
+    else
+        echo "+++ FAIL - Initiators were not added to host"
+        incr_fail_count
+        report_results ${test_name} ${failure}
+        continue;
+    fi
+
+    # Remove the shared export
+    runcmd export_group delete ${PROJECT}/${expname}1
+
+    # Report results
+    report_results ${test_name} ${failure}
+
     # Add a break in the output
     echo " "
 }

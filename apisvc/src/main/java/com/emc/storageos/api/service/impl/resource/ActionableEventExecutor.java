@@ -11,6 +11,10 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,6 +45,8 @@ import com.google.common.collect.Sets;
 
 public class ActionableEventExecutor {
 
+	private static final Logger _log = LoggerFactory.getLogger(ActionableEventExecutor.class);
+	
     private DbClient _dbClient;
     private ComputeSystemController computeController;
 
@@ -685,6 +691,80 @@ public class ActionableEventExecutor {
      */
     public List<String> addInitiatorDeclineDetails(URI initiator) {
         return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.addInitiatorDeclineDetails"));
+    }
+    
+    /**
+     * Method to update initiators of existing exports for a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host id
+     * @param newInitiators the initiators to add
+     * @param oldInitiators the initiators to remove
+     * @param eventId the event id
+     * @return task for adding an initiator
+     */
+    public TaskResourceRep updateInitiators(URI hostId, List<URI> newInitiators, List<URI> oldInitiators, URI eventId) {
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Host.class, host.getId(), taskId,
+                ResourceOperationTypeEnum.UPDATE_HOST_INITIATORS);
+
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+            computeController.updateHostInitiators(eventId, hostId, newInitiators, oldInitiators, taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+        	_log.info("No updates are applicable.");
+            _dbClient.ready(Host.class, host.getId(), taskId);
+        }
+        return toTask(host, taskId, op);
+    }
+
+    /**
+     * Get details for the updateInitiators method
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param host the host
+     * @param newInitiators the initiators to add
+     * @param oldInitiators the initiators to remove
+     * @return list of event details
+     */
+    public List<String> updateInitiatorsDetails(URI host, List<URI> newInitiators, List<URI> oldInitiators) {
+        List<String> result = Lists.newArrayList();
+        for (URI initiatorId : newInitiators) {
+            result.addAll(addInitiatorDetails(initiatorId));
+        }
+        for (URI initiatorId : oldInitiators) {
+            result.addAll(removeInitiatorDetails(initiatorId));
+        }
+        return result;
+    }
+
+    /**
+     * Decline method that is invoked when the updateInitiators event is declined
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param host the host
+     * @param newInitiators the initiators to add
+     * @param oldInitiators the initiators to remove
+     * @param eventId the event id
+     * @return task
+     */
+    public TaskResourceRep updateInitiatorsDecline(URI host, List<URI> newInitiators, List<URI> oldInitiators, URI eventId) {
+        return null;
+    }
+
+    /**
+     * Get details for a decline event for updateInitiators
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param host the host
+     * @param newInitiators the initiators to add
+     * @param oldInitiators the initiators to remove
+     * @return list of details
+     */
+    public List<String> updateInitiatorsDeclineDetails(URI host, List<URI> newInitiators, List<URI> oldInitiators) {
+        return Lists.newArrayList(ComputeSystemDialogProperties.getMessage("ComputeSystem.updateInitiatorsDeclineDetails"));
     }
 
     /**

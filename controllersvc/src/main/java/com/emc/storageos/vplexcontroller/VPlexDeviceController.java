@@ -864,6 +864,11 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap, String stepId)
             throws WorkflowException {
         List<List<VolumeInfo>> rollbackData = new ArrayList<List<VolumeInfo>>();
+
+        // Below variables will act as workflow.storeStepData Keys
+        final String volumeInfoStepKey = "VolumeInfo";
+        final String vplexVolumeInfoStepKey = "VPlexVirtualVolumeInfo";
+
         List<URI> createdVplexVolumeURIs = new ArrayList<URI>();
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -1008,7 +1013,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 }
                 // Update rollback information.
                 rollbackData.add(vinfos);
-                _workflowService.storeStepData(stepId, rollbackData);
+                _workflowService.storeStepData(stepId, volumeInfoStepKey, rollbackData);
 
                 InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_045);
 
@@ -1043,6 +1048,7 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
             Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
 
             if (!foundVirtualVolumes.isEmpty()) {
+                List<String> vplexVirtualCustomVolNames = new ArrayList();
                 for (Entry<String, Volume> entry : vplexVolumeNameMap.entrySet()) {
                     Volume vplexVolume = entry.getValue();
                     VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(entry.getKey());
@@ -1090,6 +1096,8 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                                 namedURI = vplexVolume.getTenant();
                                 namedURI.setName(vvInfo.getName());
                                 vplexVolume.setTenant(namedURI);
+
+                                vplexVirtualCustomVolNames.add(vvInfo.getName());
                             }
                         }
                     } catch (Exception e) {
@@ -1117,6 +1125,9 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                             Operation.Status.ready,
                             OperationTypeEnum.CREATE_BLOCK_VOLUME.getDescription());
                 }
+
+                // Store Vplex volume name to the workflow, to be used in rollback method.
+                _workflowService.storeStepData(stepId, vplexVolumeInfoStepKey, vplexVirtualCustomVolNames);
             }
             if (foundVirtualVolumes.size() != vplexVolumeNameMap.size()) {
                 VPlexApiException ex = VPlexApiException.exceptions.cantFindAllRequestedVolume();
@@ -1223,7 +1234,20 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
     public void rollbackCreateVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, String executeStepId, String stepId)
             throws WorkflowException {
         try {
-            List<List<VolumeInfo>> rollbackData = (List<List<VolumeInfo>>) _workflowService.loadStepData(executeStepId);
+            //These are the same key values set during createVirtualVolume step
+            final String volumeInfoStepKey = "VolumeInfo";
+            final String vplexVolumeInfoStepKey = "VPlexVirtualVolumeInfo";
+
+            // Flag to identify whether Volume deletion is attempted when Custom Naming is enabled
+            boolean attemptedDeletion = false;
+
+            //StepData set for VolumeInfo
+            List<List<VolumeInfo>> rollbackData = (List<List<VolumeInfo>>) _workflowService.loadStepData(executeStepId,
+                    volumeInfoStepKey);
+
+            //StepData set for VPlexVirtualVolumeInfo
+            List<String> rollbackVplexCustomVolNames = (List<String>) _workflowService.loadStepData(executeStepId, vplexVolumeInfoStepKey);
+
             if (rollbackData != null) {
                 WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -1231,9 +1255,25 @@ public class VPlexDeviceController extends AbstractBasicMaskingOrchestrator
                 StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                 VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
 
+                // Rollback for VPlex virtual volumes when custom naming is enabled.
+                if (rollbackVplexCustomVolNames != null && !rollbackVplexCustomVolNames.isEmpty()){
+                    for (String rollbackVplexCustomVolName : rollbackVplexCustomVolNames){
+                        _log.info("As Custom Naming is enabled, rolling back the Vplex Virtual Volume by name : {}",
+                                rollbackVplexCustomVolName);
+
+                        // To deleteVirtualVolume() we want to send:
+                        // 1. VplexCustomVolumeName : updated custom virtual-volume name.
+                        // 2. true : we want to unclaim storage volumes, claimed by this virtual volume
+                        // 3. false : we don't want to retry deleteVirtualVolume operation on failure.
+                        client.deleteVirtualVolume(rollbackVplexCustomVolName, true, false);
+                    }
+                    attemptedDeletion = true;
+                }
                 // For each virtual volume attempted, try and rollback.
-                for (List<VolumeInfo> rollbackList : rollbackData) {
-                    client.deleteVirtualVolume(rollbackList);
+                if (!attemptedDeletion) {
+                    for (List<VolumeInfo> rollbackList : rollbackData) {
+                        client.deleteVirtualVolume(rollbackList);
+                    }
                 }
             }
 

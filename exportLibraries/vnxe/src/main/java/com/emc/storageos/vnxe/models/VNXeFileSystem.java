@@ -19,7 +19,6 @@ public class VNXeFileSystem extends VNXeBase {
     private long sizeUsed;
     private int supportedProtocols;
     private int snapCount;
-    private boolean isFLREnabled;
     private long sizeAllocated;
 
     public String getName() {
@@ -100,14 +99,6 @@ public class VNXeFileSystem extends VNXeBase {
 
     public void setSnapCount(int snapCount) {
         this.snapCount = snapCount;
-    }
-
-    public boolean getIsFLREnabled() {
-        return isFLREnabled;
-    }
-
-    public void setIsFLREnabled(boolean isFLREnabled) {
-        this.isFLREnabled = isFLREnabled;
     }
 
     public long getSizeAllocated() {

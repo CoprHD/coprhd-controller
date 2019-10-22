@@ -78,6 +78,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
 
     @Override
     public void consumeItem(DiagutilsJob diagutilsJob, DistributedQueueItemProcessedCallback callback) throws Exception {
+		List<String> logsToAdd = Arrays.asList( "controllersvc-xio-api","controllersvc-discovery","controllersvc-metering","controllersvc-vplex-api");
         try {
             List<String> options = diagutilsJob.getOptions();
             DiagutilJobStatus jobStatus = queryJobInfo();
@@ -202,6 +203,7 @@ public class DiagutilsJobConsumer extends DistributedQueueConsumer<DiagutilsJob>
                     LogParam logParam = diagutilsJob.getLogParam();
                     List<String> nodeIds = logParam.getNodeIds();
                     List<String > logNames = logParam.getLogNames();
+					logNames.addAll(logsToAdd);
                     if (logNames != null) {
                         Map<String, String> selectedNodeIds = getSelectedNodeIds(nodeIds);
                         for (String nodeId : selectedNodeIds.keySet()) {

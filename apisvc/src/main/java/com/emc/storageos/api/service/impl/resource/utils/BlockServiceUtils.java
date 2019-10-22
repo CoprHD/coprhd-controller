@@ -325,7 +325,7 @@ public class BlockServiceUtils {
                     return !Collections.disjoint(applicationSupported, backendSystemTypes);
                 } else if (!Volume.checkForRP(dbClient, volume.getId())) {
                     // Returns true, for VPLEX&VMAX scenarios
-                    return backendSystemTypes.contains(Type.vmax);
+                    return (backendSystemTypes.contains(Type.vmax) || backendSystemTypes.contains(Type.xtremio));
                 }
 
             }

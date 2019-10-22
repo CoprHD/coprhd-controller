@@ -335,6 +335,38 @@ public class RecoverPointScheduler implements Scheduler {
             }
         }
 
+        // (COP-36973) While adding a replication set to an existing CG, override the recommendations not to add journal(s) when the Journal policy is 'Static'
+        // Check for volume create request
+        if (!capabilities.getAddJournalCapacity()) {
+            // Check if the virtual pool has static journal size set.
+            String journalPolicy = vpool.getJournalSize();
+            if (null != journalPolicy && !RPHelper.vpoolHasJournalMultiplier(vpool)) {
+                // Check whether the CG has any existing volumes. If yes, get the journals from existing volume.
+                URI cg = capabilities.getBlockConsistencyGroup();
+                List<Volume> sourceVolumes = RPHelper.getCgSourceVolumes(cg, dbClient);
+                if (!sourceVolumes.isEmpty()) {
+                    List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, cg, sourceVolumes.get(0).getRpCopyName());
+                    // Check if there are any existing journals in the CG.
+                    if (!sourceJournals.isEmpty()) {
+                        // Iterate through all the recommendations and set source, standby & target journal recommendations to empty.
+                        // This is to make sure ViPR doesn't add new journal volumes to the CG if it already have existing
+                        // ...journal volumes and there is no multiplier option selected during second replication set creation onwards.
+                        for (Recommendation recommendation : recommendations) {
+                            if (recommendation instanceof RPProtectionRecommendation) {
+                                RPProtectionRecommendation rPProtectionRecommendation = (RPProtectionRecommendation) recommendation;
+                                rPProtectionRecommendation.setSourceJournalRecommendation(null);
+                                rPProtectionRecommendation.setStandbyJournalRecommendation(null);
+                                rPProtectionRecommendation.setTargetJournalRecommendations(null);
+                            }
+                        }
+                        BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cg);
+                        _log.info("Not adding journals to the CG : {} as this is an add replication set to an existing CG operation " +
+                                "with journal policy defined as static", consistencyGroup.getLabel());
+                    }
+                }
+            }
+        }
+
         // There is only one entry of type RPProtectionRecommendation ever in the returned recommendation list.
         _log.info(String.format("%s %n", ((RPProtectionRecommendation) recommendations.get(0)).toString(dbClient)));
         return recommendations;

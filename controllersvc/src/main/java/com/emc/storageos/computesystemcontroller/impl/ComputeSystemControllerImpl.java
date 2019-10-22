@@ -128,6 +128,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String HOST_CHANGES_WF_NAME = "HOST_CHANGES_WORKFLOW";
     private static final String SYNCHRONIZE_SHARED_EXPORTS_WF_NAME = "SYNCHRONIZE_SHARED_EXPORTS_WORKFLOW";
     private static final String SET_SAN_BOOT_TARGETS_WF_NAME = "SET_SAN_BOOT_TARGETS_WORKFLOW";
+    private static final String UPDATE_HOST_INITIATOR_WF_NAME = "UPDATE_HOST_INITIATOR_WORKFLOW";    
 
     private static final String DETACH_HOST_STORAGE_WF_NAME = "DETACH_HOST_STORAGE_WORKFLOW";
     private static final String DETACH_CLUSTER_STORAGE_WF_NAME = "DETACH_CLUSTER_STORAGE_WORKFLOW";
@@ -2633,4 +2634,255 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             throws ControllerException {
         removeHostsFromExport(NullColumnValueGetter.getNullURI(), hostId, clusterId, isVcenter, vCenterDataCenterId, taskId);
     }
+    
+    @Override
+    public void updateHostInitiators(URI eventId, URI host, List<URI> newInitiators, List<URI> oldInitiators, String taskId) {
+        TaskCompleter completer = null;
+        try {
+            completer = new HostInitiatorsCompleter(eventId, host, newInitiators, oldInitiators, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_HOST_INITIATOR_WF_NAME, true, taskId);
+            String waitFor = null;
+
+            waitFor = addStepsForUpdateInitiators(workflow, waitFor, host, newInitiators, oldInitiators, eventId);
+
+            workflow.executePlan(completer, "Success", null, null, null, null);
+        } catch (Exception ex) {
+            String message = "updateHostInitiators caught an exception.";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+    
+    /**
+     * Helper class for storing an initiator and its related operation
+     *
+     */
+    public static class InitiatorChange {
+
+        public Initiator initiator;
+        public InitiatorOperation op;
+
+        public InitiatorChange(Initiator initiator, InitiatorOperation op) {
+            this.initiator = initiator;
+            this.op = op;
+        }
+    }
+
+    /**
+     * Returns the next Initiator that is operating against the given export group and has the given initiator operation.
+     * 
+     * @param exportGroupId the export group id
+     * @param map map of export group URI to initiator change
+     * @param op the initiator operation
+     * @return the next initiator from the map that operates on the given export group and has the matching initiator operation
+     */
+    public static Initiator getNextInitiatorOperation(URI exportGroupId, Map<URI, List<InitiatorChange>> map, InitiatorOperation op) {
+        if (!NullColumnValueGetter.isNullURI(exportGroupId)) {
+            List<InitiatorChange> initiators = map.get(exportGroupId);
+            if (initiators != null) {
+                Iterator<InitiatorChange> iterator = initiators.iterator();
+                while (iterator.hasNext()) {
+                    InitiatorChange result = iterator.next();
+                    if (result.op.equals(op)) {
+                        Initiator initiator = result.initiator;
+                        iterator.remove();
+                        return initiator;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Based on the host id and lists of new and old initiators, creates a map of export group URI to list of
+     * initiator changes for the given host. This map can then be used to determine which initiators need to
+     * be added or removed from each export group.
+     * 
+     * @param hostId the host id
+     * @param newInitiatorIds the list of new initiators being added to this host
+     * @param oldInitiatorIds the list of old initiators being removed from this host
+     * @return map of export group URI to list of initiator changes
+     */
+    private Map<URI, List<InitiatorChange>> getInitiatorOperations(URI hostId, Collection<URI> newInitiatorIds,
+            Collection<URI> oldInitiatorIds) {
+        Map<URI, List<InitiatorChange>> result = Maps.newHashMap();
+
+        List<Initiator> newInitiators = _dbClient.queryObject(Initiator.class, newInitiatorIds);
+        List<Initiator> oldInitiators = _dbClient.queryObject(Initiator.class, oldInitiatorIds);
+
+        List<ExportGroup> exportGroups = getExportGroups(_dbClient, hostId, oldInitiators);
+
+        for (ExportGroup export : exportGroups) {
+
+            result.put(export.getId(), Lists.newArrayList());
+            List<URI> existingInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+
+            for (Initiator oldInit : oldInitiators) {
+                if (existingInitiators.contains(oldInit.getId())) {
+                    result.get(export.getId()).add(new InitiatorChange(oldInit, InitiatorOperation.REMOVE));
+                } else {
+                    _log.warn(String.format("Export Group %s doesn't contain %s", export.forDisplay(), oldInit.forDisplay()));
+                }
+            }
+
+            for (Initiator newInit : newInitiators) {
+                if (existingInitiators.contains(newInit.getId())) {
+                    _log.warn("Export Group " + export.forDisplay() + " already contains " + newInit.forDisplay());
+                } else if (ComputeSystemHelper.validatePortConnectivity(_dbClient, export, Lists.newArrayList(newInit)).isEmpty()) {
+                    _log.warn("Export Group " + export.forDisplay() + " does not have port connectivity for " + newInit.forDisplay());
+                } else {
+                    result.get(export.getId()).add(new InitiatorChange(newInit, InitiatorOperation.ADD));
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Creates steps for updating export groups for the given host with the new and old initiators
+     * 
+     * @param workflow the workflow
+     * @param waitFor the wait for step
+     * @param hostId the host id
+     * @param newInitiatorIds list of new initiators added to the host
+     * @param oldInitiatorIds list of old initiators removed from the host
+     * @param eventId the actionable event id
+     * @return wait for step id
+     */
+    public String addStepsForUpdateInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> newInitiatorIds,
+            Collection<URI> oldInitiatorIds, URI eventId) {
+
+        Map<URI, List<InitiatorChange>> map = getInitiatorOperations(hostId, newInitiatorIds, oldInitiatorIds);
+        verifyNotRemovingAllInitiatorsFromExportGroup(map, hostId);
+
+        for (URI eg : map.keySet()) {
+
+            ExportGroup export = _dbClient.queryObject(ExportGroup.class, eg);
+
+            Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
+
+            Set<URI> addedClusters = new HashSet<>();
+            Set<URI> removedClusters = new HashSet<>();
+            Set<URI> addedHosts = new HashSet<>();
+            Set<URI> removedHosts = new HashSet<>();
+
+            boolean removingInitiator = true;
+
+            // This while loop will consume all initiator operations for the current export group, until
+            // the list of initiators is empty. This is where we perform alternating Remove/Add initiator operations
+            while (!map.get(export.getId()).isEmpty()) {
+
+                Set<URI> addedInitiators = new HashSet<>();
+                Set<URI> removedInitiators = new HashSet<>();
+
+                boolean update = false;
+                // Alternate between removing and then adding initiator to the export group
+                if (removingInitiator) {
+                    Initiator remove = getNextInitiatorOperation(export.getId(), map, InitiatorOperation.REMOVE);
+                    if (remove != null) {
+                        removedInitiators.add(remove.getId());
+                        update = true;
+                    }
+                } else {
+                    Initiator add = getNextInitiatorOperation(export.getId(), map, InitiatorOperation.ADD);
+                    if (add != null) {
+                        addedInitiators.add(add.getId());
+                        update = true;
+                    }
+                }
+
+                if (update) {
+                    waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                            String.format("Updating export group %s", export.getId()), waitFor,
+                            export.getId(), export.getId().toString(),
+                            this.getClass(),
+                            updateExportGroupMethod(export.getId(), updatedVolumesMap,
+                                    addedClusters, removedClusters, addedHosts, removedHosts, addedInitiators, removedInitiators),
+                            updateExportGroupRollbackMethod(export.getId()), null);
+                }
+
+                removingInitiator = !removingInitiator;
+            }
+        }
+        return waitFor;
+    }
+
+    /**
+     * Verify that we are not going to remove the last initiator of the host from the export groups.
+     * Throw an exception if we will end up removing the last initiator.
+     * 
+     * @param exportGroupInitiatorChanges map of export group to initiator changes
+     * @param hostId the host id
+     */
+    private void verifyNotRemovingAllInitiatorsFromExportGroup(final Map<URI, List<InitiatorChange>> exportGroupInitiatorChanges,
+            URI hostId) {
+        Map<URI, List<InitiatorChange>> exportGroupInitiatorChangesCopy = Maps.newHashMap();
+        for (URI id : exportGroupInitiatorChanges.keySet()) {
+            List<InitiatorChange> list = Lists.newArrayList(exportGroupInitiatorChanges.get(id));
+            exportGroupInitiatorChangesCopy.put(id, list);
+        }
+
+        Host host = _dbClient.queryObject(Host.class, hostId);
+
+        for (URI exportId : exportGroupInitiatorChangesCopy.keySet()) {
+
+            ExportGroup export = _dbClient.queryObject(ExportGroup.class, exportId);
+
+            List<URI> allInitiatorIds = StringSetUtil.stringSetToUriList(export.getInitiators());
+            List<Initiator> allInitiators = _dbClient.queryObject(Initiator.class, allInitiatorIds);
+            List<URI> exportGroupHostInitiators = Lists.newArrayList();
+            // Get list of all initiators in this export group that belong to the host that has the initiator changes
+            for (Initiator initiator : allInitiators) {
+                if (!NullColumnValueGetter.isNullURI(initiator.getHost()) && initiator.getHost().equals(hostId)) {
+                    exportGroupHostInitiators.add(initiator.getId());
+                }
+            }
+
+            if (ComputeSystemControllerImpl.isRemovingAllHostInitiatorsFromExportGroup(exportGroupInitiatorChangesCopy, exportId,
+                    exportGroupHostInitiators)) {
+                throw ComputeSystemControllerException.exceptions.removingAllInitiatorsFromExportGroup(export.forDisplay(),
+                        host.forDisplay());
+            }
+        }
+    }
+
+    /**
+     * Returns true if the list of exportGroupHostInitiators will be empty during the removal and addition of the old and new initiators
+     * 
+     * @param exportGroupInitiatorChanges map of export group to initiator changes
+     * @param exportId the export group id
+     * @param exportGroupHostInitiators list of initiators that belong to the host
+     * @return true if all host initiators will be removed from the export group, otherwise false
+     */
+    public static boolean isRemovingAllHostInitiatorsFromExportGroup(Map<URI, List<InitiatorChange>> exportGroupInitiatorChanges,
+            URI exportId,
+            Collection<URI> exportGroupHostInitiators) {
+
+        int size = exportGroupHostInitiators.size();
+        boolean removingInitiator = true;
+
+        while (!exportGroupInitiatorChanges.get(exportId).isEmpty()) {
+
+            if (removingInitiator) {
+                if (getNextInitiatorOperation(exportId, exportGroupInitiatorChanges, InitiatorOperation.REMOVE) != null) {
+                    size--;
+                }
+            } else {
+                if (getNextInitiatorOperation(exportId, exportGroupInitiatorChanges, InitiatorOperation.ADD) != null) {
+                    size++;
+                }
+            }
+
+            removingInitiator = !removingInitiator;
+
+            if (size <= 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
 }

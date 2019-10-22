@@ -162,7 +162,7 @@ public class TaskScrubberExecutor {
                     if (task == null || (task.getCreationTime() != null && task.getCreationTime().after(startTimeMarker))) {
                         continue;
                     }
-                    if (!task.isPending()) {
+                    if (!task.isPending() && !task.isSuspendedNoError()) {
                         tasksDeleted++;
                         toBeDeleted.add(task);
                     }

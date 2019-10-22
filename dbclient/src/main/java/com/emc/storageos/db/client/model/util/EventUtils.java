@@ -35,6 +35,13 @@ public class EventUtils {
     public static String hostClusterChange = "hostClusterChange";
     public static String removeInitiator = "removeInitiator";
     public static String addInitiator = "addInitiator";
+    public static String updateInitiators = "updateInitiators";
+    public static String updateInitiatorsDecline = "updateInitiatorsDecline";
+
+    public static final int UPDATE_INITIATORS_METHOD_PARAMETERS = 3;
+    public static final int UPDATE_INITIATORS_METHOD_ADD_INITIATOR_INDEX = 1;
+    public static final int UPDATE_INITIATORS_METHOD_REMOVE_INITIATOR_INDEX = 2;
+    
     public static String hostVcenterUnassignDecline = "hostVcenterUnassignDecline";
     public static String hostVcenterChangeDecline = "hostVcenterChangeDecline";
     public static String hostDatacenterChangeDecline = "hostDatacenterChangeDecline";
@@ -51,7 +58,8 @@ public class EventUtils {
         HOST_INITIATOR_DELETE("103"),
         HOST_DATACENTER_CHANGE("104"),
         HOST_VCENTER_CHANGE("105"),
-        UNASSIGN_HOST_FROM_VCENTER("106");
+        UNASSIGN_HOST_FROM_VCENTER("106"),
+        HOST_INITIATOR_UPDATES("107");
     
         private String code;
     
@@ -95,6 +103,7 @@ public class EventUtils {
             log.info("Duplicate event " + duplicateEvent.getId() + " is already in a pending state for resource " + resource.getId()
                     + ". Will not create a new event");
             duplicateEvent.setCreationTime(Calendar.getInstance());
+            duplicateEvent.setLabel(name);            
             duplicateEvent.setDescription(description);
             duplicateEvent.setWarning(warning);
             duplicateEvent.setAffectedResources(getAffectedResources(affectedResources));

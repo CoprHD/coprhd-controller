@@ -80,8 +80,11 @@ public class MountBlockVolumeHelper {
     public void mountVolume(BlockObjectRestRep volume) {
         String device = linuxSupport.getDevice(volume, usePowerPath);
 
-        logInfo("linux.mount.block.volume.create.partition", hostname, device);
-        linuxSupport.resizePartition(device);
+        if (doFormat) {
+        	logInfo("linux.mount.block.volume.create.partition", hostname, device);
+        	linuxSupport.resizePartition(device);
+        }
+
         String partitionDevice = linuxSupport.getPrimaryPartitionDevice(volume, mountPoint, device, usePowerPath);
         logInfo("linux.mount.block.volume.partition.name", partitionDevice);
 

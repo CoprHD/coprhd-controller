@@ -692,7 +692,6 @@ public class VNXeApiClient {
         FileSystemParam fsParm = new FileSystemParam();
         fsParm.setSize(newSize);
         fsParm.setIsThinEnabled(fs.getIsThinEnabled());
-        fsParm.setIsFLREnabled(fs.getIsFLREnabled());
         fsParm.setSupportedProtocols(fs.getSupportedProtocols());
         fsParm.setSizeAllocated(fs.getSizeAllocated());
         modifyFSParm.setFsParameters(fsParm);

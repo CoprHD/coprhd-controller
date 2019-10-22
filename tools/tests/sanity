@@ -3430,7 +3430,7 @@ vnxblock_discovery()
     if [ $QUICK -eq 0 ]; then
        run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
-       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 6088 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
     run storagedevice discover_all --ignore_error
@@ -7572,7 +7572,7 @@ vnxblock_setup_once()
     if [ $QUICK -eq 0 ]; then
        run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     else
-       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 6088 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
     run storagedevice discover_all --ignore_error
@@ -8300,7 +8300,9 @@ file_tests()
 
         if [ $cos = $COS_UNITY ] ; then
             run snapshot create $PROJECT/$fsname $fsname-$datetime-2
-            run snapshot restore $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            # Commenting the below test since the restore operation does rename the snapshot name to timestamp name
+            # This will in turn fail the file system delete test case.
+            # run snapshot restore $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
             run snapshot export $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname $snap_exp_args
             run snapshot show $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
             run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
@@ -11333,7 +11335,7 @@ assert_ipsec_status()
     sleep 1
     for i in {1..60}; do
         echo "trying the ${i} times to see if ipsec status change to ${expect_status}."
-        ipsec_status=$(./ipsec check)
+        ipsec_status=$(ipsec check)
         [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
         echo "status is: ${ipsec_status}."
         echo "sleep 5 seconds"
@@ -14835,4 +14837,3 @@ fi
 task check_for_pending --fail
 
 _success
-

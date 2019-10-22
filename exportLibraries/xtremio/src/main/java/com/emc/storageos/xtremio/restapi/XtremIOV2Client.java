@@ -5,6 +5,7 @@
 package com.emc.storageos.xtremio.restapi;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -722,7 +723,9 @@ public class XtremIOV2Client extends XtremIOClient {
 
     @Override
     public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception {
-        String filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_STR, igName, clusterName);
+        // Encode the cluster name with "UTF-8
+        String filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_STR, URLEncoder.encode(igName, "UTF-8"),
+                URLEncoder.encode(clusterName, "UTF-8"));
         String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(filterString);
         ClientResponse response = get(URI.create(uriString));
         XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);

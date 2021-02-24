@@ -577,7 +577,7 @@ public class NetworkScheduler {
            _log.info("Host Network System : " + hostSwitch.getNativeGuid());
         }
 
-        if (!arrayNetworkSystems.isEmpty()){
+        if (!arrayNetworkSystems.isEmpty() && hostSwitch != null) {
            for (NetworkSystem arraySwitch : arrayNetworkSystems) {
               if (!arraySwitch.getId().equals(hostSwitch.getId())) {
                  orderedNetworkSystems.add(arraySwitch);

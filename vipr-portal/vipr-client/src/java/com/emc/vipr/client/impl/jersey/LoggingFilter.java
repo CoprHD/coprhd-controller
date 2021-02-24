@@ -40,6 +40,10 @@ public class LoggingFilter extends ClientFilter {
     private static final String PASSWORD_REPLACEMENT = "$1*****$3";// NOSONAR
                                                                    // ("Suppressing Sonar violation of variable password, as this field  is not holding sensitive data")
 
+	private static final Pattern ROOT_PASSWORD_PATTERN = Pattern.compile("(\"root_password\":\".*\")", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+	private static final String ROOT_PASSWORD = "\"root_password\":";
+    private static final String ROOT_PASSWORD_REPLACEMENT = "\"root_password\":\"********\"";
+
     private static AtomicLong id = new AtomicLong(0);
     private final int maxEntityLength;
     private final Logger log;
@@ -275,6 +279,11 @@ public class LoggingFilter extends ClientFilter {
 
     public static String protectPasswords(String entity) {
         Matcher m = PASSWORD_PATTERN.matcher(entity);
-        return m.replaceAll(PASSWORD_REPLACEMENT);
+        if (entity.contains(ROOT_PASSWORD)) {
+        	Matcher m1 = ROOT_PASSWORD_PATTERN.matcher(entity);
+        	return m1.replaceAll(ROOT_PASSWORD_REPLACEMENT);
+        } else {
+        	return m.replaceAll(PASSWORD_REPLACEMENT);
+        }
     }
 }

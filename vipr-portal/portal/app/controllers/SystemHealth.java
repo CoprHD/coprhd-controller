@@ -528,7 +528,6 @@ public class SystemHealth extends Controller {
      */
     private static Map getDiagnosticOptions() {
         Map<String, String> options = getDefaultDiagnosticOptions();
-        options.put("all CFs", "all_cfs");
         options.put("backup data", "backup");
         //options.put("including all CFs(-logs)", "-logs"); including -logs by default
         return options;
@@ -536,7 +535,6 @@ public class SystemHealth extends Controller {
 
     private static Map getDefaultDiagnosticOptions() {
         Map<String, String> options = Maps.newLinkedHashMap();
-        options.put("minimum CFs", "min_cfs");
         options.put("zookeeper data", "zk");
         options.put("properties", "properties");
         options.put("health data", "health");

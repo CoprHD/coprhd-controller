@@ -1273,6 +1273,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var DEFAULT_DOWNLOAD_SEVERITY = '8';
     var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var DEFAULT_DOWNLOAD_FTPS = 'download';
+    var DEFAULT_DOWNLOAD_CFS = 'min_cfs';
     var isMsgPopedUp = false;
     var diagutilStatus = '';
     var SEVERITIES = {
@@ -1286,7 +1287,10 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         'ftp': 'FTP',
         'sftp': 'SFTP'
     }
-
+    var CFS = {
+        'min_cfs': 'Minimum CFs',
+        'all_cfs': 'Maximum CFs'
+    }
     
     $scope.orderTypeOptions = [{id:'', name:translate("systemLogs.orderType.NONE")}];
     angular.forEach($scope.orderTypes, function(value) {
@@ -1308,6 +1312,11 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         this.push({id:key, name:value});
     }, $scope.severityOptions);
     
+    $scope.cfOptions = [];
+    angular.forEach(CFS, function(value, key) {
+        this.push({id:key, name:value});
+    }, $scope.cfOptions);
+
     $scope.diagnosticOptions = [];
     angular.forEach($scope.allDiagnosticOptions, function(value, key) {
         this.push({id:value, name:key});
@@ -1366,6 +1375,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
                 $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
                 $scope.diagnostic.type = 1;
+                $scope.diagnostic.cf = DEFAULT_DOWNLOAD_CFS;
                 $scope.diagnostic.ftp = DEFAULT_DOWNLOAD_FTPS;
                // $scope.diagnostic.options = $scope.defaultDiagnosticOptions;
             }
@@ -1413,6 +1423,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     $scope.uploadDiagutilData = function() {
         isMsgPopedUp = false;
         var args = {
+            cfOption: $scope.diagnostic.cf,
             options: $scope.filterDialog.options,
             nodeId: $scope.filterDialog.nodeId,
             services: $scope.filterDialog.service,
@@ -1426,6 +1437,18 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
             userName: $scope.diagnostic.user,
             password: $scope.diagnostic.pw
             };
+
+        // Update the Diagnostic Options with the selected CF option
+        var minindex = args.options.indexOf('min_cfs');
+        var maxindex = args.options.indexOf('all_cfs');
+        if(minindex !== -1) {
+        	args.options.splice(minindex, 1);
+        }
+        if(maxindex !== -1) {
+        	args.options.splice(maxindex, 1);
+        }
+        args.options.push(args.cfOption);
+
         if ($scope.filterDialog.endTimeCurrentTime) {
             args.endTime = new Date().getTime();
         }
@@ -1567,7 +1590,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
         }
         return null;
     }
-    
+
     // Constructs the filter text to display at the top of the page
     function getFilterText() {
         var services = $scope.filter.service.join(", ");

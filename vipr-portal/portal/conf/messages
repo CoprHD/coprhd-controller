@@ -1279,6 +1279,7 @@ systemLogs.orderType.ALL=All Orders
 
 diagnostic.title=Diagnostic Options
 diagnostic.options=Options
+diagnostic.cf=Column Family Options
 diagnostic.ftp=Transport Type
 diagnostic.url=URL
 diagnostic.url.help=The URL of external server to store diagutils files.ftp://* or ftps://* for FTP, no prefix required for SFTP.

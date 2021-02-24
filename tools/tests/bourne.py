@@ -616,7 +616,7 @@ SEC_AUTHTOKEN_HEADER                = 'X-SDS-AUTH-TOKEN'
 
 SEC_PROXYTOKEN_HEADER = 'X-SDS-AUTH-PROXY-TOKEN'
 PROXY_USER_NAME = 'proxyuser'
-PROXY_USER_PASSWORD = 'ChangeMe'
+PROXY_USER_PASSWORD = 'ChangeMe1!'
 
 COOKIE_FILE                     = os.getenv('BOURNE_COOKIE_FILE', 'cookiejar')
 # Number of seconds a request should wait for response.
@@ -7991,7 +7991,7 @@ class Bourne:
     def test_password_change(self, user, password):
         if SKIP_SECURITY == '1':
             return
-        parms = { 'password' : 'ChangeMe' }
+        parms = { 'password' : 'ChangeMe1!' }
         response = self.__api('PUT', URI_MY_PASSWORD_CHANGE, parms)
         if (response.status_code != 400):
             print "Did not get 400 when trying to change the password of the currently logged in user with the same value", response.status_code
@@ -8073,7 +8073,7 @@ class Bourne:
         POST_LOGIN_URI=scheme+ipaddr+':' + '4443' + foundService
         parms = {
             'username': 'root',
-            'password': 'ChangeMe'
+            'password': 'ChangeMe1!'
         }
         newHeaders=_headers
         newHeaders["Content-Type"] = "application/x-www-form-urlencoded"

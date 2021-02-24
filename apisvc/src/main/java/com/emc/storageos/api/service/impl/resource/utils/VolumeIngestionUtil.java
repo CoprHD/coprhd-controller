@@ -4999,9 +4999,13 @@ public class VolumeIngestionUtil {
             while (it.hasNext()) {
                 allMasksUrisForVplex.add(it.next());
             }
-            List<UnManagedExportMask> allMasksForVplex = dbClient.queryObject(UnManagedExportMask.class, allMasksUrisForVplex);
-            for (UnManagedExportMask mask: allMasksForVplex) {
-                mapInitsToVplexStorageViews(initToMaskMap, mask, allInitiatorPortsBeingIngested);
+            Iterator<UnManagedExportMask> allMasksForVplex = dbClient.queryIterativeObjects(UnManagedExportMask.class,
+                    allMasksUrisForVplex, true);
+            while (allMasksForVplex.hasNext()) {
+                UnManagedExportMask mask = allMasksForVplex.next();
+                if (null != mask) {
+                    mapInitsToVplexStorageViews(initToMaskMap, mask, allInitiatorPortsBeingIngested);
+                }
             }
 
             _logger.info("initiator to UnManagedExportMask map is " + initToMaskMap);

@@ -8,7 +8,7 @@
 # it is provided by or on behalf of EMC.
 #
 # Devkit related for containerized build
-DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:4.0.0.0.13
+DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:4.0.0.0.16
 # for building OVF in viprdevkit container
 DOCKER_RUN_OVF_BUILD := docker run --rm --net=host --privileged -v "/dev:/dev" -v "/run/udev:/run/udev" -v "/home/ionixauto/.subversion:/root/.subversion" -v "$(CURDIR)/../../../../../..:/workspace" -v "/opt/ADG/ICAF/jobs:/opt/ADG/ICAF/jobs" -v "/opt/ADG/ICAF/log:/opt/ADG/ICAF/log" -v "/opt/downloads/images:/opt/downloads/images" -w "/workspace/coprhd-controller/packaging/appliance-images/sles/12.0/ViPRBase" "$(DEVKIT_IMAGE)"
 

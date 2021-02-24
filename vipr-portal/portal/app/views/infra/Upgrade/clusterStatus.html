@@ -86,13 +86,6 @@
   	</form>
     #{set stepIndex:stepIndex + 1 /}
   	<br/>
-  	<form id=checkDB action="@{checkDbStatus()}" onsubmit="return true">
-  	<div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.checkDB'}</b>
-		<button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.check'}</button>
-  	</div>
-  	</form>
-    #{set stepIndex:stepIndex + 1 /}
-  	<br/>
   	#{if newVersions.size() > 0}
   	<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px"> 
     <div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.downloadNew'}</b>

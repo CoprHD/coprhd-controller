@@ -406,6 +406,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
         <property name="validator" ref="validatorFactory"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
     
     <bean id="xtremioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOSnapshotOperations">
@@ -1747,6 +1748,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="config" ref="validatorConfig"/>
         <property name="clientFactory" ref="xtremioRestClientFactory"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="vplexValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.vplex.VplexSystemValidatorFactory">

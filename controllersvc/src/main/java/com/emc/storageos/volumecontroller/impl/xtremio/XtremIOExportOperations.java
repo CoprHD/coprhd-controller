@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.db.client.URIUtil;
@@ -80,8 +81,15 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     private ValidatorFactory validator;
 
+    private static CoordinatorClient coordinator;
+    private static final String XTREMIO_BULK_API_CALL = "xtremio_bulk_api";
+
     public void setValidator(ValidatorFactory validator) {
         this.validator = validator;
+    }
+
+    public static void setCoordinator(CoordinatorClient coordinator) {
+        XtremIOExportOperations.coordinator = coordinator;
     }
 
     @Override
@@ -596,33 +604,81 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
             // get volumes for each IG
             Map<String, Map<String, Integer>> igNameToVolMap = new HashMap<>();
-            for (String igName: igNameSet) {
-                Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+            boolean bulkApiCallFlag = Boolean
+                    .valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, XTREMIO_BULK_API_CALL));
+            Map<String, List<XtremIOVolume>> igNameToVolumesMap = new HashMap<>();
+            _log.debug("Bulk API Flag", bulkApiCallFlag);
+            _log.debug("XtremIO Firmware Version", storage.getFirmwareVersion());
+            if (client.isVersion2() && XtremIOProvUtils.isBulkAPISupported(storage.getFirmwareVersion(),client)
+                    && bulkApiCallFlag) {
+                long starttime = System.nanoTime();
+                if (!igNameSet.isEmpty())
+                    igNameToVolumesMap = XtremIOProvUtils.getLunMapAndVolumes(igNameSet, xioClusterName, client,
+                            igNameToVolumesMap);
+                _log.debug("Time taken for Bulk API Call : " + "total time = "
+                        + String.format("%2.6f", (System.nanoTime() - starttime) / 1000000000.0) + " seconds");
+                for (Map.Entry<String, List<XtremIOVolume>> entry : igNameToVolumesMap.entrySet()) {
+                	Map<String, Integer> discoveredVolumesMap = new HashMap<String, Integer>();
+                    for (XtremIOVolume volume : entry.getValue()) {
+                        for (List<Object> lunMapEntries : volume.getLunMaps()) {
+                            @SuppressWarnings("unchecked")
+                            // This can't be null
+                            List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                            if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
+                                continue;
+                            }
+                            String igNameToProcess = (String) igDetails.get(1);
+                            if (!entry.getKey().equalsIgnoreCase(igNameToProcess)) {
+                                continue;
+                            }
 
-                List<XtremIOVolume> igVolumes = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
-                for (XtremIOVolume igVolume : igVolumes) {
-                    for (List<Object> lunMapEntries : igVolume.getLunMaps()) {
-                        @SuppressWarnings("unchecked")
-                        // This can't be null
-                        List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
-                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
-                            _log.warn("IG Name or hlu is null in returned lun map response for volume {}", igVolume.toString());
-                            continue;
-                        }
-                        String igNameToProcess = (String) igDetails.get(1);
-                        if (!igName.equalsIgnoreCase(igNameToProcess)) {
-                            continue;
-                        }
+                            Double hluNumber = (Double) lunMapEntries.get(2);
 
-                        Double hluNumber = (Double) lunMapEntries.get(2);
-                        _log.info("Found HLU {} for volume {}", hluNumber, igVolume.getVolInfo().get(1));
-                        // for each IG involved, the same volume is visible through different HLUs.
-                        // TODO we might need a list of HLU for each Volume URI
-                        discoveredVolumes.put(BlockObject.normalizeWWN(igVolume.getWwn()), Integer.valueOf(hluNumber.intValue()));
+                            _log.info("Found HLU {} for volume {}", hluNumber, volume.getVolInfo().get(1));
+
+                            discoveredVolumesMap.put(volume.getWwn(), Integer.valueOf(hluNumber.intValue()));
+                        }
                     }
+                    igNameToVolMap.put(entry.getKey(), discoveredVolumesMap);
+
                 }
-                
-                igNameToVolMap.put(igName, discoveredVolumes);
+                _log.debug("Time taken for All iteration in BulK API  : " + "total time = "
+                        + String.format("%2.6f", (System.nanoTime() - starttime) / 1000000000.0) + " seconds");
+            } else {
+                long totaltime = System.nanoTime();
+                for (String igName : igNameSet) {
+                    Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+                    long starttime1 = System.nanoTime();
+                    List<XtremIOVolume> igVolumes = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName,
+                            client);
+                    _log.debug("Time taken for each ig name normal API Call : " + "total time = "
+                            + String.format("%2.6f", (System.nanoTime() - starttime1) / 1000000000.0) + " seconds");
+                    for (XtremIOVolume igVolume : igVolumes) {
+                        for (List<Object> lunMapEntries : igVolume.getLunMaps()) {
+                            @SuppressWarnings("unchecked")
+                            // This can't be null
+                            List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
+                            if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
+                                _log.warn("IG Name or hlu is null in returned lun map response for volume {}", igVolume.toString());
+                                continue;
+                            }
+                            String igNameToProcess = (String) igDetails.get(1);
+                            if (!igName.equalsIgnoreCase(igNameToProcess)) {
+                                continue;
+                            }
+
+                            Double hluNumber = (Double) lunMapEntries.get(2);
+                            _log.info("Found HLU {} for volume {}", hluNumber, igVolume.getVolInfo().get(1));
+                            // for each IG involved, the same volume is visible through different HLUs.
+                            // TODO we might need a list of HLU for each Volume URI
+                            discoveredVolumes.put(BlockObject.normalizeWWN(igVolume.getWwn()), Integer.valueOf(hluNumber.intValue()));
+                        }
+                    }
+
+                    igNameToVolMap.put(igName, discoveredVolumes);
+                }
+                _log.debug("Time taken for all ig name normal API Call : " + "total time = "
+                        + String.format("%2.6f", (System.nanoTime() - totaltime) / 1000000000.0) + " seconds");
             }
 
             // update each mask
@@ -1248,19 +1304,44 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             
             // Check for volumes which are already mapped to the IG. We do not need to create lun map for them.
             ArrayListMultimap<String, String> volumesToIGMap = ArrayListMultimap.create();
-            for (String igName : igNames) {
-                List<XtremIOVolume> igVols = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
-                for (XtremIOVolume igVolume : igVols) {
-                    volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
-                    
-                    /**
-                     * COP-28674: During Vblock Boot volume export, if existing masking views are found then check for existing volumes
-                     * If found throw exception. This condition is valid only for boot volume vblock export.
-                     */
-                    if (ExportMaskUtils.isVblockHost(initiatorIds, dbClient) && ExportMaskUtils.isBootVolume(dbClient, volumeMap)) {
-                        _log.error(String.format("VBlock boot volume Export: found existing IG (%s) with volumes in it on %s.", igName,  
-                                storage.getNativeGuid()));
-                        vblockConflictIgNames.add(igName);
+            // get volumes for each IG
+            boolean bulkApiCallFlag = Boolean
+                    .valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, XTREMIO_BULK_API_CALL));
+
+            Map<String, List<XtremIOVolume>> igNameToVolumesMap = new HashMap<>();
+            if (client.isVersion2() && XtremIOProvUtils.isBulkAPISupported(storage.getFirmwareVersion(),client)
+                    && bulkApiCallFlag) {
+                if (!igNames.isEmpty())
+                    igNameToVolumesMap = XtremIOProvUtils.getLunMapAndVolumes(igNames, xioClusterName, client,
+                            igNameToVolumesMap);
+                for (Map.Entry<String, List<XtremIOVolume>> entry : igNameToVolumesMap.entrySet()) {
+                    for (XtremIOVolume volume : entry.getValue()) {
+                        volumesToIGMap.put(entry.getKey(), volume.getVolInfo().get(1));
+
+                        if (ExportMaskUtils.isVblockHost(initiatorIds, dbClient)
+                                && ExportMaskUtils.isBootVolume(dbClient, volumeMap)) {
+                            _log.error(String.format(
+                                    "VBlock boot volume Export: found existing IG (%s) with volumes in it on %s.",
+                                    entry.getKey(), storage.getNativeGuid()));
+                            vblockConflictIgNames.add(entry.getKey());
+                        }
+                    }
+                }
+            } else {
+                for (String igName : igNames) {
+                    List<XtremIOVolume> igVols = XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client);
+                    for (XtremIOVolume igVolume : igVols) {
+                        volumesToIGMap.put(igName, igVolume.getVolInfo().get(1));
+
+                        /**
+                         * COP-28674: During Vblock Boot volume export, if existing masking views are found then check for existing volumes
+                         * If found throw exception. This condition is valid only for boot volume vblock export.
+                         */
+                        if (ExportMaskUtils.isVblockHost(initiatorIds, dbClient) && ExportMaskUtils.isBootVolume(dbClient, volumeMap)) {
+                            _log.error(String.format("VBlock boot volume Export: found existing IG (%s) with volumes in it on %s.", igName,
+                                    storage.getNativeGuid()));
+                            vblockConflictIgNames.add(igName);
+                        }
                     }
                 }
             }

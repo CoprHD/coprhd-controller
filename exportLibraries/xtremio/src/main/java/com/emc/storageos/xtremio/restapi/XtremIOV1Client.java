@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
@@ -36,6 +37,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapFull;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
@@ -49,6 +51,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTags;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesFull;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -632,4 +635,15 @@ public class XtremIOV1Client extends XtremIOClient {
     public void expandBlockSnapshot(String snapshotName, String size, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("expandXtremIOBlockSnapshot");
     }
+
+	@Override
+	public List<XtremIOLunMapFull> getLunMapsForAllInitiatorGroups(Set<String> igNameSet, String clusterName)
+			throws Exception {
+		throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getLunMapsForAllInitiatorGroups");
+	}
+
+	@Override
+	public XtremIOVolumesFull getVolumesForAllInitiatorGroups(String clusterName, StringBuilder volumeURL) throws Exception {
+		throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getVolumesForAllInitiatorGroups");
+	}
 }

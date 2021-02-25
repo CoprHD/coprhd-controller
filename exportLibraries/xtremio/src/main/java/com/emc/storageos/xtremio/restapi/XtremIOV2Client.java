@@ -9,6 +9,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapFull;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
@@ -56,6 +58,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOTags;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTagsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesFull;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMS;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSResponse;
@@ -757,5 +760,51 @@ public class XtremIOV2Client extends XtremIOClient {
         String volUriStr = XtremIOConstants.XTREMIO_V2_SNAPS_STR.concat(XtremIOConstants.getInputNameString(snapshotName));
         put(URI.create(volUriStr), getJsonForEntity(volExpand));
     }
+
+	@Override
+	public List<XtremIOLunMapFull> getLunMapsForAllInitiatorGroups(Set<String> igNameSet, String clusterName)
+			throws Exception {
+
+		String filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_FULL_STR, clusterName);
+		List<XtremIOLunMapFull> igLunMapsList = new ArrayList<>();
+		int indexSize=0; 
+		for(String igName : igNameSet)
+		{
+			if(igName!=null)
+			{
+				filterString=filterString + "ig-name:eq:" + igName + ",";
+				indexSize++;
+			}
+			
+			if (indexSize >= XtremIOConstants.XTREMIO_MAX_Filters) {
+				filterString=filterString.substring(0, filterString.length()-1);
+		        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(filterString);
+		        ClientResponse response = get(URI.create(uriString));
+		        XtremIOLunMapFull lunMapLinks = getResponseObject(XtremIOLunMapFull.class, response);
+		        igLunMapsList.add(lunMapLinks);
+		        indexSize=0;
+		        filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_FULL_STR, clusterName);
+			}
+		}
+
+		filterString=filterString.substring(0, filterString.length()-1);
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(filterString);
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOLunMapFull lunMapLinks = getResponseObject(XtremIOLunMapFull.class, response);
+        igLunMapsList.add(lunMapLinks);
+
+		return igLunMapsList;
+	}
+
+	@Override
+	public XtremIOVolumesFull getVolumesForAllInitiatorGroups(String clusterName, StringBuilder volumeURL) throws Exception {
+		String filterString = String.format(XtremIOConstants.XTREMIO_VOLUME_IG_FILTER_FULL_STR, clusterName);
+
+		StringBuilder uriString = new StringBuilder(new StringBuilder(XtremIOConstants.XTREMIO_V2_VOLUMES_STR).append(filterString).append(volumeURL));
+		String uri=uriString.substring(0, uriString.length()-1);
+		ClientResponse response = get(URI.create(uri));
+		XtremIOVolumesFull lunMapLinks = getResponseObject(XtremIOVolumesFull.class, response);
+		return lunMapLinks;
+	}
 
 }

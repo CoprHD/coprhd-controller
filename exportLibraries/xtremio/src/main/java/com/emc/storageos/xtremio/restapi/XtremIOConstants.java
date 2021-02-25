@@ -22,6 +22,9 @@ public class XtremIOConstants {
     public static final String EMPTY_STRING = "";
     public static final String SLASH = "/";
     public static final String DASH = "-";
+    public static final int XTREMIO_MAX_Filters =149; 
+    public static final String XTREMIO_BULK_API_MINVERSION = "4.0.27";
+    public static final String XTREMIO_BULK_XMS_MINVERSION = "6.0.0";
 
     public static final String VOLUME_KEY = "volume";
     public static final String SNAPSHOT_KEY = "snapshot";
@@ -94,6 +97,8 @@ public class XtremIOConstants {
     public static final String XTREMIO_REGULAR_TYPE = "regular";
     public static final String XTREMIO_READ_ONLY_TYPE = "readonly";
     public static final int XTREMIO_MAX_VOL_LENGTH = 55;
+    public static final String XTREMIO_LUNMAP_IG_FILTER_FULL_STR = "?full=1&cluster-name=%s&prop=vol-index&prop=ig_name&filter=";
+    public static final String XTREMIO_VOLUME_IG_FILTER_FULL_STR = "?full=1&cluster-name=%s&prop=vol-id&prop=lun-mapping-list&prop=naa-name&filter=";
 
     // Performance query
     public static final String ENTITY = "entity";

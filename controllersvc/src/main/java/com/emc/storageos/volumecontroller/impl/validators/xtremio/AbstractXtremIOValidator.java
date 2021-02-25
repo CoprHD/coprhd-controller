@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -58,6 +59,10 @@ public abstract class AbstractXtremIOValidator implements Validator {
 
     public XtremIOClientFactory getClientFactory() {
         return factory.getClientFactory();
+    }
+
+    public CoordinatorClient getCoordinatorClient() {
+        return factory.getCoordinator();
     }
 
     public void setErrorOnMismatch(boolean errorOnMismatch) {

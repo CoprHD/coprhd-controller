@@ -313,7 +313,7 @@ $(OVFBUILD_VSPHERE_TMPLS):
 	$(ATSIGN)$(CP) $(<) $(@)
 
 $(OVFBUILD_VSPHERE_BASH_LICENSE_FILE): $(LICENSE_FILE)
-	$(ATSIGN)$(SED) -e 's/&quot;/\\"/g' -e "s/&apos;/'/g" $(<) > $@
+	$(ATSIGN)$(SED)  -e 's/&quot;/\x5c\"/g' -e "s/&apos;/\'/g" $(<) > $@
 	$(ATSIGN)$(CP) $(<) $(@D)
 
 $(OVFBUILD_VSPHERE_BASH_SCRIPT): $(OVFBUILD_VSPHERE_BASH_SCRIPT_TMPL) $(OVFBUILD_VSPHERE_TMPLS) $(OVFBUILD_VSPHERE_BASH_LICENSE_FILE)
@@ -322,7 +322,7 @@ $(OVFBUILD_VSPHERE_PS_COMMON_FUNCTIONS): $(PS_COMMON_FUNCTIONS)
 	$(ATSIGN)$(CP) $(<) $(@)
 
 $(OVFBUILD_VSPHERE_PS_LICENSE_FILE): $(LICENSE_FILE)
-	$(ATSIGN)$(SED) -e 's/&quot;/\`"/g' -e "s/&apos;/\`'/g" $(<) >$(@)
+	$(ATSIGN)$(SED)  -e 's/&quot;/\`"/g' -e "s/&apos;/\`'/g" $(<) >$(@)
 
 $(OVFBUILD_VSPHERE_PS): $(OVFBUILD_VSPHERE_PS_TMPL) $(OVFBUILD_VSPHERE_TMPLS) $(OVFBUILD_VSPHERE_PS_COMMON_FUNCTIONS) $(OVFBUILD_VSPHERE_PS_LICENSE_FILE)
 

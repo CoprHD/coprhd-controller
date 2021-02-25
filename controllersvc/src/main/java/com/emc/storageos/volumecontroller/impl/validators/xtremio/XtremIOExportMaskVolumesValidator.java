@@ -6,10 +6,13 @@ package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +34,7 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
 
     private final Collection<? extends BlockObject> blockObjects;
     private Collection<String> igNames;
+    private static final String XTREMIO_BULK_API_CALL = "xtremio_bulk_api";
 
     XtremIOExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
             Collection<? extends BlockObject> blockObjects) {
@@ -56,8 +60,26 @@ public class XtremIOExportMaskVolumesValidator extends AbstractXtremIOValidator 
             }
 
             List<XtremIOVolume> igVolumes = new ArrayList<>();
-            for (String igName : igNames) {
-                igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
+
+            boolean bulkApiCallFlag = Boolean.valueOf(
+                    ControllerUtils.getPropertyValueFromCoordinator(getCoordinatorClient(), XTREMIO_BULK_API_CALL));
+            Map<String, List<XtremIOVolume>> igNameToVolumesMap = new HashMap<>();
+
+            Set<String> igNameSet = new HashSet<>(igNames);
+            if (client.isVersion2() && XtremIOProvUtils.isBulkAPISupported(storage.getFirmwareVersion(),client)
+                    && bulkApiCallFlag) {
+                if (!igNameSet.isEmpty())
+                    igNameToVolumesMap = XtremIOProvUtils.getLunMapAndVolumes(igNameSet, xioClusterName, client,
+                            igNameToVolumesMap);
+                for (Map.Entry<String, List<XtremIOVolume>> entry : igNameToVolumesMap.entrySet()) {
+                    igVolumes.addAll(entry.getValue());
+
+                }
+
+            } else {
+                for (String igName : igNames) {
+                    igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
+                }
             }
 
             for (XtremIOVolume igVolume : igVolumes) {

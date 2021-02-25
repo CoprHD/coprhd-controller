@@ -36,10 +36,14 @@ import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapFull;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesFull;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 
@@ -546,6 +550,12 @@ public class XtremIOProvUtils {
         return false;
     }
 
+	public static boolean isBulkAPISupported(String firmwareVersion,XtremIOClient client) throws Exception {
+        String xmsVersion =client.getXtremIOXMSVersion();
+		return xmsVersion.compareTo(XtremIOConstants.XTREMIO_BULK_XMS_MINVERSION) >=0 && firmwareVersion.compareTo(XtremIOConstants.XTREMIO_BULK_API_MINVERSION) >= 0;
+        
+    }
+
     /**
      * Returns the XtremIO supported OS based on the initiator Host OS type.
      *
@@ -597,6 +607,77 @@ public class XtremIOProvUtils {
         }
         return igVolumes;
     }
+
+
+	public static Map<String, List<XtremIOVolume>> getLunMapAndVolumes(Set<String> igNameSet, String clusterName,
+            XtremIOClient client, Map<String, List<XtremIOVolume>> igNameToVolMap) throws Exception {
+        List<XtremIOLunMapFull> igLunMaps = new ArrayList<>();
+        long starttime =0l;
+        starttime=System.nanoTime();
+        igLunMaps = client.getLunMapsForAllInitiatorGroups(igNameSet, clusterName);
+        _log.debug("Time taken for All Lun API Call : " + "total time = "
+                + String.format("%2.6f", (System.nanoTime() - starttime) / 1000000000.0) + " seconds"  );
+        HashMap<String, List<String>> map = new HashMap<>();
+        HashMap<String, XtremIOVolume> indexInfoMap = new HashMap<>();
+
+        StringBuilder volumeURL = new StringBuilder();
+        String indexFilter = "index:eq:";
+        int indexSize =0;
+       long starttime1 = System.nanoTime();
+        for (XtremIOLunMapFull lunMapFull : igLunMaps) {
+            for (XtremIOLunMap lunmap : lunMapFull.getContent()) {
+                if (map.containsKey(lunmap.getIgName())) {
+                    map.get(lunmap.getIgName()).add(lunmap.getVolumeIndex());
+                    map.put(lunmap.getIgName(), map.get(lunmap.getIgName()));
+                    volumeURL = volumeURL.append(indexFilter).append(lunmap.getVolumeIndex()).append(",");
+                    indexSize++;
+                  } else {
+                    List<String> volumeIndexList = new ArrayList<>();
+                    volumeIndexList.add(lunmap.getVolumeIndex());
+                    map.put(lunmap.getIgName(), volumeIndexList);
+                   volumeURL = volumeURL.append(indexFilter).append(lunmap.getVolumeIndex()).append(",");
+                   indexSize++;
+                }
+
+                if (indexSize >= XtremIOConstants.XTREMIO_MAX_Filters) {
+                     starttime = System.nanoTime();
+                    XtremIOVolumesFull volumes = client.getVolumesForAllInitiatorGroups(clusterName, volumeURL);
+                    _log.debug("Time taken for Volume API Call : " + "total time = "
+                            + String.format("%2.6f", (System.nanoTime() - starttime) / 1000000000.0) + " seconds , numFilters = " + indexSize );
+                    for (XtremIOVolume volume : volumes.getContent()) {
+                        indexInfoMap.put(volume.getVolInfo().get(2), volume);
+                    }
+                    volumeURL = new StringBuilder();
+                    indexSize = 0;
+                }
+
+            }
+        }
+        starttime = System.nanoTime();
+        XtremIOVolumesFull volumes = client.getVolumesForAllInitiatorGroups(clusterName, volumeURL);
+        _log.debug("Time taken for Volume API Call : " + "total time = "
+                + String.format("%2.6f", (System.nanoTime() - starttime) / 1000000000.0) + " seconds , numFilters = " + indexSize );
+        _log.debug("Time taken for All Volume API Call : " + "total time = "
+                + String.format("%2.6f", (System.nanoTime() - starttime1) / 1000000000.0) + " seconds ");
+        for (XtremIOVolume volume : volumes.getContent()) {
+            indexInfoMap.put(volume.getVolInfo().get(2), volume);
+        }
+
+        for (Map.Entry<String, List<String>> entry1 : map.entrySet()) {
+            List<XtremIOVolume> discoveredVolumes = new ArrayList<>();
+            for (Map.Entry<String, XtremIOVolume> entry2 : indexInfoMap.entrySet()) {
+                if (entry1.getValue().contains(entry2.getKey())) {
+
+                    discoveredVolumes.add(entry2.getValue());
+                }
+
+            }
+            igNameToVolMap.put(entry1.getKey(), discoveredVolumes);
+        }
+
+        return igNameToVolMap;
+    }
+
 
     /**
      * Gets the lun maps for the initiator group.

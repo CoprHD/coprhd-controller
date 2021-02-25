@@ -1995,7 +1995,7 @@ public class DbClientImpl implements DbClient {
 
                     // Some code isn't updating progress to 100 when completed, so fix this here
                     if (Objects.equal(task.getStatus(), "pending") || Objects.equal(task.getStatus(), "suspended_no_error") ||
-                            Objects.equal(task.getStatus(), "suspended_error")) {
+                            Objects.equal(task.getStatus(), "suspended_error") || Objects.equal(task.getStatus(),"queued")) {
                         task.setProgress(operation.getProgress());
                     } else {
                         task.setProgress(COMPLETED_PROGRESS);
@@ -2008,11 +2008,15 @@ public class DbClientImpl implements DbClient {
                         _log.info("Completed task {}, {}", task.getId() + " (" + task.getRequestId() + ")", task.getStatus());
                     }
                 }
-
-                if (taskDoType.serialize(mutator, task)) {
-                    objectsToCleanup.add(task.getId());
+                // Excluding the clean-up for tasks marked 'suspended_no_error'.
+                // Tasks marked 'suspended_no_error' (VPLEX data migration with suspend flag enabled) will require manual intervention from the user. Any delay from the user, exceeding the Task TTL should not prematurely delete the task.
+                // These tasks will be later available for clean-up, once the user marks the ongoing task with either 'commit' or 'rollback'.
+                
+                if (!Objects.equal(task.getStatus(), "suspended_no_error") || !Objects.equal(task.getStatus(),"queued"))  {
+                	if (taskDoType.serialize(mutator, task)) {
+                		objectsToCleanup.add(task.getId());
+                	}
                 }
-
                 operation.addTask(dataObject.getId(), task);
             }
         }

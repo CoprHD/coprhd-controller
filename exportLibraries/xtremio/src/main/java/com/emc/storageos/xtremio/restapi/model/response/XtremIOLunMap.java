@@ -34,6 +34,10 @@ public class XtremIOLunMap {
     @JsonProperty(value = "name")
     private String name;
 
+    @SerializedName("vol-index")
+    @JsonProperty(value = "vol-index")
+    private String volumeIndex;
+
     public List<String> getMappingInfo() {
         return mappingInfo;
     }
@@ -48,6 +52,14 @@ public class XtremIOLunMap {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getVolumeIndex() {
+        return volumeIndex;
+    }
+
+    public void setVolumeIndex(String volumeIndex) {
+        this.volumeIndex = volumeIndex;
     }
 
     public String getIgName() {
@@ -76,7 +88,8 @@ public class XtremIOLunMap {
 
     @Override
     public String toString() {
-        return "XtremIOLunMap [mappingInfo=" + mappingInfo + ", name=" + name + ", ig-name=" + igName + ", vol-name=" + volumeName
-                + ", lun=" + lun + "]";
+        return "XtremIOLunMap [mappingInfo=" + mappingInfo + ", igName=" + igName + ", volumeName=" + volumeName
+                + ", lun=" + lun + ", name=" + name + ", volumeIndex=" + volumeIndex + "]";
     }
+
 }

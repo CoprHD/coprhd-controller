@@ -482,38 +482,77 @@ public class FileStorageUtils {
         for (ExportRule rule : exportRuleList) {
             existingRuleSet.add(rule.getSecFlavor());
         }
-
+       
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
         List<ExportRule> exportRuleListToModify = Lists.newArrayList();
+        
+        Set<String> trackSecuritySet = Sets.newHashSet();
+		
         for (FileExportRule rule : fileExportRules) {
-            ExportRule exportRule = new ExportRule();
-            exportRule.setFsID(fileSystemId);
-            exportRule.setSecFlavor(rule.security);
-            String rootUserMapping = rule.rootUserMapping;
-            String domain = rule.domain;
-            if (StringUtils.isNotBlank(domain)) {
-                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
-            }
-            exportRule.setAnon(rootUserMapping);
-            Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
-            switch (rule.getPermission()) {
-                case "ro":
-                    exportRule.setReadOnlyHosts(exportHosts);
-                    break;
-                case "rw":
-                    exportRule.setReadWriteHosts(exportHosts);
-                    break;
-                case "root":
-                    exportRule.setRootHosts(exportHosts);
-                    break;
-                default:
-                    break;
-            }
-
-            if (existingRuleSet.contains(exportRule.getSecFlavor())) {
-                exportRuleListToModify.add(exportRule);
-            } else {
-                exportRuleListToAdd.add(exportRule);
+            if (!trackSecuritySet.contains(rule.getSecurity())) {
+	        ExportRule exportRule = new ExportRule();
+	        exportRule.setFsID(fileSystemId);
+	        exportRule.setSecFlavor(rule.security);
+	        String rootUserMapping = rule.rootUserMapping;
+	        String domain = rule.domain;
+	        if (StringUtils.isNotBlank(domain)) {
+	            rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+	        }
+	        exportRule.setAnon(rootUserMapping);
+	     	Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
+	    	switch (rule.getPermission()) {
+		    case "ro":
+		    	exportRule.setReadOnlyHosts(exportHosts);
+		    	break;
+		    case "rw":
+		    	exportRule.setReadWriteHosts(exportHosts);
+		    	break;
+		    case "root":
+		    	exportRule.setRootHosts(exportHosts);
+		    	break;
+		    default:
+		    	break;
+	    	}
+	            
+	        for (FileExportRule childExportRule : fileExportRules) {
+	            if (rule.getSecurity().equals(childExportRule.getSecurity())) {
+	            	Set<String> mergedHost = Sets.newHashSet();
+	            	Set<String> exportChildHosts = new HashSet<String>(childExportRule.exportHosts);
+	    	        switch (childExportRule.getPermission()) {
+	    	            case "ro":
+	    	                if (exportRule.getReadOnlyHosts() != null) {
+	    	                    mergedHost.addAll(exportRule.getReadOnlyHosts());
+	    	                }	
+	    	                mergedHost.addAll(exportChildHosts);
+	    	                exportRule.setReadOnlyHosts(mergedHost);
+	    	                break;
+	    	            case "rw":
+	    	               	if (exportRule.getReadWriteHosts() != null) {
+	    	            	    mergedHost.addAll(exportRule.getReadWriteHosts());
+	    	                }	
+	    	                mergedHost.addAll(exportChildHosts);
+	    	                exportRule.setReadWriteHosts(mergedHost);
+	    	                break;
+	    	            case "root":
+	    	                if (exportRule.getRootHosts() != null) {
+	    	                    mergedHost.addAll(exportRule.getRootHosts());
+	    	                }	
+	    	                mergedHost.addAll(exportChildHosts);
+	    	                exportRule.setRootHosts(mergedHost);
+	    	                break;
+	    	            default:
+	    	                break;
+	    	        }
+	            }
+	        }
+	
+	        if (existingRuleSet.contains(exportRule.getSecFlavor())) {
+	            exportRuleListToModify.add(exportRule);
+	        } else {
+	            exportRuleListToAdd.add(exportRule);
+	        }
+	            
+	        trackSecuritySet.add(rule.getSecurity());
             }
         }
 
@@ -536,7 +575,8 @@ public class FileStorageUtils {
         return exportId;
     }
 
-    public static String updateFileSnapshotExport(URI fileSnapshotId, String subDirectory, FileExportRule[] fileExportRules) {
+    public static String updateFileSnapshotExport(URI fileSnapshotId, String subDirectory,
+	    FileExportRule[] fileExportRules) {
         List<ExportRule> exportRuleList = getFileSnapshotExportRules(fileSnapshotId, false, subDirectory);
         Set<String> existingRuleSet = Sets.newHashSet();
         for (ExportRule rule : exportRuleList) {
@@ -545,36 +585,75 @@ public class FileStorageUtils {
 
         List<ExportRule> exportRuleListToAdd = Lists.newArrayList();
         List<ExportRule> exportRuleListToModify = Lists.newArrayList();
+		
+	Set<String> trackSecuritySet = Sets.newHashSet();
+		
         for (FileExportRule rule : fileExportRules) {
-            ExportRule exportRule = new ExportRule();
-            exportRule.setFsID(fileSnapshotId);
-            exportRule.setSecFlavor(rule.security);
-            String rootUserMapping = rule.rootUserMapping;
-            String domain = rule.domain;
-            if (StringUtils.isNotBlank(domain)) {
-                rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
-            }
-            exportRule.setAnon(rootUserMapping);
-            Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
-            switch (rule.getPermission()) {
-                case "ro":
-                    exportRule.setReadOnlyHosts(exportHosts);
-                    break;
-                case "rw":
-                    exportRule.setReadWriteHosts(exportHosts);
-                    break;
-                case "root":
-                    exportRule.setRootHosts(exportHosts);
-                    break;
-                default:
-                    break;
-            }
+	    if (!trackSecuritySet.contains(rule.getSecurity())) {
+		ExportRule exportRule = new ExportRule();
+		exportRule.setFsID(fileSnapshotId);
+		exportRule.setSecFlavor(rule.security);
+		String rootUserMapping = rule.rootUserMapping;
+		String domain = rule.domain;
+		if (StringUtils.isNotBlank(domain)) {
+		    rootUserMapping = domain.trim() + "\\" + rootUserMapping.trim();
+		}
+		exportRule.setAnon(rootUserMapping);
+		Set<String> exportHosts = new HashSet<String>(rule.exportHosts);
+		switch (rule.getPermission()) {
+		    case "ro":
+			exportRule.setReadOnlyHosts(exportHosts);
+			break;
+		    case "rw":
+			exportRule.setReadWriteHosts(exportHosts);
+			break;
+		    case "root":
+			exportRule.setRootHosts(exportHosts);
+			break;
+		    default:
+			break;
+		}
+				
+		for (FileExportRule childExportRule : fileExportRules) {
+	            if (rule.getSecurity().equals(childExportRule.getSecurity())) {
+	            	Set<String> mergedHost = Sets.newHashSet();
+	            	Set<String> exportChildHosts = new HashSet<String>(childExportRule.exportHosts);
+	    	        switch (childExportRule.getPermission()) {
+	    	            case "ro":
+	    	              	if (exportRule.getReadOnlyHosts() != null) {
+	    	           	    mergedHost.addAll(exportRule.getReadOnlyHosts());
+	    	                }	
+	    	                mergedHost.addAll(exportChildHosts);
+	    	                exportRule.setReadOnlyHosts(mergedHost);
+	    	                break;
+	    	            case "rw":
+	    	               	if (exportRule.getReadWriteHosts() != null) {
+	    	             	    mergedHost.addAll(exportRule.getReadWriteHosts());
+	    	                }	
+	    	                mergedHost.addAll(exportChildHosts);
+	    	                exportRule.setReadWriteHosts(mergedHost);
+	    	                break;
+	    	            case "root":
+	    	               	if (exportRule.getRootHosts() != null) {
+	    	             	    mergedHost.addAll(exportRule.getRootHosts());
+	    	                }	
+	    	                mergedHost.addAll(exportChildHosts);
+	    	                exportRule.setRootHosts(mergedHost);
+	    	                break;
+	    	            default:
+	    	               break;
+	    	        }
+	            }
+	        }
 
-            if (existingRuleSet.contains(exportRule.getSecFlavor())) {
-                exportRuleListToModify.add(exportRule);
-            } else {
-                exportRuleListToAdd.add(exportRule);
-            }
+		if (existingRuleSet.contains(exportRule.getSecFlavor())) {
+		    exportRuleListToModify.add(exportRule);
+		} else {
+		    exportRuleListToAdd.add(exportRule);
+		}
+				
+		trackSecuritySet.add(rule.getSecurity());
+	    }
         }
 
         SnapshotExportUpdateParams params = new SnapshotExportUpdateParams();

@@ -1596,7 +1596,11 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
             String vnxeExportId = exportRule.getDeviceExportId();
             if (vnxeExportId != null) {
                 List<VNXeNfsShare> vnxeExports = null;
-                vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFs().getNativeId());
+                if (args.getFileSnapshot() != null) {
+                    vnxeExports = apiClient.getNfsSharesForSnap(args.getFileSnapshot().getNativeId());
+                } else {
+                    vnxeExports = apiClient.getNfsSharesForFileSystem(args.getFs().getNativeId());
+                }
                 exportsList.addAll(vnxeExports);
                 for (VNXeNfsShare vnXeNfsShare : vnxeExports) {
                     List<VNXeBase> hostIdReadOnly = vnXeNfsShare.getReadOnlyHosts();

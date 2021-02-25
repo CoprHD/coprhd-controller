@@ -5,18 +5,21 @@
 package com.emc.storageos.xtremio.restapi;
 
 import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapFull;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesFull;
 
 public interface XtremIODiscoveryClient {
 
@@ -258,6 +261,9 @@ public interface XtremIODiscoveryClient {
      */
     public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception;
 
+    public List<XtremIOLunMapFull> getLunMapsForAllInitiatorGroups(Set<String> igNameSet, String clusterName) throws Exception;
+
+    public XtremIOVolumesFull getVolumesForAllInitiatorGroups(String clusterName, StringBuilder volumeURL) throws Exception;
     /**
      *
      * @param index
